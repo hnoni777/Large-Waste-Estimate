@@ -1,0 +1,176 @@
+import { useState, useMemo } from 'react'
+import data from '../data.json'
+import './index.css'
+
+function App() {
+  const [activeTab, setActiveTab] = useState('search') // 'search' or 'cart'
+  const [searchTerm, setSearchTerm] = useState('')
+  const [cart, setCart] = useState([])
+
+  const items = useMemo(() => {
+    return data.map((d, index) => ({
+      id: `${d['품목']}_${d['규격']}_${index}`,
+      item: d['품목'],
+      spec: d['규격'],
+      price: Number(d['비용']) || 0
+    }))
+  }, [])
+
+  const filteredItems = useMemo(() => {
+    if (!searchTerm.trim()) return items
+    const lower = searchTerm.toLowerCase()
+    return items.filter(
+      (i) => (i.item && i.item.toLowerCase().includes(lower)) || 
+             (i.spec && i.spec.toLowerCase().includes(lower))
+    )
+  }, [searchTerm, items])
+
+  const addToCart = (itemObj) => {
+    setCart((prev) => {
+      const existing = prev.find((c) => c.id === itemObj.id)
+      if (existing) {
+        return prev.map((c) =>
+          c.id === itemObj.id ? { ...c, qty: c.qty + 1 } : c
+        )
+      }
+      return [...prev, { ...itemObj, qty: 1 }]
+    })
+  }
+
+  const updateQty = (id, delta) => {
+    setCart((prev) =>
+      prev.map((c) => {
+        if (c.id === id) {
+          const newQty = c.qty + delta
+          return { ...c, qty: newQty > 0 ? newQty : 1 }
+        }
+        return c
+      })
+    )
+  }
+
+  const removeFromCart = (id) => {
+    setCart((prev) => prev.filter((c) => c.id !== id))
+  }
+
+  const totalCost = useMemo(() => {
+    return cart.reduce((sum, c) => sum + c.price * c.qty, 0)
+  }, [cart])
+
+  const cartItemsCount = cart.reduce((sum, c) => sum + c.qty, 0)
+
+  return (
+    <>
+      <header className="app-header">
+        <h1 className="app-title">대형폐기물 견적</h1>
+      </header>
+
+      <main className="app-content">
+        
+        {/* === SEARCH TAB === */}
+        {activeTab === 'search' && (
+          <div className="tab-search">
+            <div className="search-input-wrapper">
+              <input
+                type="text"
+                className="search-input"
+                placeholder="품목 검색 (예: 의자, 1인용)"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            
+            <div className="list-container">
+              {filteredItems.slice(0, 100).map((item) => (
+                <div 
+                  key={item.id} 
+                  className="item-card clickable" 
+                  onClick={() => addToCart(item)}
+                >
+                  <div className="item-info">
+                    <h4>{item.item}</h4>
+                    <p>{item.spec}</p>
+                  </div>
+                  <div className="item-price">
+                    +{item.price.toLocaleString()}원
+                  </div>
+                </div>
+              ))}
+              {filteredItems.length === 0 && (
+                <div className="empty-state">검색 결과가 없습니다.</div>
+              )}
+              {filteredItems.length > 100 && (
+                <div className="empty-state">항목이 너무 많습니다. 검색어를 더 입력해주세요.</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* === CART TAB === */}
+        {activeTab === 'cart' && (
+          <div className="tab-cart">
+            <div className="cart-total-header">
+              <div>
+                <h3>총비용</h3>
+                <p style={{margin: 0, opacity: 0.8, fontSize: '0.8rem'}}>{cartItemsCount}개 항목</p>
+              </div>
+              <div className="total-price">{totalCost.toLocaleString()}원</div>
+            </div>
+
+            <div className="list-container">
+              {cart.length === 0 ? (
+                <div className="empty-state">
+                  견적서가 비어있습니다.<br/>
+                  하단 검색 탭에서 품목을 추가해주세요.
+                </div>
+              ) : (
+                cart.map((c) => (
+                  <div key={c.id} className="item-card" style={{ background: 'var(--border-color)' }}>
+                    <div className="item-info">
+                      <h4>{c.item}</h4>
+                      <p>{c.spec}</p>
+                      <div className="item-price" style={{marginTop: '4px'}}>
+                        {(c.price * c.qty).toLocaleString()}원
+                      </div>
+                    </div>
+                    <div className="cart-controls">
+                      <div className="qty-control">
+                        <button className="qty-btn" onClick={() => updateQty(c.id, -1)}>-</button>
+                        <div className="qty-display">{c.qty}</div>
+                        <button className="qty-btn" onClick={() => updateQty(c.id, 1)}>+</button>
+                      </div>
+                      <button className="delete-btn" onClick={() => removeFromCart(c.id)}>✕</button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Bottom Navigation */}
+      <nav className="bottom-nav">
+        <button 
+          className={`nav-item ${activeTab === 'search' ? 'active' : ''}`}
+          onClick={() => setActiveTab('search')}
+        >
+          <span className="nav-icon">🔍</span>
+          <span>검색</span>
+        </button>
+        <button 
+          className={`nav-item ${activeTab === 'cart' ? 'active' : ''}`}
+          onClick={() => setActiveTab('cart')}
+        >
+          <span className="nav-icon">🧾</span>
+          <span>견적서</span>
+          {cartItemsCount > 0 && (
+            <span className="badge">{cartItemsCount > 99 ? '99+' : cartItemsCount}</span>
+          )}
+        </button>
+      </nav>
+    </>
+  )
+}
+
+export default App
