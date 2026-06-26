@@ -1,6 +1,6 @@
 {
   "name": "대형폐기물 견적",
-  "short_name": "폐기물견적",
+  "short_name": "대형폐기물 견적",
   "start_url": "/Large-Waste-Estimate/",
   "display": "standalone",
   "background_color": "#ffffff",
