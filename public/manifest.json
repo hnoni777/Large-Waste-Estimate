@@ -1,0 +1,15 @@
+{
+  "name": "대형폐기물 견적",
+  "short_name": "폐기물견적",
+  "start_url": "/Large-Waste-Estimate/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "/Large-Waste-Estimate/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
