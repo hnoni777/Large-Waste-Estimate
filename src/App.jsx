@@ -309,7 +309,7 @@ function App() {
       if (!groupedByDate[dateStr][id]) {
         groupedByDate[dateStr][id] = {
           id,
-          name: row['성명'] || row['신청인'] || row['이름'] || row['성명(법인명)'] || '이름 없음',
+          name: row['신청자'] || row['성명'] || row['신청인'] || row['이름'] || row['성명(법인명)'] || '이름 없음',
           phone: row['휴대폰'] || row['연락처'] || row['전화번호'] || '',
           address: row['주소'] || '',
           items: []
