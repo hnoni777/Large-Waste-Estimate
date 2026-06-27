@@ -52,6 +52,7 @@ function App() {
   const [pickupStatuses, setPickupStatuses] = useState({})
   const [uploadingImages, setUploadingImages] = useState({}) // { [id_type]: boolean }
   const [fullScreenData, setFullScreenData] = useState({ images: [], currentIndex: 0 })
+  const [optimisticImages, setOptimisticImages] = useState({});
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
 
@@ -99,8 +100,7 @@ function App() {
   // 폐가구공유 상태 및 리스너
   const [sharedWastes, setSharedWastes] = useState([]);
   const [isShareWriting, setIsShareWriting] = useState(false);
-  const [sharePhotos, setSharePhotos] = useState([]); // array of imgbb URLs
-  const [isUploadingShare, setIsUploadingShare] = useState(false);
+  const [sharePhotos, setSharePhotos] = useState([]); // array of { id, url, isUploading }
   const [shareDate, setShareDate] = useState(() => {
     const dt = new Date();
     return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
@@ -183,8 +183,34 @@ function App() {
     }
   };
 
-  // 💡 사진 업로드 속도를 비약적으로 높여주는 압축 함수
-  const compressImage = (file, maxWidth = 800) => {
+  // 💡 사진 업로드 속도를 비약적으로 높여주는 하드웨어 가속 압축 함수
+  const compressImage = async (file, maxWidth = 600) => {
+    if (window.createImageBitmap) {
+      try {
+        const bitmap = await createImageBitmap(file);
+        let width = bitmap.width;
+        let height = bitmap.height;
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(bitmap, 0, 0, width, height);
+        bitmap.close(); 
+        return new Promise((resolve, reject) => {
+          canvas.toBlob((blob) => {
+            if (!blob) reject(new Error("Canvas is empty"));
+            resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
+          }, 'image/jpeg', 0.5); 
+        });
+      } catch (e) {
+        console.warn("createImageBitmap failed, falling back to FileReader", e);
+      }
+    }
+    
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -195,29 +221,18 @@ function App() {
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
-
           if (width > maxWidth) {
             height = Math.round((height * maxWidth) / width);
             width = maxWidth;
           }
-
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
-
-          // 화질을 60%(0.6)로 낮춰서 용량 다이어트
           canvas.toBlob((blob) => {
-            if (!blob) {
-              reject(new Error("Canvas is empty"));
-              return;
-            }
-            const compressedFile = new File([blob], file.name, {
-              type: 'image/jpeg',
-              lastModified: Date.now(),
-            });
-            resolve(compressedFile);
-          }, 'image/jpeg', 0.6); 
+            if (!blob) reject(new Error("Canvas is empty"));
+            resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
+          }, 'image/jpeg', 0.5); 
         };
         img.onerror = (err) => reject(err);
       };
@@ -230,11 +245,14 @@ function App() {
     if (!file) return;
 
     const uploadKey = `${pickupId}_${type}`;
+    const localUrl = URL.createObjectURL(file);
+    
+    // 즉각적인 피드백을 위한 낙관적 UI 적용
+    setOptimisticImages(prev => ({ ...prev, [uploadKey]: localUrl }));
     setUploadingImages(prev => ({ ...prev, [uploadKey]: true }));
 
     try {
-      // 원본 대신 압축된 파일 사용
-      const compressedFile = await compressImage(file, 800);
+      const compressedFile = await compressImage(file, 600);
 
       const formData = new FormData();
       formData.append('image', compressedFile);
@@ -258,6 +276,12 @@ function App() {
       alert("이미지 업로드 중 오류가 발생했습니다.");
     } finally {
       setUploadingImages(prev => ({ ...prev, [uploadKey]: false }));
+      // 백그라운드 업로드가 끝났으므로 실제 Firestore URL 렌더링으로 넘김
+      setOptimisticImages(prev => {
+        const next = { ...prev };
+        delete next[uploadKey];
+        return next;
+      });
     }
   };
 
@@ -277,31 +301,39 @@ function App() {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
     
-    setIsUploadingShare(true);
-    const newPhotos = [];
+    e.target.value = ''; // Reset input
     
     for (const file of files) {
-      try {
-        const compressedFile = await compressImage(file, 800);
-        const formData = new FormData();
-        formData.append('image', compressedFile);
-        
-        const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-          method: 'POST',
-          body: formData
-        });
-        const data = await res.json();
-        if (data.success) {
-          newPhotos.push(data.data.url);
+      const localUrl = URL.createObjectURL(file);
+      const tempId = Date.now() + Math.random();
+      
+      // 즉시 UI 반영 (Optimistic UI)
+      setSharePhotos(prev => [...prev, { id: tempId, url: localUrl, isUploading: true }]);
+      
+      // 백그라운드 비동기 업로드 (await 없이 실행)
+      (async () => {
+        try {
+          const compressedFile = await compressImage(file, 600);
+          const formData = new FormData();
+          formData.append('image', compressedFile);
+          
+          const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+            method: 'POST',
+            body: formData
+          });
+          const data = await res.json();
+          if (data.success) {
+            setSharePhotos(prev => prev.map(p => p.id === tempId ? { ...p, url: data.data.url, isUploading: false } : p));
+          } else {
+            setSharePhotos(prev => prev.filter(p => p.id !== tempId));
+          }
+        } catch (err) {
+          console.error("Share photo upload error", err);
+          // 실패 시 임시 이미지 제거
+          setSharePhotos(prev => prev.filter(p => p.id !== tempId));
         }
-      } catch (err) {
-        console.error("Share photo upload error", err);
-      }
+      })();
     }
-    
-    setSharePhotos(prev => [...prev, ...newPhotos]);
-    setIsUploadingShare(false);
-    e.target.value = ''; // Reset input
   };
 
   const removeSharePhoto = (index) => {
@@ -327,10 +359,17 @@ function App() {
       alert("사진을 1장 이상 추가해주세요.");
       return;
     }
+    if (sharePhotos.some(p => p.isUploading)) {
+      alert("사진 업로드가 진행 중입니다. 잠시만 기다려주세요.");
+      return;
+    }
+
+    const finalUrls = sharePhotos.map(p => p.url);
+
     try {
       const newDocRef = doc(collection(db, 'shared_wastes'));
       await setDoc(newDocRef, {
-        photos: sharePhotos,
+        photos: finalUrls,
         createdAt: Date.now(),
         completed: false
       });
@@ -755,13 +794,12 @@ function App() {
                         {/* 사진 업로드 영역 */}
                         <div className="photo-actions">
                           <div className="photo-upload-box">
-                            {uploadingImages[`${group.id}_before`] ? (
-                              <div className="photo-loading">⏳ <span>업로드 중...</span></div>
-                            ) : statusData.beforeImage ? (
-                              <div className="uploaded-photo-wrapper" onClick={() => openFullScreen([statusData.beforeImage], 0)}>
-                                <img src={statusData.beforeImage} alt="수거 전" className="photo-thumb" />
+                            {(optimisticImages[`${group.id}_before`] || statusData.beforeImage) ? (
+                              <div className="uploaded-photo-wrapper" onClick={() => openFullScreen([optimisticImages[`${group.id}_before`] || statusData.beforeImage], 0)}>
+                                <img src={optimisticImages[`${group.id}_before`] || statusData.beforeImage} alt="수거 전" className={`photo-thumb ${uploadingImages[`${group.id}_before`] ? 'uploading-blur' : ''}`} />
                                 <div className="photo-label">📷 수거 전</div>
-                                <button className="photo-delete-btn" onClick={(e) => deleteImage(e, group.id, 'before')}>✕</button>
+                                {uploadingImages[`${group.id}_before`] && <div className="photo-upload-spinner">⏳</div>}
+                                {!uploadingImages[`${group.id}_before`] && <button className="photo-delete-btn" onClick={(e) => deleteImage(e, group.id, 'before')}>✕</button>}
                               </div>
                             ) : (
                               <>
@@ -772,13 +810,12 @@ function App() {
                           </div>
                           
                           <div className="photo-upload-box">
-                            {uploadingImages[`${group.id}_after`] ? (
-                              <div className="photo-loading">⏳ <span>업로드 중...</span></div>
-                            ) : statusData.afterImage ? (
-                              <div className="uploaded-photo-wrapper" onClick={() => openFullScreen([statusData.afterImage], 0)}>
-                                <img src={statusData.afterImage} alt="수거 후" className="photo-thumb" />
+                            {(optimisticImages[`${group.id}_after`] || statusData.afterImage) ? (
+                              <div className="uploaded-photo-wrapper" onClick={() => openFullScreen([optimisticImages[`${group.id}_after`] || statusData.afterImage], 0)}>
+                                <img src={optimisticImages[`${group.id}_after`] || statusData.afterImage} alt="수거 후" className={`photo-thumb ${uploadingImages[`${group.id}_after`] ? 'uploading-blur' : ''}`} />
                                 <div className="photo-label">📸 수거 후</div>
-                                <button className="photo-delete-btn" onClick={(e) => deleteImage(e, group.id, 'after')}>✕</button>
+                                {uploadingImages[`${group.id}_after`] && <div className="photo-upload-spinner">⏳</div>}
+                                {!uploadingImages[`${group.id}_after`] && <button className="photo-delete-btn" onClick={(e) => deleteImage(e, group.id, 'after')}>✕</button>}
                               </div>
                             ) : (
                               <>
@@ -882,7 +919,7 @@ function App() {
                       style={{ display: 'none' }} 
                     />
                     <label htmlFor="share-photo-capture" className="share-action-btn primary" style={{flex: 1}}>
-                      {isUploadingShare ? '⏳ 처리 중...' : '📷 바로 촬영'}
+                      📷 바로 촬영
                     </label>
 
                     <input 
@@ -894,7 +931,7 @@ function App() {
                       style={{ display: 'none' }} 
                     />
                     <label htmlFor="share-photo-upload" className="share-action-btn secondary" style={{flex: 1}}>
-                      {isUploadingShare ? '⏳ 처리 중...' : '📁 갤러리(스샷)'}
+                      📁 갤러리(스샷)
                     </label>
                   </div>
                   
@@ -904,10 +941,16 @@ function App() {
                 </div>
 
                 <div className="share-preview-grid">
-                  {sharePhotos.map((url, idx) => (
+                  {sharePhotos.map((photoObj, idx) => (
                     <div key={idx} className="share-preview-item">
-                      <img src={url} alt="미리보기" onClick={() => openFullScreen(sharePhotos, idx)} />
-                      <button className="share-preview-remove" onClick={() => removeSharePhoto(idx)}>✕</button>
+                      <img 
+                        src={photoObj.url} 
+                        alt="미리보기" 
+                        className={photoObj.isUploading ? 'uploading-blur' : ''}
+                        onClick={() => openFullScreen(sharePhotos.map(p => p.url), idx)} 
+                      />
+                      {photoObj.isUploading && <div className="photo-upload-spinner">⏳</div>}
+                      {!photoObj.isUploading && <button className="share-preview-remove" onClick={() => removeSharePhoto(idx)}>✕</button>}
                     </div>
                   ))}
                   {sharePhotos.length === 0 && (
@@ -919,7 +962,7 @@ function App() {
                   <button className="share-cancel-btn" onClick={() => { setSharePhotos([]); closeShareWrite(); }}>
                     취소
                   </button>
-                  <button className="share-submit-btn" onClick={submitSharePost} disabled={isUploadingShare || sharePhotos.length === 0}>
+                  <button className="share-submit-btn" onClick={submitSharePost} disabled={sharePhotos.length === 0 || sharePhotos.some(p => p.isUploading)}>
                     🚀 업로드 완료
                   </button>
                 </div>
