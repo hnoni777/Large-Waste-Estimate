@@ -363,6 +363,19 @@ function App() {
     }
   };
 
+  const deleteSingleSharePhoto = async (id, currentPhotos, indexToDelete) => {
+    if (!window.confirm("이 사진을 삭제하시겠습니까?")) return;
+    const newPhotos = currentPhotos.filter((_, i) => i !== indexToDelete);
+    try {
+      await setDoc(doc(db, 'shared_wastes', id), {
+        photos: newPhotos
+      }, { merge: true });
+    } catch (e) {
+      console.error("Error deleting single photo: ", e);
+      alert("사진 삭제에 실패했습니다.");
+    }
+  };
+
   const filteredSharedWastes = useMemo(() => {
     return sharedWastes.filter(waste => {
       const d = new Date(waste.createdAt);
@@ -823,13 +836,20 @@ function App() {
                       </div>
                       <div className="share-photo-grid">
                         {waste.photos && waste.photos.map((url, idx) => (
-                          <img 
-                            key={idx} 
-                            src={url} 
-                            alt="폐가구" 
-                            className="share-photo-thumb"
-                            onClick={() => openFullScreen(waste.photos, idx)}
-                          />
+                          <div key={idx} className="share-preview-item">
+                            <img 
+                              src={url} 
+                              alt="폐가구" 
+                              onClick={() => openFullScreen(waste.photos, idx)}
+                            />
+                            <button 
+                              className="share-preview-remove" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteSingleSharePhoto(waste.id, waste.photos, idx);
+                              }}
+                            >✕</button>
+                          </div>
                         ))}
                       </div>
                       <button 
