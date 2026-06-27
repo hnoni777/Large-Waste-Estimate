@@ -516,13 +516,14 @@ body {
   opacity: 1;
   cursor: pointer;
 }
-.calendar-day.available:hover {
+.calendar-day.available:not(.selected):hover {
   background: var(--border-color);
 }
 
-.calendar-day.selected {
-  background: var(--primary-color);
-  color: white;
+.calendar-day.selected,
+.calendar-day.selected:hover {
+  background: var(--primary-color) !important;
+  color: white !important;
   font-weight: bold;
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
 }
