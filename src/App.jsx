@@ -51,7 +51,33 @@ function App() {
   // 파이어베이스 실시간 수거 상태 및 사진
   const [pickupStatuses, setPickupStatuses] = useState({})
   const [uploadingImages, setUploadingImages] = useState({}) // { [id_type]: boolean }
-  const [fullScreenImage, setFullScreenImage] = useState(null)
+  const [fullScreenData, setFullScreenData] = useState({ images: [], currentIndex: 0 })
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+  const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+    if (isLeftSwipe && fullScreenData.images.length > 1) {
+      setFullScreenData(prev => ({
+        ...prev,
+        currentIndex: prev.currentIndex < prev.images.length - 1 ? prev.currentIndex + 1 : 0
+      }));
+    }
+    if (isRightSwipe && fullScreenData.images.length > 1) {
+      setFullScreenData(prev => ({
+        ...prev,
+        currentIndex: prev.currentIndex > 0 ? prev.currentIndex - 1 : prev.images.length - 1
+      }));
+    }
+  };
 
   const IMGBB_API_KEY = '26dd27a0bfb51ce28f2ff4d54c833979';
 
@@ -649,7 +675,7 @@ function App() {
                             {uploadingImages[`${group.id}_before`] ? (
                               <div className="photo-loading">⏳ <span>업로드 중...</span></div>
                             ) : statusData.beforeImage ? (
-                              <div className="uploaded-photo-wrapper" onClick={() => setFullScreenImage(statusData.beforeImage)}>
+                              <div className="uploaded-photo-wrapper" onClick={() => setFullScreenData({ images: [statusData.beforeImage], currentIndex: 0 })}>
                                 <img src={statusData.beforeImage} alt="수거 전" className="photo-thumb" />
                                 <div className="photo-label">📷 수거 전</div>
                                 <button className="photo-delete-btn" onClick={(e) => deleteImage(e, group.id, 'before')}>✕</button>
@@ -666,7 +692,7 @@ function App() {
                             {uploadingImages[`${group.id}_after`] ? (
                               <div className="photo-loading">⏳ <span>업로드 중...</span></div>
                             ) : statusData.afterImage ? (
-                              <div className="uploaded-photo-wrapper" onClick={() => setFullScreenImage(statusData.afterImage)}>
+                              <div className="uploaded-photo-wrapper" onClick={() => setFullScreenData({ images: [statusData.afterImage], currentIndex: 0 })}>
                                 <img src={statusData.afterImage} alt="수거 후" className="photo-thumb" />
                                 <div className="photo-label">📸 수거 후</div>
                                 <button className="photo-delete-btn" onClick={(e) => deleteImage(e, group.id, 'after')}>✕</button>
@@ -734,7 +760,7 @@ function App() {
                             src={url} 
                             alt="폐가구" 
                             className="share-photo-thumb"
-                            onClick={() => setFullScreenImage(url)}
+                            onClick={() => setFullScreenData({ images: waste.photos, currentIndex: idx })}
                           />
                         ))}
                       </div>
@@ -787,7 +813,7 @@ function App() {
                 <div className="share-preview-grid">
                   {sharePhotos.map((url, idx) => (
                     <div key={idx} className="share-preview-item">
-                      <img src={url} alt="미리보기" onClick={() => setFullScreenImage(url)} />
+                      <img src={url} alt="미리보기" onClick={() => setFullScreenData({ images: sharePhotos, currentIndex: idx })} />
                       <button className="share-preview-remove" onClick={() => removeSharePhoto(idx)}>✕</button>
                     </div>
                   ))}
@@ -860,11 +886,52 @@ function App() {
       )}
 
       {/* 사진 크게 보기 모달 */}
-      {fullScreenImage && (
-        <div className="modal-overlay" onClick={() => setFullScreenImage(null)}>
-          <div className="fullscreen-image-container">
-            <img src={fullScreenImage} alt="크게 보기" className="fullscreen-image" />
-            <button className="close-fullscreen-btn" onClick={() => setFullScreenImage(null)}>✕ 닫기</button>
+      {fullScreenData.images && fullScreenData.images.length > 0 && (
+        <div className="modal-overlay" onClick={() => setFullScreenData({images: [], currentIndex: 0})}>
+          <div 
+            className="fullscreen-image-container" 
+            onClick={(e) => e.stopPropagation()}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+          >
+            <img 
+              src={fullScreenData.images[fullScreenData.currentIndex]} 
+              alt="크게 보기" 
+              className="fullscreen-image" 
+            />
+            {fullScreenData.images.length > 1 && (
+              <>
+                <button 
+                  className="nav-btn prev-btn" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFullScreenData(prev => ({
+                      ...prev,
+                      currentIndex: prev.currentIndex > 0 ? prev.currentIndex - 1 : prev.images.length - 1
+                    }));
+                  }}
+                >
+                  ◀
+                </button>
+                <button 
+                  className="nav-btn next-btn" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFullScreenData(prev => ({
+                      ...prev,
+                      currentIndex: prev.currentIndex < prev.images.length - 1 ? prev.currentIndex + 1 : 0
+                    }));
+                  }}
+                >
+                  ▶
+                </button>
+                <div className="fullscreen-counter">
+                  {fullScreenData.currentIndex + 1} / {fullScreenData.images.length}
+                </div>
+              </>
+            )}
+            <button className="close-fullscreen-btn" onClick={() => setFullScreenData({images: [], currentIndex: 0})}>✕ 닫기</button>
           </div>
         </div>
       )}
