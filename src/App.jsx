@@ -281,7 +281,7 @@ function App() {
           onClick={() => setActiveTab('status')}
         >
           <span className="nav-icon">📋</span>
-          <span>현황</span>
+          <span>폐가구접수현황</span>
         </button>
       </nav>
     </>
