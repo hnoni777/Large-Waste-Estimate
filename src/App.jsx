@@ -510,7 +510,17 @@ function App() {
                         </div>
                         <div className="status-name-address">
                           <div className="status-name">👤 {group.name}</div>
-                          <div className="status-address">📍 {group.address}</div>
+                          <div className="status-address-row">
+                            <div className="status-address">📍 {group.address}</div>
+                            <a 
+                              href={`https://map.naver.com/v5/search/${encodeURIComponent(group.address)}`} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="map-link-btn"
+                            >
+                              🗺️ 지도
+                            </a>
+                          </div>
                         </div>
                         <div className="status-items">
                           {group.items.map((item, idx) => (

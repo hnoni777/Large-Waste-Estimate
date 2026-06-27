@@ -394,11 +394,32 @@ body {
   font-weight: 700;
   font-size: 0.95rem;
   color: #333;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+}
+.status-address-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 .status-address {
   font-size: 0.9rem;
   opacity: 0.8;
+  flex: 1;
+}
+.map-link-btn {
+  display: inline-block;
+  background-color: #2DB400; /* 네이버 그린 */
+  color: white;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.map-link-btn:active {
+  background-color: #259600;
 }
 
 .status-items {
