@@ -513,7 +513,7 @@ function App() {
                           <div className="status-address-row">
                             <div className="status-address">📍 {group.address}</div>
                             <a 
-                              href={`https://m.map.naver.com/search2/search.naver?query=${encodeURIComponent(group.address)}`} 
+                              href={`https://map.naver.com/v5/search/${encodeURIComponent(group.address)}`} 
                               target="_blank" 
                               rel="noreferrer" 
                               className="map-link-btn"
