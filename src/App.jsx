@@ -206,7 +206,7 @@ function App() {
         <h1 className="app-title">폐가구처리 매니저</h1>
         <div className="app-subtitle">
           {activeTab === 'search' && '🔍 품목검색'}
-          {activeTab === 'cart' && '🧾 견적서 작성'}
+          {activeTab === 'cart' && '🧾 견적 총비용'}
           {activeTab === 'status' && '📋 접수현황 관리'}
         </div>
       </header>
