@@ -13,6 +13,10 @@ function App() {
   const [availableDates, setAvailableDates] = useState([])
   const [selectedDates, setSelectedDates] = useState([])
   const [fileName, setFileName] = useState('')
+  
+  // 캘린더 팝업 상태
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false)
+  const [currentMonth, setCurrentMonth] = useState(new Date())
 
   const items = useMemo(() => {
     return data.map((d, index) => ({
@@ -107,8 +111,11 @@ function App() {
       const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
       if (datesArr.includes(todayStr)) {
         setSelectedDates([todayStr]);
+        setCurrentMonth(new Date(dt.getFullYear(), dt.getMonth(), 1));
       } else if (datesArr.length > 0) {
         setSelectedDates([datesArr[0]]);
+        const [y, m, dDay] = datesArr[0].split('-');
+        setCurrentMonth(new Date(Number(y), Number(m) - 1, 1));
       } else {
         setSelectedDates([]);
       }
@@ -152,6 +159,32 @@ function App() {
 
     return Object.values(grouped);
   }, [allParsedData, selectedDates]);
+
+  // 달력 관련 로직
+  const handlePrevMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+  };
+  const handleNextMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+  };
+  
+  const calendarDays = useMemo(() => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDay = new Date(year, month, 1).getDay(); // 0(Sun) - 6(Sat)
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    const days = [];
+    for (let i = 0; i < firstDay; i++) {
+      days.push(null);
+    }
+    for (let i = 1; i <= daysInMonth; i++) {
+      const d = String(i).padStart(2, '0');
+      const m = String(month + 1).padStart(2, '0');
+      days.push(`${year}-${m}-${d}`);
+    }
+    return days;
+  }, [currentMonth]);
 
   return (
     <>
@@ -258,21 +291,15 @@ function App() {
               {fileName && <p className="file-name">선택된 파일: {fileName}</p>}
             </div>
 
-            {/* 날짜 선택 필터 UI */}
+            {/* 날짜 선택 버튼 */}
             {availableDates.length > 0 && (
-              <div className="date-filter-container">
-                <div className="date-filter-title">조회할 날짜 선택</div>
-                <div className="date-chips">
-                  {availableDates.map(dateStr => (
-                    <button
-                      key={dateStr}
-                      className={`date-chip ${selectedDates.includes(dateStr) ? 'selected' : ''}`}
-                      onClick={() => toggleDate(dateStr)}
-                    >
-                      {dateStr}
-                    </button>
-                  ))}
-                </div>
+              <div className="date-select-wrapper">
+                <button 
+                  className="date-select-btn"
+                  onClick={() => setIsCalendarOpen(true)}
+                >
+                  📅 날짜 선택하기 <span className="date-count">({selectedDates.length}일 선택됨)</span>
+                </button>
               </div>
             )}
 
@@ -280,7 +307,7 @@ function App() {
               {allParsedData.length > 0 && statusData.length === 0 ? (
                 <div className="empty-state">
                   선택된 날짜에 배출 신청 건이 없습니다.<br/>
-                  (위의 날짜 버튼을 눌러주세요)
+                  (위의 날짜 선택하기 버튼을 눌러주세요)
                 </div>
               ) : statusData.length === 0 ? (
                 <div className="empty-state">
@@ -311,6 +338,54 @@ function App() {
           </div>
         )}
       </main>
+
+      {/* 캘린더 모달 팝업 */}
+      {isCalendarOpen && (
+        <div className="modal-overlay">
+          <div className="calendar-modal">
+            <div className="calendar-header">
+              <button onClick={handlePrevMonth}>◀</button>
+              <h3>{currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월</h3>
+              <button onClick={handleNextMonth}>▶</button>
+            </div>
+            
+            <div className="calendar-weekdays">
+              <div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div>
+            </div>
+            
+            <div className="calendar-grid">
+              {calendarDays.map((dateStr, idx) => {
+                if (!dateStr) return <div key={idx} className="calendar-day empty"></div>;
+                
+                const dayNum = parseInt(dateStr.split('-')[2], 10);
+                const isAvailable = availableDates.includes(dateStr);
+                const isSelected = selectedDates.includes(dateStr);
+                
+                return (
+                  <div 
+                    key={dateStr} 
+                    className={`calendar-day ${isAvailable ? 'available' : ''} ${isSelected ? 'selected' : ''}`}
+                    onClick={() => {
+                      if (isAvailable) toggleDate(dateStr);
+                    }}
+                  >
+                    {dayNum}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="modal-footer">
+              <button 
+                className="modal-close-btn"
+                onClick={() => setIsCalendarOpen(false)}
+              >
+                선택 완료
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Navigation */}
       <nav className="bottom-nav">
