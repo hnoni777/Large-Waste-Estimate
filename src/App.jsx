@@ -1,6 +1,8 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import data from '../data.json'
 import * as XLSX from 'xlsx'
+import { db } from './firebase'
+import { collection, doc, onSnapshot, setDoc } from 'firebase/firestore'
 import './index.css'
 
 function App() {
@@ -17,6 +19,34 @@ function App() {
   // 캘린더 팝업 상태
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
+
+  // 파이어베이스 실시간 수거 상태
+  const [completedPickups, setCompletedPickups] = useState({})
+
+  useEffect(() => {
+    // pickups 컬렉션 실시간 구독
+    const unsubscribe = onSnapshot(collection(db, 'pickups'), (snapshot) => {
+      const statusMap = {};
+      snapshot.forEach(doc => {
+        statusMap[doc.id] = doc.data().completed;
+      });
+      setCompletedPickups(statusMap);
+    }, (error) => {
+      console.error("Firebase listen error:", error);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const toggleComplete = async (id, currentStatus) => {
+    try {
+      await setDoc(doc(db, 'pickups', id), {
+        completed: !currentStatus
+      }, { merge: true });
+    } catch (e) {
+      console.error('Error updating status: ', e);
+    }
+  };
 
   const items = useMemo(() => {
     return data.map((d, index) => ({
@@ -339,7 +369,7 @@ function App() {
                   <div key={dateObj.date} className="date-group-section">
                     <h3 className="date-group-header">📅 {dateObj.date} 접수건</h3>
                     {dateObj.groups.map((group) => (
-                      <div key={group.id} className="status-card">
+                      <div key={group.id} className={`status-card ${completedPickups[group.id] ? 'completed' : ''}`}>
                         <div className="status-header">
                           <div className="status-badge">배출번호: {group.id}</div>
                           <div className="status-contact">📞 {group.phone}</div>
@@ -353,6 +383,14 @@ function App() {
                               <span className="s-item-qty">x{item.qty}</span>
                             </div>
                           ))}
+                        </div>
+                        <div className="status-actions">
+                          <button 
+                            className={`complete-btn ${completedPickups[group.id] ? 'is-completed' : ''}`}
+                            onClick={() => toggleComplete(group.id, completedPickups[group.id])}
+                          >
+                            {completedPickups[group.id] ? '✅ 수거 완료됨 (클릭 시 취소)' : '⬜ 수거 완료 처리'}
+                          </button>
                         </div>
                       </div>
                     ))}

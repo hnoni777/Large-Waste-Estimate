@@ -577,3 +577,44 @@ body {
   display: inline-block;
   align-self: flex-start;
 }
+
+/* Status Card Completion State */
+.status-actions {
+  margin-top: 1rem;
+  border-top: 1px dashed var(--border-color);
+  padding-top: 1rem;
+}
+
+.complete-btn {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid var(--primary-color);
+  background: white;
+  color: var(--primary-color);
+  font-weight: bold;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+}
+.complete-btn:active {
+  transform: scale(0.98);
+}
+.complete-btn.is-completed {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.status-card.completed {
+  background: #f9fafb;
+  opacity: 0.6;
+  border: 1px solid var(--border-color);
+  box-shadow: none;
+}
+.status-card.completed .status-items,
+.status-card.completed .status-contact,
+.status-card.completed .status-address {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
