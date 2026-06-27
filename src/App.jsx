@@ -279,14 +279,15 @@ function App() {
         {activeTab === 'status' && (
           <div className="tab-status">
             <div className="upload-wrapper">
-              <label className="upload-btn">
+              <input 
+                id="excel-upload"
+                type="file" 
+                accept="application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xls,.xlsx" 
+                onChange={handleFileUpload}
+                style={{ display: 'none' }} 
+              />
+              <label htmlFor="excel-upload" className="upload-btn">
                 엑셀 파일 불러오기
-                <input 
-                  type="file" 
-                  accept=".xls,.xlsx" 
-                  onChange={handleFileUpload}
-                  style={{ display: 'none' }} 
-                />
               </label>
               {fileName && <p className="file-name">선택된 파일: {fileName}</p>}
             </div>
