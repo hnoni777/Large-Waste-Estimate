@@ -731,7 +731,19 @@ function App() {
                 <h3 className="share-write-title">새 폐가구 공유</h3>
                 
                 <div className="share-write-actions">
-                  <div className="upload-wrapper" style={{width: '100%'}}>
+                  <div className="upload-wrapper" style={{width: '100%', display: 'flex', gap: '0.5rem'}}>
+                    <input 
+                      id="share-photo-capture"
+                      type="file" 
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleSharePhotoUpload}
+                      style={{ display: 'none' }} 
+                    />
+                    <label htmlFor="share-photo-capture" className="share-action-btn primary" style={{flex: 1}}>
+                      {isUploadingShare ? '⏳ 처리 중...' : '📷 바로 촬영'}
+                    </label>
+
                     <input 
                       id="share-photo-upload"
                       type="file" 
@@ -740,8 +752,8 @@ function App() {
                       onChange={handleSharePhotoUpload}
                       style={{ display: 'none' }} 
                     />
-                    <label htmlFor="share-photo-upload" className="share-action-btn primary">
-                      {isUploadingShare ? '⏳ 사진 압축/업로드 중...' : '📷 사진 추가 (여러장 가능)'}
+                    <label htmlFor="share-photo-upload" className="share-action-btn secondary" style={{flex: 1}}>
+                      {isUploadingShare ? '⏳ 처리 중...' : '📁 갤러리(스샷)'}
                     </label>
                   </div>
                   
