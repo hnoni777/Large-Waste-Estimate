@@ -52,6 +52,48 @@ function App() {
     }
   };
 
+  // 💡 사진 업로드 속도를 비약적으로 높여주는 압축 함수
+  const compressImage = (file, maxWidth = 800) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // 화질을 60%(0.6)로 낮춰서 용량 다이어트
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              reject(new Error("Canvas is empty"));
+              return;
+            }
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          }, 'image/jpeg', 0.6); 
+        };
+        img.onerror = (err) => reject(err);
+      };
+      reader.onerror = (err) => reject(err);
+    });
+  };
+
   const handleImageUpload = async (e, pickupId, type) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -60,8 +102,11 @@ function App() {
     setUploadingImages(prev => ({ ...prev, [uploadKey]: true }));
 
     try {
+      // 원본 대신 압축된 파일 사용
+      const compressedFile = await compressImage(file, 800);
+
       const formData = new FormData();
-      formData.append('image', file);
+      formData.append('image', compressedFile);
       
       const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
         method: 'POST',
