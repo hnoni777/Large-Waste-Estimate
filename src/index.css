@@ -381,14 +381,24 @@ body {
 .status-contact {
   font-weight: bold;
   font-size: 0.95rem;
+  color: var(--primary-color);
+  text-decoration: none;
 }
 
-.status-address {
-  font-size: 0.9rem;
-  opacity: 0.8;
+.status-name-address {
   margin-bottom: 1rem;
   padding-bottom: 0.8rem;
   border-bottom: 1px dashed var(--border-color);
+}
+.status-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #333;
+  margin-bottom: 4px;
+}
+.status-address {
+  font-size: 0.9rem;
+  opacity: 0.8;
 }
 
 .status-items {
