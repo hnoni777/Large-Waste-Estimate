@@ -20,17 +20,21 @@ function App() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
 
-  // 파이어베이스 실시간 수거 상태
-  const [completedPickups, setCompletedPickups] = useState({})
+  // 파이어베이스 실시간 수거 상태 및 사진
+  const [pickupStatuses, setPickupStatuses] = useState({})
+  const [uploadingImages, setUploadingImages] = useState({}) // { [id_type]: boolean }
+  const [fullScreenImage, setFullScreenImage] = useState(null)
+
+  const IMGBB_API_KEY = '26dd27a0bfb51ce28f2ff4d54c833979';
 
   useEffect(() => {
     // pickups 컬렉션 실시간 구독
     const unsubscribe = onSnapshot(collection(db, 'pickups'), (snapshot) => {
       const statusMap = {};
       snapshot.forEach(doc => {
-        statusMap[doc.id] = doc.data().completed;
+        statusMap[doc.id] = doc.data();
       });
-      setCompletedPickups(statusMap);
+      setPickupStatuses(statusMap);
     }, (error) => {
       console.error("Firebase listen error:", error);
     });
@@ -45,6 +49,39 @@ function App() {
       }, { merge: true });
     } catch (e) {
       console.error('Error updating status: ', e);
+    }
+  };
+
+  const handleImageUpload = async (e, pickupId, type) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const uploadKey = `${pickupId}_${type}`;
+    setUploadingImages(prev => ({ ...prev, [uploadKey]: true }));
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        const imageUrl = data.data.url;
+        await setDoc(doc(db, 'pickups', pickupId), {
+          [type + 'Image']: imageUrl
+        }, { merge: true });
+      } else {
+        alert("이미지 업로드에 실패했습니다.");
+      }
+    } catch (err) {
+      console.error("Upload error", err);
+      alert("이미지 업로드 중 오류가 발생했습니다.");
+    } finally {
+      setUploadingImages(prev => ({ ...prev, [uploadKey]: false }));
     }
   };
 
@@ -368,8 +405,12 @@ function App() {
                 statusDataByDate.map((dateObj) => (
                   <div key={dateObj.date} className="date-group-section">
                     <h3 className="date-group-header">📅 {dateObj.date} 접수건</h3>
-                    {dateObj.groups.map((group) => (
-                      <div key={group.id} className={`status-card ${completedPickups[group.id] ? 'completed' : ''}`}>
+                    {dateObj.groups.map((group) => {
+                      const statusData = pickupStatuses[group.id] || {};
+                      const isCompleted = statusData.completed;
+
+                      return (
+                      <div key={group.id} className={`status-card ${isCompleted ? 'completed' : ''}`}>
                         <div className="status-header">
                           <div className="status-badge">배출번호: {group.id}</div>
                           <div className="status-contact">📞 {group.phone}</div>
@@ -384,16 +425,47 @@ function App() {
                             </div>
                           ))}
                         </div>
+
+                        {/* 사진 업로드 영역 */}
+                        <div className="photo-actions">
+                          <div className="photo-upload-box">
+                            {uploadingImages[`${group.id}_before`] ? (
+                              <div className="photo-loading">⏳ <span>업로드 중...</span></div>
+                            ) : statusData.beforeImage ? (
+                              <img src={statusData.beforeImage} alt="수거 전" className="photo-thumb" onClick={() => setFullScreenImage(statusData.beforeImage)} />
+                            ) : (
+                              <>
+                                <input type="file" id={`before_${group.id}`} accept="image/*" capture="environment" style={{display:'none'}} onChange={(e) => handleImageUpload(e, group.id, 'before')} />
+                                <label htmlFor={`before_${group.id}`} className="photo-upload-btn">📷 수거 전 등록</label>
+                              </>
+                            )}
+                          </div>
+                          
+                          <div className="photo-upload-box">
+                            {uploadingImages[`${group.id}_after`] ? (
+                              <div className="photo-loading">⏳ <span>업로드 중...</span></div>
+                            ) : statusData.afterImage ? (
+                              <img src={statusData.afterImage} alt="수거 후" className="photo-thumb" onClick={() => setFullScreenImage(statusData.afterImage)} />
+                            ) : (
+                              <>
+                                <input type="file" id={`after_${group.id}`} accept="image/*" capture="environment" style={{display:'none'}} onChange={(e) => handleImageUpload(e, group.id, 'after')} />
+                                <label htmlFor={`after_${group.id}`} className="photo-upload-btn">📸 수거 후 등록</label>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
                         <div className="status-actions">
                           <button 
-                            className={`complete-btn ${completedPickups[group.id] ? 'is-completed' : ''}`}
-                            onClick={() => toggleComplete(group.id, completedPickups[group.id])}
+                            className={`complete-btn ${isCompleted ? 'is-completed' : ''}`}
+                            onClick={() => toggleComplete(group.id, isCompleted)}
                           >
-                            {completedPickups[group.id] ? '✅ 수거 완료됨 (클릭 시 취소)' : '⬜ 수거 완료 처리'}
+                            {isCompleted ? '✅ 수거 완료됨 (클릭 시 취소)' : '⬜ 수거 완료 처리'}
                           </button>
                         </div>
                       </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 ))
               )}
@@ -446,6 +518,16 @@ function App() {
                 선택 완료
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 사진 크게 보기 모달 */}
+      {fullScreenImage && (
+        <div className="modal-overlay" onClick={() => setFullScreenImage(null)}>
+          <div className="fullscreen-image-container">
+            <img src={fullScreenImage} alt="크게 보기" className="fullscreen-image" />
+            <button className="close-fullscreen-btn" onClick={() => setFullScreenImage(null)}>✕ 닫기</button>
           </div>
         </div>
       )}
