@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import data from '../data.json'
 import * as XLSX from 'xlsx'
 import { db } from './firebase'
-import { collection, doc, onSnapshot, setDoc } from 'firebase/firestore'
+import { collection, doc, onSnapshot, setDoc, deleteDoc } from 'firebase/firestore'
 import './index.css'
 
 function App() {
@@ -350,6 +350,16 @@ function App() {
       }, { merge: true });
     } catch (e) {
       console.error('Error updating share status: ', e);
+    }
+  };
+
+  const deleteSharedPost = async (id) => {
+    if (!window.confirm("이 공유 게시물(사진)을 완전히 삭제하시겠습니까?")) return;
+    try {
+      await deleteDoc(doc(db, 'shared_wastes', id));
+    } catch (e) {
+      console.error("Error deleting post: ", e);
+      alert("삭제에 실패했습니다.");
     }
   };
 
@@ -806,7 +816,10 @@ function App() {
                         <span className="share-time">
                           {new Date(waste.createdAt).toLocaleString()}
                         </span>
-                        {waste.completed && <span className="share-completed-badge">✅ 수거완료</span>}
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          {waste.completed && <span className="share-completed-badge">✅ 수거완료</span>}
+                          <button className="share-delete-btn" onClick={() => deleteSharedPost(waste.id)}>🗑️ 삭제</button>
+                        </div>
                       </div>
                       <div className="share-photo-grid">
                         {waste.photos && waste.photos.map((url, idx) => (
