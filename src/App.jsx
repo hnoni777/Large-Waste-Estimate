@@ -477,7 +477,10 @@ function App() {
                             {uploadingImages[`${group.id}_before`] ? (
                               <div className="photo-loading">⏳ <span>업로드 중...</span></div>
                             ) : statusData.beforeImage ? (
-                              <img src={statusData.beforeImage} alt="수거 전" className="photo-thumb" onClick={() => setFullScreenImage(statusData.beforeImage)} />
+                              <div className="uploaded-photo-wrapper">
+                                <img src={statusData.beforeImage} alt="수거 전" className="photo-thumb" onClick={() => setFullScreenImage(statusData.beforeImage)} />
+                                <div className="photo-label">📷 수거 전</div>
+                              </div>
                             ) : (
                               <>
                                 <input type="file" id={`before_${group.id}`} accept="image/*" capture="environment" style={{display:'none'}} onChange={(e) => handleImageUpload(e, group.id, 'before')} />
@@ -490,7 +493,10 @@ function App() {
                             {uploadingImages[`${group.id}_after`] ? (
                               <div className="photo-loading">⏳ <span>업로드 중...</span></div>
                             ) : statusData.afterImage ? (
-                              <img src={statusData.afterImage} alt="수거 후" className="photo-thumb" onClick={() => setFullScreenImage(statusData.afterImage)} />
+                              <div className="uploaded-photo-wrapper">
+                                <img src={statusData.afterImage} alt="수거 후" className="photo-thumb" onClick={() => setFullScreenImage(statusData.afterImage)} />
+                                <div className="photo-label">📸 수거 후</div>
+                              </div>
                             ) : (
                               <>
                                 <input type="file" id={`after_${group.id}`} accept="image/*" capture="environment" style={{display:'none'}} onChange={(e) => handleImageUpload(e, group.id, 'after')} />
