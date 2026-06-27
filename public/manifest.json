@@ -1,6 +1,6 @@
 {
-  "name": "대형폐기물 견적",
-  "short_name": "대형폐기물 견적",
+  "name": "폐가구처리 매니저",
+  "short_name": "폐가구처리 매니저",
   "start_url": "/Large-Waste-Estimate/",
   "display": "standalone",
   "background_color": "#ffffff",

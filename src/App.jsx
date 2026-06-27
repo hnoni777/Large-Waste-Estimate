@@ -203,7 +203,7 @@ function App() {
   return (
     <>
       <header className="app-header">
-        <h1 className="app-title">대형폐기물 견적</h1>
+        <h1 className="app-title">폐가구처리 매니저</h1>
       </header>
 
       <main className="app-content">
