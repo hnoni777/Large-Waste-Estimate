@@ -118,6 +118,61 @@ function App() {
     return () => unsubscribeShare();
   }, []);
 
+  // 뒤로가기(History) 라우팅 처리
+  useEffect(() => {
+    window.history.replaceState({ type: 'tab', tab: 'search' }, '');
+
+    const handlePopState = (e) => {
+      const state = e.state;
+      if (fullScreenData.images.length > 0) {
+        setFullScreenData({ images: [], currentIndex: 0 });
+      } else if (isCalendarOpen) {
+        setIsCalendarOpen(false);
+      } else if (isShareWriting) {
+        setIsShareWriting(false);
+      } else if (state && state.type === 'tab') {
+        setActiveTab(state.tab);
+      } else {
+        setActiveTab('search');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [fullScreenData, isCalendarOpen, isShareWriting]);
+
+  const handleTabChange = (tab) => {
+    if (activeTab === tab) return;
+    window.history.pushState({ type: 'tab', tab: tab }, '');
+    setActiveTab(tab);
+  };
+
+  const openCalendar = () => {
+    window.history.pushState({ type: 'modal', modal: 'calendar' }, '');
+    setIsCalendarOpen(true);
+  };
+
+  const closeCalendar = () => {
+    if (isCalendarOpen) window.history.back();
+  };
+
+  const openShareWrite = () => {
+    window.history.pushState({ type: 'modal', modal: 'shareWrite' }, '');
+    setIsShareWriting(true);
+  };
+
+  const closeShareWrite = () => {
+    if (isShareWriting) window.history.back();
+  };
+
+  const openFullScreen = (images, index) => {
+    window.history.pushState({ type: 'modal', modal: 'fullscreen' }, '');
+    setFullScreenData({ images, currentIndex: index });
+  };
+
+  const closeFullScreen = () => {
+    if (fullScreenData.images.length > 0) window.history.back();
+  };
+
   const toggleComplete = async (id, currentStatus) => {
     try {
       await setDoc(doc(db, 'pickups', id), {
@@ -280,7 +335,7 @@ function App() {
         completed: false
       });
       setSharePhotos([]);
-      setIsShareWriting(false);
+      window.history.back();
     } catch (e) {
       console.error("Error adding shared waste", e);
       alert("업로드에 실패했습니다.");
@@ -613,7 +668,7 @@ function App() {
               <div className="date-select-wrapper">
                 <button 
                   className="date-select-btn"
-                  onClick={() => setIsCalendarOpen(true)}
+                  onClick={openCalendar}
                 >
                   📅 날짜 선택하기 <span className="date-count">({selectedDates.length}일 선택됨)</span>
                 </button>
@@ -675,7 +730,7 @@ function App() {
                             {uploadingImages[`${group.id}_before`] ? (
                               <div className="photo-loading">⏳ <span>업로드 중...</span></div>
                             ) : statusData.beforeImage ? (
-                              <div className="uploaded-photo-wrapper" onClick={() => setFullScreenData({ images: [statusData.beforeImage], currentIndex: 0 })}>
+                              <div className="uploaded-photo-wrapper" onClick={() => openFullScreen([statusData.beforeImage], 0)}>
                                 <img src={statusData.beforeImage} alt="수거 전" className="photo-thumb" />
                                 <div className="photo-label">📷 수거 전</div>
                                 <button className="photo-delete-btn" onClick={(e) => deleteImage(e, group.id, 'before')}>✕</button>
@@ -692,7 +747,7 @@ function App() {
                             {uploadingImages[`${group.id}_after`] ? (
                               <div className="photo-loading">⏳ <span>업로드 중...</span></div>
                             ) : statusData.afterImage ? (
-                              <div className="uploaded-photo-wrapper" onClick={() => setFullScreenData({ images: [statusData.afterImage], currentIndex: 0 })}>
+                              <div className="uploaded-photo-wrapper" onClick={() => openFullScreen([statusData.afterImage], 0)}>
                                 <img src={statusData.afterImage} alt="수거 후" className="photo-thumb" />
                                 <div className="photo-label">📸 수거 후</div>
                                 <button className="photo-delete-btn" onClick={(e) => deleteImage(e, group.id, 'after')}>✕</button>
@@ -739,7 +794,7 @@ function App() {
                   <span style={{ fontWeight: 'bold' }}>공유 내역</span>
                 </div>
 
-                <button className="share-write-btn" onClick={() => setIsShareWriting(true)}>
+                <button className="share-write-btn" onClick={openShareWrite}>
                   ✍️ 새 공유글 작성하기
                 </button>
                 {filteredSharedWastes.length === 0 ? (
@@ -760,7 +815,7 @@ function App() {
                             src={url} 
                             alt="폐가구" 
                             className="share-photo-thumb"
-                            onClick={() => setFullScreenData({ images: waste.photos, currentIndex: idx })}
+                            onClick={() => openFullScreen(waste.photos, idx)}
                           />
                         ))}
                       </div>
@@ -813,7 +868,7 @@ function App() {
                 <div className="share-preview-grid">
                   {sharePhotos.map((url, idx) => (
                     <div key={idx} className="share-preview-item">
-                      <img src={url} alt="미리보기" onClick={() => setFullScreenData({ images: sharePhotos, currentIndex: idx })} />
+                      <img src={url} alt="미리보기" onClick={() => openFullScreen(sharePhotos, idx)} />
                       <button className="share-preview-remove" onClick={() => removeSharePhoto(idx)}>✕</button>
                     </div>
                   ))}
@@ -823,7 +878,7 @@ function App() {
                 </div>
 
                 <div className="share-write-footer">
-                  <button className="share-cancel-btn" onClick={() => { setIsShareWriting(false); setSharePhotos([]); }}>
+                  <button className="share-cancel-btn" onClick={() => { setSharePhotos([]); closeShareWrite(); }}>
                     취소
                   </button>
                   <button className="share-submit-btn" onClick={submitSharePost} disabled={isUploadingShare || sharePhotos.length === 0}>
@@ -876,7 +931,7 @@ function App() {
             <div className="modal-footer">
               <button 
                 className="modal-close-btn"
-                onClick={() => setIsCalendarOpen(false)}
+                onClick={closeCalendar}
               >
                 선택 완료
               </button>
@@ -887,7 +942,7 @@ function App() {
 
       {/* 사진 크게 보기 모달 */}
       {fullScreenData.images && fullScreenData.images.length > 0 && (
-        <div className="modal-overlay" onClick={() => setFullScreenData({images: [], currentIndex: 0})}>
+        <div className="modal-overlay" onClick={closeFullScreen}>
           <div 
             className="fullscreen-image-container" 
             onClick={(e) => e.stopPropagation()}
@@ -931,7 +986,7 @@ function App() {
                 </div>
               </>
             )}
-            <button className="close-fullscreen-btn" onClick={() => setFullScreenData({images: [], currentIndex: 0})}>✕ 닫기</button>
+            <button className="close-fullscreen-btn" onClick={closeFullScreen}>✕ 닫기</button>
           </div>
         </div>
       )}
@@ -940,14 +995,14 @@ function App() {
       <nav className="bottom-nav">
         <button 
           className={`nav-item ${activeTab === 'search' ? 'active' : ''}`}
-          onClick={() => setActiveTab('search')}
+          onClick={() => handleTabChange('search')}
         >
           <span className="nav-icon">🔍</span>
           <span>검색</span>
         </button>
         <button 
           className={`nav-item ${activeTab === 'cart' ? 'active' : ''}`}
-          onClick={() => setActiveTab('cart')}
+          onClick={() => handleTabChange('cart')}
         >
           <span className="nav-icon">🧾</span>
           <span>견적서</span>
@@ -957,14 +1012,14 @@ function App() {
         </button>
         <button 
           className={`nav-item ${activeTab === 'status' ? 'active' : ''}`}
-          onClick={() => setActiveTab('status')}
+          onClick={() => handleTabChange('status')}
         >
           <span className="nav-icon">📋</span>
           <span>접수현황</span>
         </button>
         <button 
           className={`nav-item ${activeTab === 'share' ? 'active' : ''}`}
-          onClick={() => setActiveTab('share')}
+          onClick={() => handleTabChange('share')}
         >
           <span className="nav-icon">🤝</span>
           <span>폐가구공유</span>
