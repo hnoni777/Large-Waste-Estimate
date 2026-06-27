@@ -20,6 +20,34 @@ function App() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
 
+  // 앱 실행 시 저장된 엑셀 데이터 불러오기
+  useEffect(() => {
+    const savedData = localStorage.getItem('waste_app_data');
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        setAllParsedData(parsed.allParsedData || []);
+        setAvailableDates(parsed.availableDates || []);
+        setFileName(parsed.fileName || '');
+        
+        const datesArr = parsed.availableDates || [];
+        const dt = new Date();
+        const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+        
+        if (datesArr.includes(todayStr)) {
+          setSelectedDates([todayStr]);
+          setCurrentMonth(new Date(dt.getFullYear(), dt.getMonth(), 1));
+        } else if (datesArr.length > 0) {
+          setSelectedDates([datesArr[0]]);
+          const [y, m] = datesArr[0].split('-');
+          setCurrentMonth(new Date(Number(y), Number(m) - 1, 1));
+        }
+      } catch (e) {
+        console.error("Failed to parse saved excel data", e);
+      }
+    }
+  }, []);
+
   // 파이어베이스 실시간 수거 상태 및 사진
   const [pickupStatuses, setPickupStatuses] = useState({})
   const [uploadingImages, setUploadingImages] = useState({}) // { [id_type]: boolean }
@@ -229,6 +257,13 @@ function App() {
       
       setAllParsedData(enrichedData);
       setAvailableDates(datesArr);
+      
+      // 로컬 스토리지에 데이터 저장 (앱을 껐다 켜도 유지되도록)
+      localStorage.setItem('waste_app_data', JSON.stringify({
+        allParsedData: enrichedData,
+        availableDates: datesArr,
+        fileName: file.name
+      }));
       
       // 초기 선택 날짜: 오늘 날짜가 있으면 선택, 없으면 가장 최근 날짜 1개 선택
       const dt = new Date();
