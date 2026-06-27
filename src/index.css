@@ -12,16 +12,6 @@
   font-weight: 400;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg-color: #111827;
-    --app-bg: #1f2937;
-    --text-color: #f9fafb;
-    --border-color: #374151;
-    --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  }
-}
-
 body {
   margin: 0;
   min-height: 100vh;
