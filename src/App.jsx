@@ -8,8 +8,10 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('')
   const [cart, setCart] = useState([])
   
-  // 배출현황 데이터 상태 (배출번호별 그룹 배열)
-  const [statusData, setStatusData] = useState([])
+  // 배출현황 관련 상태
+  const [allParsedData, setAllParsedData] = useState([])
+  const [availableDates, setAvailableDates] = useState([])
+  const [selectedDates, setSelectedDates] = useState([])
   const [fileName, setFileName] = useState('')
 
   const items = useMemo(() => {
@@ -79,47 +81,77 @@ function App() {
       const ws = wb.Sheets[wsname];
       const parsedData = XLSX.utils.sheet_to_json(ws);
       
-      // 당일 날짜 필터링을 위한 오늘 날짜 구하기 (YYYY-MM-DD 형식)
-      const dt = new Date();
-      const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-      
-      const filtered = parsedData.filter(row => {
+      const datesSet = new Set();
+      const enrichedData = [];
+
+      parsedData.forEach(row => {
         const d = row['신청일자'];
         if (d instanceof Date) {
           const yyyy = d.getFullYear();
           const mm = String(d.getMonth() + 1).padStart(2, '0');
           const dd = String(d.getDate()).padStart(2, '0');
           const dateStr = `${yyyy}-${mm}-${dd}`;
-          return dateStr === todayStr;
+          
+          datesSet.add(dateStr);
+          enrichedData.push({ ...row, _dateStr: dateStr });
         }
-        return false;
       });
 
-      // 배출번호 기준으로 묶기
-      const grouped = {};
-      filtered.forEach(row => {
-        const id = row['배출번호'];
-        if (!id) return; // 배출번호가 없으면 무시
-        
-        if (!grouped[id]) {
-          grouped[id] = {
-            id,
-            phone: row['휴대폰'],
-            address: row['주소'],
-            items: []
-          };
-        }
-        grouped[id].items.push({
-          item: row['품목'],
-          spec: row['규격'],
-          qty: row['신청수량'] || 1
-        });
-      });
-
-      setStatusData(Object.values(grouped));
+      const datesArr = Array.from(datesSet).sort().reverse(); // 최근 날짜가 먼저 오게 정렬
+      
+      setAllParsedData(enrichedData);
+      setAvailableDates(datesArr);
+      
+      // 초기 선택 날짜: 오늘 날짜가 있으면 선택, 없으면 가장 최근 날짜 1개 선택
+      const dt = new Date();
+      const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+      if (datesArr.includes(todayStr)) {
+        setSelectedDates([todayStr]);
+      } else if (datesArr.length > 0) {
+        setSelectedDates([datesArr[0]]);
+      } else {
+        setSelectedDates([]);
+      }
     };
     reader.readAsBinaryString(file);
   };
+
+  const toggleDate = (dateStr) => {
+    setSelectedDates(prev => {
+      if (prev.includes(dateStr)) {
+        return prev.filter(d => d !== dateStr);
+      } else {
+        return [...prev, dateStr].sort().reverse();
+      }
+    });
+  };
+
+  // 선택된 날짜에 따라 그룹핑된 데이터를 계산
+  const statusData = useMemo(() => {
+    const filtered = allParsedData.filter(row => selectedDates.includes(row._dateStr));
+    
+    const grouped = {};
+    filtered.forEach(row => {
+      const id = row['배출번호'];
+      if (!id) return;
+      
+      if (!grouped[id]) {
+        grouped[id] = {
+          id,
+          phone: row['휴대폰'],
+          address: row['주소'],
+          items: []
+        };
+      }
+      grouped[id].items.push({
+        item: row['품목'],
+        spec: row['규격'],
+        qty: row['신청수량'] || 1
+      });
+    });
+
+    return Object.values(grouped);
+  }, [allParsedData, selectedDates]);
 
   return (
     <>
@@ -210,7 +242,7 @@ function App() {
           </div>
         )}
 
-        {/* === STATUS TAB (배출현황) === */}
+        {/* === STATUS TAB (폐가구접수현황) === */}
         {activeTab === 'status' && (
           <div className="tab-status">
             <div className="upload-wrapper">
@@ -226,8 +258,31 @@ function App() {
               {fileName && <p className="file-name">선택된 파일: {fileName}</p>}
             </div>
 
+            {/* 날짜 선택 필터 UI */}
+            {availableDates.length > 0 && (
+              <div className="date-filter-container">
+                <div className="date-filter-title">조회할 날짜 선택</div>
+                <div className="date-chips">
+                  {availableDates.map(dateStr => (
+                    <button
+                      key={dateStr}
+                      className={`date-chip ${selectedDates.includes(dateStr) ? 'selected' : ''}`}
+                      onClick={() => toggleDate(dateStr)}
+                    >
+                      {dateStr}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="list-container">
-              {statusData.length === 0 ? (
+              {allParsedData.length > 0 && statusData.length === 0 ? (
+                <div className="empty-state">
+                  선택된 날짜에 배출 신청 건이 없습니다.<br/>
+                  (위의 날짜 버튼을 눌러주세요)
+                </div>
+              ) : statusData.length === 0 ? (
                 <div className="empty-state">
                   오늘 날짜의 배출 신청 건이 없습니다.<br/>
                   (엑셀 파일을 업로드해 주세요)
