@@ -620,6 +620,25 @@ body {
   gap: 1rem;
 }
 
+.share-date-header {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  background: white;
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.share-date-input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 1rem;
+}
+
 .share-write-btn {
   width: 100%;
   padding: 1rem;

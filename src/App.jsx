@@ -75,6 +75,10 @@ function App() {
   const [isShareWriting, setIsShareWriting] = useState(false);
   const [sharePhotos, setSharePhotos] = useState([]); // array of imgbb URLs
   const [isUploadingShare, setIsUploadingShare] = useState(false);
+  const [shareDate, setShareDate] = useState(() => {
+    const dt = new Date();
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+  });
 
   useEffect(() => {
     const unsubscribeShare = onSnapshot(collection(db, 'shared_wastes'), (snapshot) => {
@@ -267,6 +271,14 @@ function App() {
       console.error('Error updating share status: ', e);
     }
   };
+
+  const filteredSharedWastes = useMemo(() => {
+    return sharedWastes.filter(waste => {
+      const d = new Date(waste.createdAt);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      return dateStr === shareDate;
+    });
+  }, [sharedWastes, shareDate]);
 
   const items = useMemo(() => {
     return data.map((d, index) => ({
@@ -691,13 +703,23 @@ function App() {
           <div className="tab-share">
             {!isShareWriting ? (
               <div className="share-list-container">
+                <div className="share-date-header">
+                  <input 
+                    type="date" 
+                    value={shareDate} 
+                    onChange={(e) => setShareDate(e.target.value)}
+                    className="share-date-input"
+                  />
+                  <span style={{ fontWeight: 'bold' }}>공유 내역</span>
+                </div>
+
                 <button className="share-write-btn" onClick={() => setIsShareWriting(true)}>
                   ✍️ 새 공유글 작성하기
                 </button>
-                {sharedWastes.length === 0 ? (
-                  <div className="empty-state">공유된 폐가구가 없습니다.</div>
+                {filteredSharedWastes.length === 0 ? (
+                  <div className="empty-state">해당 날짜에 공유된 폐가구가 없습니다.</div>
                 ) : (
-                  sharedWastes.map(waste => (
+                  filteredSharedWastes.map(waste => (
                     <div key={waste.id} className={`share-card ${waste.completed ? 'completed' : ''}`}>
                       <div className="share-card-header">
                         <span className="share-time">
@@ -878,7 +900,7 @@ function App() {
           onClick={() => setActiveTab('share')}
         >
           <span className="nav-icon">🤝</span>
-          <span>공유</span>
+          <span>폐가구공유</span>
         </button>
       </nav>
     </>
