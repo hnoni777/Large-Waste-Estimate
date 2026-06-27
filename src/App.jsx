@@ -367,9 +367,14 @@ function App() {
     if (!window.confirm("이 사진을 삭제하시겠습니까?")) return;
     const newPhotos = currentPhotos.filter((_, i) => i !== indexToDelete);
     try {
-      await setDoc(doc(db, 'shared_wastes', id), {
-        photos: newPhotos
-      }, { merge: true });
+      if (newPhotos.length === 0) {
+        // 사진이 하나도 남지 않게 되면 게시물 전체를 삭제
+        await deleteDoc(doc(db, 'shared_wastes', id));
+      } else {
+        await setDoc(doc(db, 'shared_wastes', id), {
+          photos: newPhotos
+        }, { merge: true });
+      }
     } catch (e) {
       console.error("Error deleting single photo: ", e);
       alert("사진 삭제에 실패했습니다.");
