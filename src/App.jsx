@@ -184,7 +184,7 @@ function App() {
   };
 
   // 💡 사진 업로드 속도를 비약적으로 높여주는 하드웨어 가속 압축 함수
-  const compressImage = async (file, maxWidth = 600) => {
+  const compressImage = async (file, maxWidth = 800) => {
     if (window.createImageBitmap) {
       try {
         const bitmap = await createImageBitmap(file);
@@ -204,7 +204,7 @@ function App() {
           canvas.toBlob((blob) => {
             if (!blob) reject(new Error("Canvas is empty"));
             resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
-          }, 'image/jpeg', 0.5); 
+          }, 'image/jpeg', 0.8); 
         });
       } catch (e) {
         console.warn("createImageBitmap failed, falling back to FileReader", e);
@@ -232,7 +232,7 @@ function App() {
           canvas.toBlob((blob) => {
             if (!blob) reject(new Error("Canvas is empty"));
             resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
-          }, 'image/jpeg', 0.5); 
+          }, 'image/jpeg', 0.8); 
         };
         img.onerror = (err) => reject(err);
       };
@@ -252,7 +252,7 @@ function App() {
     setUploadingImages(prev => ({ ...prev, [uploadKey]: true }));
 
     try {
-      const compressedFile = await compressImage(file, 600);
+      const compressedFile = await compressImage(file, 800);
 
       const formData = new FormData();
       formData.append('image', compressedFile);
@@ -313,7 +313,7 @@ function App() {
       // 백그라운드 비동기 업로드 (await 없이 실행)
       (async () => {
         try {
-          const compressedFile = await compressImage(file, 600);
+          const compressedFile = await compressImage(file, 800);
           const formData = new FormData();
           formData.append('image', compressedFile);
           
