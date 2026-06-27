@@ -133,31 +133,45 @@ function App() {
     });
   };
 
-  // 선택된 날짜에 따라 그룹핑된 데이터를 계산
-  const statusData = useMemo(() => {
+  // 선택된 날짜별로 그룹핑하고, 그 안에서 다시 배출번호로 그룹핑
+  const statusDataByDate = useMemo(() => {
     const filtered = allParsedData.filter(row => selectedDates.includes(row._dateStr));
     
-    const grouped = {};
+    const groupedByDate = {};
     filtered.forEach(row => {
+      const dateStr = row._dateStr;
       const id = row['배출번호'];
       if (!id) return;
       
-      if (!grouped[id]) {
-        grouped[id] = {
+      if (!groupedByDate[dateStr]) {
+        groupedByDate[dateStr] = {};
+      }
+      
+      if (!groupedByDate[dateStr][id]) {
+        groupedByDate[dateStr][id] = {
           id,
           phone: row['휴대폰'],
           address: row['주소'],
           items: []
         };
       }
-      grouped[id].items.push({
+      
+      groupedByDate[dateStr][id].items.push({
         item: row['품목'],
         spec: row['규격'],
         qty: row['신청수량'] || 1
       });
     });
 
-    return Object.values(grouped);
+    // 날짜 내림차순 정렬
+    const result = Object.keys(groupedByDate).sort().reverse().map(dateStr => {
+      return {
+        date: dateStr,
+        groups: Object.values(groupedByDate[dateStr])
+      };
+    });
+    
+    return result;
   }, [allParsedData, selectedDates]);
 
   // 달력 관련 로직
@@ -305,33 +319,38 @@ function App() {
             )}
 
             <div className="list-container">
-              {allParsedData.length > 0 && statusData.length === 0 ? (
+              {allParsedData.length > 0 && statusDataByDate.length === 0 ? (
                 <div className="empty-state">
                   선택된 날짜에 배출 신청 건이 없습니다.<br/>
                   (위의 날짜 선택하기 버튼을 눌러주세요)
                 </div>
-              ) : statusData.length === 0 ? (
+              ) : statusDataByDate.length === 0 ? (
                 <div className="empty-state">
                   오늘 날짜의 배출 신청 건이 없습니다.<br/>
                   (엑셀 파일을 업로드해 주세요)
                 </div>
               ) : (
-                statusData.map((group) => (
-                  <div key={group.id} className="status-card">
-                    <div className="status-header">
-                      <div className="status-badge">배출번호: {group.id}</div>
-                      <div className="status-contact">📞 {group.phone}</div>
-                    </div>
-                    <div className="status-address">📍 {group.address}</div>
-                    <div className="status-items">
-                      {group.items.map((item, idx) => (
-                        <div key={idx} className="status-item-row">
-                          <span className="s-item-name">{item.item}</span>
-                          <span className="s-item-spec">{item.spec}</span>
-                          <span className="s-item-qty">x{item.qty}</span>
+                statusDataByDate.map((dateObj) => (
+                  <div key={dateObj.date} className="date-group-section">
+                    <h3 className="date-group-header">📅 {dateObj.date} 접수건</h3>
+                    {dateObj.groups.map((group) => (
+                      <div key={group.id} className="status-card">
+                        <div className="status-header">
+                          <div className="status-badge">배출번호: {group.id}</div>
+                          <div className="status-contact">📞 {group.phone}</div>
                         </div>
-                      ))}
-                    </div>
+                        <div className="status-address">📍 {group.address}</div>
+                        <div className="status-items">
+                          {group.items.map((item, idx) => (
+                            <div key={idx} className="status-item-row">
+                              <span className="s-item-name">{item.item}</span>
+                              <span className="s-item-spec">{item.spec}</span>
+                              <span className="s-item-qty">x{item.qty}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ))
               )}
