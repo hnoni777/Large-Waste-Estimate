@@ -130,6 +130,18 @@ function App() {
     }
   };
 
+  const deleteImage = async (e, pickupId, type) => {
+    e.stopPropagation();
+    if (!window.confirm('이 사진을 삭제하시겠습니까?')) return;
+    try {
+      await setDoc(doc(db, 'pickups', pickupId), {
+        [type + 'Image']: ""
+      }, { merge: true });
+    } catch (err) {
+      console.error("Delete error", err);
+    }
+  };
+
   const items = useMemo(() => {
     return data.map((d, index) => ({
       id: `${d['품목']}_${d['규격']}_${index}`,
@@ -477,9 +489,10 @@ function App() {
                             {uploadingImages[`${group.id}_before`] ? (
                               <div className="photo-loading">⏳ <span>업로드 중...</span></div>
                             ) : statusData.beforeImage ? (
-                              <div className="uploaded-photo-wrapper">
-                                <img src={statusData.beforeImage} alt="수거 전" className="photo-thumb" onClick={() => setFullScreenImage(statusData.beforeImage)} />
+                              <div className="uploaded-photo-wrapper" onClick={() => setFullScreenImage(statusData.beforeImage)}>
+                                <img src={statusData.beforeImage} alt="수거 전" className="photo-thumb" />
                                 <div className="photo-label">📷 수거 전</div>
+                                <button className="photo-delete-btn" onClick={(e) => deleteImage(e, group.id, 'before')}>✕</button>
                               </div>
                             ) : (
                               <>
@@ -493,9 +506,10 @@ function App() {
                             {uploadingImages[`${group.id}_after`] ? (
                               <div className="photo-loading">⏳ <span>업로드 중...</span></div>
                             ) : statusData.afterImage ? (
-                              <div className="uploaded-photo-wrapper">
-                                <img src={statusData.afterImage} alt="수거 후" className="photo-thumb" onClick={() => setFullScreenImage(statusData.afterImage)} />
+                              <div className="uploaded-photo-wrapper" onClick={() => setFullScreenImage(statusData.afterImage)}>
+                                <img src={statusData.afterImage} alt="수거 후" className="photo-thumb" />
                                 <div className="photo-label">📸 수거 후</div>
+                                <button className="photo-delete-btn" onClick={(e) => deleteImage(e, group.id, 'after')}>✕</button>
                               </div>
                             ) : (
                               <>
