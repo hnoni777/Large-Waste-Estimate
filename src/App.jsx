@@ -70,6 +70,24 @@ function App() {
     return () => unsubscribe();
   }, []);
 
+  // 폐가구공유 상태 및 리스너
+  const [sharedWastes, setSharedWastes] = useState([]);
+  const [isShareWriting, setIsShareWriting] = useState(false);
+  const [sharePhotos, setSharePhotos] = useState([]); // array of imgbb URLs
+  const [isUploadingShare, setIsUploadingShare] = useState(false);
+
+  useEffect(() => {
+    const unsubscribeShare = onSnapshot(collection(db, 'shared_wastes'), (snapshot) => {
+      const wastes = [];
+      snapshot.forEach(doc => {
+        wastes.push({ id: doc.id, ...doc.data() });
+      });
+      wastes.sort((a, b) => b.createdAt - a.createdAt);
+      setSharedWastes(wastes);
+    });
+    return () => unsubscribeShare();
+  }, []);
+
   const toggleComplete = async (id, currentStatus) => {
     try {
       await setDoc(doc(db, 'pickups', id), {
@@ -167,6 +185,86 @@ function App() {
       }, { merge: true });
     } catch (err) {
       console.error("Delete error", err);
+    }
+  };
+
+  const handleSharePhotoUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    
+    setIsUploadingShare(true);
+    const newPhotos = [];
+    
+    for (const file of files) {
+      try {
+        const compressedFile = await compressImage(file, 800);
+        const formData = new FormData();
+        formData.append('image', compressedFile);
+        
+        const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+          newPhotos.push(data.data.url);
+        }
+      } catch (err) {
+        console.error("Share photo upload error", err);
+      }
+    }
+    
+    setSharePhotos(prev => [...prev, ...newPhotos]);
+    setIsUploadingShare(false);
+    e.target.value = ''; // Reset input
+  };
+
+  const removeSharePhoto = (index) => {
+    setSharePhotos(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      alert("이 기기에서는 위치 정보를 지원하지 않습니다.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition((position) => {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      window.open(`https://m.map.naver.com/map.naver?lat=${lat}&lng=${lng}&dlevel=14`, "_blank");
+    }, (error) => {
+      alert("위치 정보를 가져오는데 실패했습니다. 폰의 GPS(위치) 설정이 켜져있는지 확인해주세요.");
+    });
+  };
+
+  const submitSharePost = async () => {
+    if (sharePhotos.length === 0) {
+      alert("사진을 1장 이상 추가해주세요.");
+      return;
+    }
+    try {
+      const newDocRef = doc(collection(db, 'shared_wastes'));
+      await setDoc(newDocRef, {
+        photos: sharePhotos,
+        createdAt: Date.now(),
+        completed: false
+      });
+      setSharePhotos([]);
+      setIsShareWriting(false);
+    } catch (e) {
+      console.error("Error adding shared waste", e);
+      alert("업로드에 실패했습니다.");
+    }
+  };
+
+  const toggleShareComplete = async (id, currentStatus) => {
+    try {
+      await setDoc(doc(db, 'shared_wastes', id), {
+        completed: !currentStatus,
+        completedAt: !currentStatus ? Date.now() : null
+      }, { merge: true });
+    } catch (e) {
+      console.error('Error updating share status: ', e);
     }
   };
 
@@ -368,6 +466,7 @@ function App() {
           {activeTab === 'search' && '🔍 품목검색'}
           {activeTab === 'cart' && '🧾 견적 총비용'}
           {activeTab === 'status' && '📋 접수현황 관리'}
+          {activeTab === 'share' && '🤝 폐가구공유'}
         </div>
       </header>
 
@@ -586,6 +685,96 @@ function App() {
             </div>
           </div>
         )}
+
+        {/* === SHARE TAB (폐가구공유) === */}
+        {activeTab === 'share' && (
+          <div className="tab-share">
+            {!isShareWriting ? (
+              <div className="share-list-container">
+                <button className="share-write-btn" onClick={() => setIsShareWriting(true)}>
+                  ✍️ 새 공유글 작성하기
+                </button>
+                {sharedWastes.length === 0 ? (
+                  <div className="empty-state">공유된 폐가구가 없습니다.</div>
+                ) : (
+                  sharedWastes.map(waste => (
+                    <div key={waste.id} className={`share-card ${waste.completed ? 'completed' : ''}`}>
+                      <div className="share-card-header">
+                        <span className="share-time">
+                          {new Date(waste.createdAt).toLocaleString()}
+                        </span>
+                        {waste.completed && <span className="share-completed-badge">✅ 수거완료</span>}
+                      </div>
+                      <div className="share-photo-grid">
+                        {waste.photos && waste.photos.map((url, idx) => (
+                          <img 
+                            key={idx} 
+                            src={url} 
+                            alt="폐가구" 
+                            className="share-photo-thumb"
+                            onClick={() => setFullScreenImage(url)}
+                          />
+                        ))}
+                      </div>
+                      <button 
+                        className="share-complete-btn" 
+                        onClick={() => toggleShareComplete(waste.id, waste.completed)}
+                      >
+                        {waste.completed ? '수거 취소' : '✅ 수거 완료 처리'}
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : (
+              <div className="share-write-container">
+                <h3 className="share-write-title">새 폐가구 공유</h3>
+                
+                <div className="share-write-actions">
+                  <div className="upload-wrapper" style={{width: '100%'}}>
+                    <input 
+                      id="share-photo-upload"
+                      type="file" 
+                      accept="image/*"
+                      multiple
+                      onChange={handleSharePhotoUpload}
+                      style={{ display: 'none' }} 
+                    />
+                    <label htmlFor="share-photo-upload" className="share-action-btn primary">
+                      {isUploadingShare ? '⏳ 사진 압축/업로드 중...' : '📷 사진 추가 (여러장 가능)'}
+                    </label>
+                  </div>
+                  
+                  <button className="share-action-btn secondary" onClick={handleGetLocation}>
+                    📍 내 위치 지도 보기 (스샷용)
+                  </button>
+                </div>
+
+                <div className="share-preview-grid">
+                  {sharePhotos.map((url, idx) => (
+                    <div key={idx} className="share-preview-item">
+                      <img src={url} alt="미리보기" onClick={() => setFullScreenImage(url)} />
+                      <button className="share-preview-remove" onClick={() => removeSharePhoto(idx)}>✕</button>
+                    </div>
+                  ))}
+                  {sharePhotos.length === 0 && (
+                    <div className="empty-preview">추가된 사진이 없습니다.</div>
+                  )}
+                </div>
+
+                <div className="share-write-footer">
+                  <button className="share-cancel-btn" onClick={() => { setIsShareWriting(false); setSharePhotos([]); }}>
+                    취소
+                  </button>
+                  <button className="share-submit-btn" onClick={submitSharePost} disabled={isUploadingShare || sharePhotos.length === 0}>
+                    🚀 업로드 완료
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
       </main>
 
       {/* 캘린더 모달 팝업 */}
@@ -670,7 +859,14 @@ function App() {
           onClick={() => setActiveTab('status')}
         >
           <span className="nav-icon">📋</span>
-          <span>폐가구접수현황</span>
+          <span>접수현황</span>
+        </button>
+        <button 
+          className={`nav-item ${activeTab === 'share' ? 'active' : ''}`}
+          onClick={() => setActiveTab('share')}
+        >
+          <span className="nav-icon">🤝</span>
+          <span>공유</span>
         </button>
       </nav>
     </>
