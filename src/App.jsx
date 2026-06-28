@@ -53,6 +53,7 @@ function App() {
   const [uploadingImages, setUploadingImages] = useState({}) // { [id_type]: boolean }
   const [fullScreenData, setFullScreenData] = useState({ images: [], currentIndex: 0 })
   const [optimisticImages, setOptimisticImages] = useState({});
+  const [copiedId, setCopiedId] = useState(null);
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
 
@@ -181,6 +182,16 @@ function App() {
     } catch (e) {
       console.error('Error updating status: ', e);
     }
+  };
+
+  const handleCopyId = (id) => {
+    navigator.clipboard.writeText(id).then(() => {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 1500);
+    }).catch(err => {
+      console.error('Failed to copy', err);
+      alert('복사에 실패했습니다.');
+    });
   };
 
   // 💡 사진 업로드 속도를 비약적으로 높여주는 하드웨어 가속 압축 함수
@@ -779,7 +790,14 @@ function App() {
                       return (
                       <div key={group.id} className={`status-card ${isCompleted ? 'completed' : ''}`}>
                         <div className="status-header">
-                          <div className="status-badge">배출번호: {group.id}</div>
+                          <div 
+                            className="status-badge" 
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => handleCopyId(group.id)}
+                            title="클릭하여 복사"
+                          >
+                            {copiedId === group.id ? '✅ 복사됨' : `배출번호: ${group.id}`}
+                          </div>
                           <a href={`tel:${group.phone}`} className="status-contact">📞 {group.phone}</a>
                         </div>
                         <div className="status-name-address">
