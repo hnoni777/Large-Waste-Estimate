@@ -909,7 +909,7 @@ function App() {
                 <h3 className="share-write-title">새 폐가구 공유</h3>
                 
                 <div className="share-write-actions">
-                  <div className="upload-wrapper" style={{width: '100%', display: 'flex', gap: '0.5rem'}}>
+                  <div className="upload-wrapper" style={{width: '100%', boxSizing: 'border-box', display: 'flex', gap: '0.5rem'}}>
                     <input 
                       id="share-photo-capture"
                       type="file" 
@@ -919,7 +919,7 @@ function App() {
                       style={{ display: 'none' }} 
                     />
                     <label htmlFor="share-photo-capture" className="share-action-btn primary" style={{flex: 1}}>
-                      📷 바로 촬영
+                      📷 사진촬영
                     </label>
 
                     <input 
@@ -931,7 +931,7 @@ function App() {
                       style={{ display: 'none' }} 
                     />
                     <label htmlFor="share-photo-upload" className="share-action-btn secondary" style={{flex: 1}}>
-                      📁 갤러리(스샷)
+                      📁 사진불러오기
                     </label>
                   </div>
                   
