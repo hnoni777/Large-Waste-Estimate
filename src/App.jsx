@@ -676,8 +676,22 @@ function App() {
           <div className="tab-cart">
             <div className="cart-total-header">
               <div>
-                <h3>총비용</h3>
-                <p style={{margin: 0, opacity: 0.8, fontSize: '0.8rem'}}>{cartItemsCount}개 항목</p>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                  총비용
+                  {cart.length > 0 && (
+                    <button 
+                      className="empty-cart-btn" 
+                      onClick={() => {
+                        if (window.confirm("견적서를 모두 비우시겠습니까?")) {
+                          setCart([]);
+                        }
+                      }}
+                    >
+                      🗑️ 비우기
+                    </button>
+                  )}
+                </h3>
+                <p style={{margin: 0, opacity: 0.8, fontSize: '0.8rem', marginTop: '4px'}}>{cartItemsCount}개 항목</p>
               </div>
               <div className="total-price">{totalCost.toLocaleString()}원</div>
             </div>
