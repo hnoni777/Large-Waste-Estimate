@@ -626,12 +626,13 @@ function App() {
     
     let filtered = allParsedData;
     if (term) {
+      const searchTarget = term.replace(/\s+/g, '');
       filtered = allParsedData.filter(row => {
-        const name = (row['신청자'] || row['성명'] || row['신청인'] || row['이름'] || row['성명(법인명)'] || '').toString().toLowerCase();
-        const id = (row['배출번호'] || '').toString().toLowerCase();
-        const phone = (row['휴대폰'] || row['연락처'] || row['전화번호'] || '').toString().toLowerCase();
-        const address = (row['주소'] || '').toString().toLowerCase();
-        return name.includes(term) || id.includes(term) || phone.includes(term) || address.includes(term);
+        const name = (row['신청자'] || row['성명'] || row['신청인'] || row['이름'] || row['성명(법인명)'] || '').toString().replace(/\s+/g, '').toLowerCase();
+        const id = (row['배출번호'] || '').toString().replace(/\s+/g, '').toLowerCase();
+        const phone = (row['휴대폰'] || row['연락처'] || row['전화번호'] || '').toString().replace(/\s+/g, '').toLowerCase();
+        const address = (row['주소'] || '').toString().replace(/\s+/g, '').toLowerCase();
+        return name.includes(searchTarget) || id.includes(searchTarget) || phone.includes(searchTarget) || address.includes(searchTarget);
       });
     } else {
       filtered = allParsedData.filter(row => selectedDates.includes(row._dateStr));
@@ -673,7 +674,7 @@ function App() {
     });
     
     return result;
-  }, [allParsedData, selectedDates]);
+  }, [allParsedData, selectedDates, statusSearchTerm]);
 
   // 달력 관련 로직
   const handlePrevMonth = () => {
@@ -871,8 +872,14 @@ function App() {
             <div className="list-container">
               {allParsedData.length > 0 && statusDataByDate.length === 0 ? (
                 <div className="empty-state">
-                  선택된 날짜에 배출 신청 건이 없습니다.<br/>
-                  (위의 날짜 선택하기 버튼을 눌러주세요)
+                  {statusSearchTerm ? (
+                    <>검색 결과가 없습니다.</>
+                  ) : (
+                    <>
+                      선택된 날짜에 배출 신청 건이 없습니다.<br/>
+                      (위의 날짜 선택하기 버튼을 눌러주세요)
+                    </>
+                  )}
                 </div>
               ) : statusDataByDate.length === 0 ? (
                 <div className="empty-state">
