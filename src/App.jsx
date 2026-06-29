@@ -993,8 +993,8 @@ function App() {
                         </div>
                         <div className="status-name-address">
                           <div className="status-dates" style={{ display: 'flex', gap: '8px', marginBottom: '8px', fontSize: '0.85rem' }}>
-                            {group.applyDate && <span className="status-date-badge apply-date" style={{ background: '#e3f2fd', color: '#1976d2', padding: '4px 8px', borderRadius: '4px' }}>📝 신청: {group.applyDate}</span>}
-                            {group.pickupDate && <span className="status-date-badge pickup-date" style={{ background: '#e8f5e9', color: '#388e3c', padding: '4px 8px', borderRadius: '4px' }}>🚛 배출: {group.pickupDate}</span>}
+                            {group.applyDate && <span className="status-date-badge apply-date" style={{ background: '#e3f2fd', color: '#1976d2', padding: '4px 8px', borderRadius: '4px' }}>신청일자: {group.applyDate}</span>}
+                            {group.pickupDate && <span className="status-date-badge pickup-date" style={{ background: '#e8f5e9', color: '#388e3c', padding: '4px 8px', borderRadius: '4px' }}>배출일자: {group.pickupDate}</span>}
                           </div>
                           <div className="status-name">👤 {group.name}</div>
                           <div className="status-address-row">
