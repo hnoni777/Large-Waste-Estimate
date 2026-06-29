@@ -17,6 +17,9 @@ function App() {
   const [fileName, setFileName] = useState('')
   const [updatedAt, setUpdatedAt] = useState(null)
   
+  // 캘린더 공용 상태
+  const [calendarMode, setCalendarMode] = useState('status') // 'status' | 'share'
+  
   // 접수현황 내 검색 상태
   const [statusSearchTerm, setStatusSearchTerm] = useState('')
   
@@ -156,10 +159,49 @@ function App() {
   const [sharedWastes, setSharedWastes] = useState([]);
   const [isShareWriting, setIsShareWriting] = useState(false);
   const [sharePhotos, setSharePhotos] = useState([]); // array of { id, url, isUploading }
+  const [shareMemo, setShareMemo] = useState(''); // 메모 상태 추가
+  const [shareSelectedDates, setShareSelectedDates] = useState([]);
   const [shareDate, setShareDate] = useState(() => {
     const dt = new Date();
     return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
   });
+
+  const shareAvailableDates = useMemo(() => {
+    const dates = new Set();
+    sharedWastes.forEach(item => {
+      let dateStr = item.date;
+      if (!dateStr && item.createdAt) {
+        const d = new Date(item.createdAt);
+        dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
+      if (dateStr) dates.add(dateStr);
+    });
+    return Array.from(dates).sort().reverse();
+  }, [sharedWastes]);
+
+  useEffect(() => {
+    setShareSelectedDates(prev => {
+      const isValid = prev.length > 0 && prev.every(d => shareAvailableDates.includes(d));
+      if (!isValid && shareAvailableDates.length > 0) {
+        const dt = new Date();
+        const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+        const ydt = new Date(dt);
+        ydt.setDate(ydt.getDate() - 1);
+        const yesterdayStr = `${ydt.getFullYear()}-${String(ydt.getMonth() + 1).padStart(2, '0')}-${String(ydt.getDate()).padStart(2, '0')}`;
+        
+        const defaultDates = [];
+        if (shareAvailableDates.includes(todayStr)) defaultDates.push(todayStr);
+        if (shareAvailableDates.includes(yesterdayStr)) defaultDates.push(yesterdayStr);
+        
+        if (defaultDates.length > 0) {
+          return defaultDates;
+        } else {
+          return [shareAvailableDates[0]];
+        }
+      }
+      return prev;
+    });
+  }, [shareAvailableDates]);
 
   useEffect(() => {
     const unsubscribeShare = onSnapshot(collection(db, 'shared_wastes'), (snapshot) => {
@@ -201,7 +243,8 @@ function App() {
     setActiveTab(tab);
   };
 
-  const openCalendar = () => {
+  const openCalendar = (mode = 'status') => {
+    setCalendarMode(mode);
     window.history.pushState({ type: 'modal', modal: 'calendar' }, '');
     setIsCalendarOpen(true);
   };
@@ -432,9 +475,12 @@ function App() {
       await setDoc(newDocRef, {
         photos: finalUrls,
         createdAt: Date.now(),
+        date: shareDate,
+        memo: shareMemo.trim(),
         completed: false
       });
       setSharePhotos([]);
+      setShareMemo('');
       window.history.back();
     } catch (e) {
       console.error("Error adding shared waste", e);
@@ -483,11 +529,14 @@ function App() {
 
   const filteredSharedWastes = useMemo(() => {
     return sharedWastes.filter(waste => {
-      const d = new Date(waste.createdAt);
-      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      return dateStr === shareDate;
+      let dateStr = waste.date;
+      if (!dateStr && waste.createdAt) {
+        const d = new Date(waste.createdAt);
+        dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
+      return shareSelectedDates.includes(dateStr);
     });
-  }, [sharedWastes, shareDate]);
+  }, [sharedWastes, shareSelectedDates]);
 
   const items = useMemo(() => {
     return data.map((d, index) => ({
@@ -611,13 +660,23 @@ function App() {
   };
 
   const toggleDate = (dateStr) => {
-    setSelectedDates(prev => {
-      if (prev.includes(dateStr)) {
-        return prev.filter(d => d !== dateStr);
-      } else {
-        return [...prev, dateStr].sort().reverse();
-      }
-    });
+    if (calendarMode === 'share') {
+      setShareSelectedDates(prev => {
+        if (prev.includes(dateStr)) {
+          return prev.filter(d => d !== dateStr);
+        } else {
+          return [...prev, dateStr].sort().reverse();
+        }
+      });
+    } else {
+      setSelectedDates(prev => {
+        if (prev.includes(dateStr)) {
+          return prev.filter(d => d !== dateStr);
+        } else {
+          return [...prev, dateStr].sort().reverse();
+        }
+      });
+    }
   };
 
   // 선택된 날짜별로 그룹핑하고, 그 안에서 다시 배출번호로 그룹핑 (검색어가 있으면 전체 날짜에서 검색)
@@ -1001,14 +1060,15 @@ function App() {
           <div className="tab-share">
             {!isShareWriting ? (
               <div className="share-list-container">
-                <div className="share-date-header">
-                  <input 
-                    type="date" 
-                    value={shareDate} 
-                    onChange={(e) => setShareDate(e.target.value)}
-                    className="share-date-input"
-                  />
-                  <span style={{ fontWeight: 'bold' }}>공유 내역</span>
+                <div className="share-date-header" style={{ justifyContent: 'center', background: 'transparent', boxShadow: 'none' }}>
+                  {shareAvailableDates.length > 0 && (
+                    <button 
+                      className="date-select-btn"
+                      onClick={() => openCalendar('share')}
+                    >
+                      📅 날짜 선택하기 <span className="date-count">({shareSelectedDates.length}일 선택됨)</span>
+                    </button>
+                  )}
                 </div>
 
                 <button className="share-write-btn" onClick={openShareWrite}>
@@ -1028,6 +1088,13 @@ function App() {
                           <button className="share-delete-btn" onClick={() => deleteSharedPost(waste.id)}>🗑️ 삭제</button>
                         </div>
                       </div>
+                      
+                      {waste.memo && (
+                        <div className="share-memo-display">
+                          {waste.memo}
+                        </div>
+                      )}
+
                       <div className="share-photo-grid">
                         {waste.photos && waste.photos.map((url, idx) => (
                           <div key={idx} className="share-preview-item">
@@ -1092,6 +1159,16 @@ function App() {
                   </button>
                 </div>
 
+                <div className="share-memo-wrapper">
+                  <textarea
+                    className="share-memo-input"
+                    placeholder="특이사항이나 메모를 입력해주세요 (선택사항)"
+                    value={shareMemo}
+                    onChange={(e) => setShareMemo(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+
                 <div className="share-preview-grid">
                   {sharePhotos.map((photoObj, idx) => (
                     <div key={idx} className="share-preview-item">
@@ -1144,8 +1221,10 @@ function App() {
                 if (!dateStr) return <div key={idx} className="calendar-day empty"></div>;
                 
                 const dayNum = parseInt(dateStr.split('-')[2], 10);
-                const isAvailable = availableDates.includes(dateStr);
-                const isSelected = selectedDates.includes(dateStr);
+                const activeAvailableDates = calendarMode === 'share' ? shareAvailableDates : availableDates;
+                const activeSelectedDates = calendarMode === 'share' ? shareSelectedDates : selectedDates;
+                const isAvailable = activeAvailableDates.includes(dateStr);
+                const isSelected = activeSelectedDates.includes(dateStr);
                 
                 return (
                   <div 

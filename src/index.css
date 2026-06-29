@@ -1204,3 +1204,37 @@ body {
   background: #e9ecef;
   color: #212529;
 }
+
+.share-memo-wrapper {
+  margin: 1rem 0;
+}
+
+.share-memo-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: vertical;
+  background-color: #f9fafb;
+}
+
+.share-memo-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  background-color: white;
+}
+
+.share-memo-display {
+  background-color: #f8f9fa;
+  border-left: 4px solid var(--primary-color);
+  padding: 10px 14px;
+  border-radius: 4px 8px 8px 4px;
+  font-size: 0.95rem;
+  color: #333;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
