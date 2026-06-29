@@ -574,32 +574,19 @@ function App() {
       // 1. 파이어베이스에 업로드 (권한 문제가 없도록 기존에 잘 쓰던 pickups 컬렉션 사용)
       setDoc(doc(db, 'pickups', 'master_excel_data'), dataToSave)
         .then(() => {
-          alert('✅ 엑셀 명단이 서버에 업데이트되어 모든 기기에 즉시 동기화되었습니다.');
+          alert('✅ 엑셀 명단이 서버에 성공적으로 전송되었습니다!\n이제 서버에서 명단을 불러옵니다.');
+          // 전송 성공 시 입력창 초기화 (같은 파일 다시 올릴 수 있도록)
+          e.target.value = '';
         })
         .catch(err => {
           console.error('엑셀 업데이트 실패:', err);
           alert('❌ 서버 업로드에 실패했습니다. (사유: ' + err.message + ')');
+          e.target.value = '';
         });
         
-      // 2. 로컬 스토리지 및 화면에도 즉시 반영
-      localStorage.setItem('waste_app_data', JSON.stringify(dataToSave));
-      setAllParsedData(enrichedData);
-      setAvailableDates(datesArr);
-      setUpdatedAt(dataToSave.updatedAt);
-      
-      // 초기 선택 날짜: 오늘 날짜가 있으면 선택, 없으면 가장 최근 날짜 1개 선택
-      const dt = new Date();
-      const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-      if (datesArr.includes(todayStr)) {
-        setSelectedDates([todayStr]);
-        setCurrentMonth(new Date(dt.getFullYear(), dt.getMonth(), 1));
-      } else if (datesArr.length > 0) {
-        setSelectedDates([datesArr[0]]);
-        const [y, m, dDay] = datesArr[0].split('-');
-        setCurrentMonth(new Date(Number(y), Number(m) - 1, 1));
-      } else {
-        setSelectedDates([]);
-      }
+      // 주의: 여기서 직접 화면(state)을 갱신하지 않습니다.
+      // 서버에 전송되면 useEffect의 onSnapshot이 새 데이터를 감지하고 화면을 갱신합니다.
+      // (이것이 사용자가 원하는 "서버에 올리고 -> 서버에서 불러오기" 로직입니다.)
     };
     reader.readAsBinaryString(file);
   };
@@ -804,14 +791,16 @@ function App() {
                 style={{ display: 'none' }} 
               />
               <label htmlFor="excel-upload" className="upload-btn">
-                엑셀 파일 불러오기
+                새 엑셀명단 서버로 전송
               </label>
               {fileName && (
                 <>
-                  <p className="file-name" style={{ marginBottom: updatedAt ? '4px' : '0' }}>선택된 파일: {fileName}</p>
+                  <p className="file-name" style={{ marginBottom: updatedAt ? '4px' : '0', color: 'var(--primary-color)', fontWeight: 'bold' }}>
+                    서버에 등록된 명단: {fileName}
+                  </p>
                   {updatedAt && (
-                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#666' }}>
-                      (최근 동기화: {new Date(updatedAt).toLocaleString()})
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>
+                      (서버에서 동기화됨: {new Date(updatedAt).toLocaleString()})
                     </p>
                   )}
                 </>
