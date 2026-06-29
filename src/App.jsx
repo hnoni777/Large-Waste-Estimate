@@ -841,21 +841,33 @@ function App() {
             </div>
 
             {/* 접수현황 내 검색창 */}
-            <div className="search-bar-container" style={{ margin: '16px', marginTop: '0' }}>
-              <div className="search-input-wrapper">
-                <span className="search-icon">🔍</span>
+            <div className="status-search-container">
+              <div className="status-search-wrapper">
+                <span className="status-search-icon">🔍</span>
                 <input
                   type="text"
                   placeholder="이름, 연락처, 배출번호, 주소 검색..."
                   value={statusSearchTerm}
                   onChange={(e) => setStatusSearchTerm(e.target.value)}
-                  className="search-input"
+                  className="status-search-input"
                 />
                 {statusSearchTerm && (
-                  <button className="clear-btn" onClick={() => setStatusSearchTerm('')}>✕</button>
+                  <button className="status-search-clear" onClick={() => setStatusSearchTerm('')}>✕</button>
                 )}
               </div>
             </div>
+
+            {/* 검색 중일 때 헤더 (목록으로 돌아가기) */}
+            {statusSearchTerm && (
+              <div className="search-results-header">
+                <p className="search-results-title">
+                  검색 결과 (총 {statusDataByDate.reduce((acc, cur) => acc + cur.groups.length, 0)}건)
+                </p>
+                <button className="back-to-list-btn" onClick={() => setStatusSearchTerm('')}>
+                  ← 목록으로 돌아가기
+                </button>
+              </div>
+            )}
 
             {/* 날짜 선택 버튼 */}
             {availableDates.length > 0 && !statusSearchTerm && (
