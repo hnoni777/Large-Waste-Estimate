@@ -36,8 +36,14 @@ function App() {
         const datesArr = parsed.availableDates || [];
         const dt = new Date();
         const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+        const ydt = new Date(dt);
+        ydt.setDate(ydt.getDate() - 1);
+        const yesterdayStr = `${ydt.getFullYear()}-${String(ydt.getMonth() + 1).padStart(2, '0')}-${String(ydt.getDate()).padStart(2, '0')}`;
         
-        const defaultDates = datesArr.filter(d => d <= todayStr);
+        const defaultDates = [];
+        if (datesArr.includes(todayStr)) defaultDates.push(todayStr);
+        if (datesArr.includes(yesterdayStr)) defaultDates.push(yesterdayStr);
+        
         if (defaultDates.length > 0) {
           setSelectedDates(prev => prev.length === 0 ? defaultDates : prev);
           const [y, m] = defaultDates[0].split('-');
@@ -72,7 +78,14 @@ function App() {
           if (!isValid && datesArr.length > 0) {
             const dt = new Date();
             const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-            const defaultDates = datesArr.filter(d => d <= todayStr);
+            const ydt = new Date(dt);
+            ydt.setDate(ydt.getDate() - 1);
+            const yesterdayStr = `${ydt.getFullYear()}-${String(ydt.getMonth() + 1).padStart(2, '0')}-${String(ydt.getDate()).padStart(2, '0')}`;
+            
+            const defaultDates = [];
+            if (datesArr.includes(todayStr)) defaultDates.push(todayStr);
+            if (datesArr.includes(yesterdayStr)) defaultDates.push(yesterdayStr);
+            
             if (defaultDates.length > 0) {
               return defaultDates;
             } else {
