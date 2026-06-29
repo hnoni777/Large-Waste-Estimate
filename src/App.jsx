@@ -20,8 +20,9 @@ function App() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
 
-  // 앱 실행 시 저장된 엑셀 데이터 불러오기
+  // 앱 실행 시 저장된 엑셀 데이터 불러오기 및 서버 실시간 동기화
   useEffect(() => {
+    // 1. 초기 로딩을 빠르게 하기 위해 로컬 스토리지 캐시 적용
     const savedData = localStorage.getItem('waste_app_data');
     if (savedData) {
       try {
@@ -35,10 +36,10 @@ function App() {
         const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
         
         if (datesArr.includes(todayStr)) {
-          setSelectedDates([todayStr]);
+          setSelectedDates(prev => prev.length === 0 ? [todayStr] : prev);
           setCurrentMonth(new Date(dt.getFullYear(), dt.getMonth(), 1));
         } else if (datesArr.length > 0) {
-          setSelectedDates([datesArr[0]]);
+          setSelectedDates(prev => prev.length === 0 ? [datesArr[0]] : prev);
           const [y, m] = datesArr[0].split('-');
           setCurrentMonth(new Date(Number(y), Number(m) - 1, 1));
         }
@@ -46,6 +47,38 @@ function App() {
         console.error("Failed to parse saved excel data", e);
       }
     }
+
+    // 2. 파이어베이스에서 실시간 마스터 데이터 감시 (다른 기기에서 올린 엑셀 연동)
+    const unsub = onSnapshot(doc(db, 'settings', 'master_excel_data'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        
+        setAllParsedData(data.allParsedData || []);
+        setAvailableDates(data.availableDates || []);
+        setFileName(data.fileName || '');
+        
+        // 새로운 데이터로 로컬 캐시 덮어쓰기
+        localStorage.setItem('waste_app_data', JSON.stringify(data));
+        
+        // 날짜 초기화 (기존 선택된 날짜가 새 엑셀에 전혀 없으면 초기화)
+        const datesArr = data.availableDates || [];
+        setSelectedDates(prev => {
+          const isValid = prev.length > 0 && prev.every(d => datesArr.includes(d));
+          if (!isValid && datesArr.length > 0) {
+            const dt = new Date();
+            const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+            if (datesArr.includes(todayStr)) {
+              return [todayStr];
+            } else {
+              return [datesArr[0]];
+            }
+          }
+          return prev;
+        });
+      }
+    });
+
+    return () => unsub();
   }, []);
 
   // 파이어베이스 실시간 수거 상태 및 사진
@@ -519,15 +552,27 @@ function App() {
 
       const datesArr = Array.from(datesSet).sort().reverse(); // 최근 날짜가 먼저 오게 정렬
       
-      setAllParsedData(enrichedData);
-      setAvailableDates(datesArr);
-      
-      // 로컬 스토리지에 데이터 저장 (앱을 껐다 켜도 유지되도록)
-      localStorage.setItem('waste_app_data', JSON.stringify({
+      const dataToSave = {
         allParsedData: enrichedData,
         availableDates: datesArr,
-        fileName: file.name
-      }));
+        fileName: file.name,
+        updatedAt: Date.now()
+      };
+
+      // 1. 파이어베이스에 업로드하여 모든 사용자와 즉시 공유
+      setDoc(doc(db, 'settings', 'master_excel_data'), dataToSave)
+        .then(() => {
+          alert('✅ 엑셀 명단이 서버에 업데이트되어 모든 기기에 즉시 동기화되었습니다.');
+        })
+        .catch(err => {
+          console.error('엑셀 업데이트 실패:', err);
+          alert('❌ 서버 업로드에 실패했습니다. (용량 제한 또는 네트워크 오류)');
+        });
+        
+      // 2. 로컬 스토리지 및 화면에도 즉시 반영
+      localStorage.setItem('waste_app_data', JSON.stringify(dataToSave));
+      setAllParsedData(enrichedData);
+      setAvailableDates(datesArr);
       
       // 초기 선택 날짜: 오늘 날짜가 있으면 선택, 없으면 가장 최근 날짜 1개 선택
       const dt = new Date();
