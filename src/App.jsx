@@ -37,9 +37,11 @@ function App() {
         const dt = new Date();
         const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
         
-        if (datesArr.includes(todayStr)) {
-          setSelectedDates(prev => prev.length === 0 ? [todayStr] : prev);
-          setCurrentMonth(new Date(dt.getFullYear(), dt.getMonth(), 1));
+        const defaultDates = datesArr.filter(d => d <= todayStr);
+        if (defaultDates.length > 0) {
+          setSelectedDates(prev => prev.length === 0 ? defaultDates : prev);
+          const [y, m] = defaultDates[0].split('-');
+          setCurrentMonth(new Date(Number(y), Number(m) - 1, 1));
         } else if (datesArr.length > 0) {
           setSelectedDates(prev => prev.length === 0 ? [datesArr[0]] : prev);
           const [y, m] = datesArr[0].split('-');
@@ -70,8 +72,9 @@ function App() {
           if (!isValid && datesArr.length > 0) {
             const dt = new Date();
             const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-            if (datesArr.includes(todayStr)) {
-              return [todayStr];
+            const defaultDates = datesArr.filter(d => d <= todayStr);
+            if (defaultDates.length > 0) {
+              return defaultDates;
             } else {
               return [datesArr[0]];
             }
