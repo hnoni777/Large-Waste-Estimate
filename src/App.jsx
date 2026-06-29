@@ -452,9 +452,13 @@ function App() {
     navigator.geolocation.getCurrentPosition((position) => {
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
-      window.open(`https://m.map.naver.com/map.naver?lat=${lat}&lng=${lng}&dlevel=14`, "_blank");
+      window.open(`https://m.map.naver.com/map.naver?lat=${lat}&lng=${lng}&dlevel=16`, "_blank");
     }, (error) => {
       alert("위치 정보를 가져오는데 실패했습니다. 폰의 GPS(위치) 설정이 켜져있는지 확인해주세요.");
+    }, {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
     });
   };
 
