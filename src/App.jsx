@@ -158,6 +158,7 @@ function App() {
   // 폐가구공유 상태 및 리스너
   const [sharedWastes, setSharedWastes] = useState([]);
   const [isShareWriting, setIsShareWriting] = useState(false);
+  const [editingShareId, setEditingShareId] = useState(null);
   const [sharePhotos, setSharePhotos] = useState([]); // array of { id, url, isUploading }
   const [shareMemo, setShareMemo] = useState(''); // 메모 상태 추가
   const [shareSelectedDates, setShareSelectedDates] = useState([]);
@@ -254,6 +255,17 @@ function App() {
   };
 
   const openShareWrite = () => {
+    setEditingShareId(null);
+    setSharePhotos([]);
+    setShareMemo('');
+    window.history.pushState({ type: 'modal', modal: 'shareWrite' }, '');
+    setIsShareWriting(true);
+  };
+
+  const editSharePost = (waste) => {
+    setEditingShareId(waste.id);
+    setSharePhotos(waste.photos ? waste.photos.map((url, i) => ({ id: `old_${i}`, url, isUploading: false })) : []);
+    setShareMemo(waste.memo || '');
     window.history.pushState({ type: 'modal', modal: 'shareWrite' }, '');
     setIsShareWriting(true);
   };
@@ -475,16 +487,24 @@ function App() {
     const finalUrls = sharePhotos.map(p => p.url);
 
     try {
-      const newDocRef = doc(collection(db, 'shared_wastes'));
-      await setDoc(newDocRef, {
-        photos: finalUrls,
-        createdAt: Date.now(),
-        date: shareDate,
-        memo: shareMemo.trim(),
-        completed: false
-      });
+      if (editingShareId) {
+        await setDoc(doc(db, 'shared_wastes', editingShareId), {
+          photos: finalUrls,
+          memo: shareMemo.trim()
+        }, { merge: true });
+      } else {
+        const newDocRef = doc(collection(db, 'shared_wastes'));
+        await setDoc(newDocRef, {
+          photos: finalUrls,
+          createdAt: Date.now(),
+          date: shareDate,
+          memo: shareMemo.trim(),
+          completed: false
+        });
+      }
       setSharePhotos([]);
       setShareMemo('');
+      setEditingShareId(null);
       window.history.back();
     } catch (e) {
       console.error("Error adding shared waste", e);
@@ -1102,6 +1122,7 @@ function App() {
                         </span>
                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                           {waste.completed && <span className="share-completed-badge">✅ 수거완료</span>}
+                          <button className="share-edit-btn" onClick={() => editSharePost(waste)} style={{ background: '#f8f9fa', border: '1px solid #ddd', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>✏️ 수정</button>
                           <button className="share-delete-btn" onClick={() => deleteSharedPost(waste.id)}>🗑️ 삭제</button>
                         </div>
                       </div>
@@ -1144,7 +1165,7 @@ function App() {
               </div>
             ) : (
               <div className="share-write-container">
-                <h3 className="share-write-title">새 폐가구 공유</h3>
+                <h3 className="share-write-title">{editingShareId ? '폐가구 공유 수정' : '새 폐가구 공유'}</h3>
                 
                 <div className="share-write-actions">
                   <div className="upload-wrapper" style={{width: '100%', boxSizing: 'border-box', display: 'flex', gap: '0.5rem'}}>
