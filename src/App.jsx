@@ -791,12 +791,12 @@ function App() {
                 style={{ display: 'none' }} 
               />
               <label htmlFor="excel-upload" className="upload-btn">
-                새 엑셀명단 서버로 전송
+                엑셀자료 서버전송
               </label>
               {fileName && (
                 <>
                   <p className="file-name" style={{ marginBottom: updatedAt ? '4px' : '0', color: 'var(--primary-color)', fontWeight: 'bold' }}>
-                    서버에 등록된 명단: {fileName}
+                    서버에 등록된 엑셀파일: {fileName}
                   </p>
                   {updatedAt && (
                     <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>
