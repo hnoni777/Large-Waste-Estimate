@@ -537,9 +537,15 @@ function App() {
       const datesSet = new Set();
       const enrichedData = [];
 
+      // 💥 서버 용량 초과 방지를 위해 '최근 30일' 데이터만 필터링 💥
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - 30);
+      cutoffDate.setHours(0, 0, 0, 0); // 30일 전 자정 기준
+
       parsedData.forEach(row => {
         const d = row['신청일자'];
-        if (d instanceof Date) {
+        // 날짜 객체이고, 30일 전보다 이후(최근) 데이터인 경우에만 추가
+        if (d instanceof Date && d >= cutoffDate) {
           const yyyy = d.getFullYear();
           const mm = String(d.getMonth() + 1).padStart(2, '0');
           const dd = String(d.getDate()).padStart(2, '0');
