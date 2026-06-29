@@ -49,7 +49,7 @@ function App() {
     }
 
     // 2. 파이어베이스에서 실시간 마스터 데이터 감시 (다른 기기에서 올린 엑셀 연동)
-    const unsub = onSnapshot(doc(db, 'settings', 'master_excel_data'), (docSnap) => {
+    const unsub = onSnapshot(doc(db, 'pickups', 'master_excel_data'), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         
@@ -552,21 +552,24 @@ function App() {
 
       const datesArr = Array.from(datesSet).sort().reverse(); // 최근 날짜가 먼저 오게 정렬
       
-      const dataToSave = {
+      const rawDataToSave = {
         allParsedData: enrichedData,
         availableDates: datesArr,
         fileName: file.name,
         updatedAt: Date.now()
       };
 
-      // 1. 파이어베이스에 업로드하여 모든 사용자와 즉시 공유
-      setDoc(doc(db, 'settings', 'master_excel_data'), dataToSave)
+      // 파이어베이스는 undefined를 허용하지 않으므로 JSON 변환으로 깔끔하게 정리 (크기 최적화 포함)
+      const dataToSave = JSON.parse(JSON.stringify(rawDataToSave));
+
+      // 1. 파이어베이스에 업로드 (권한 문제가 없도록 기존에 잘 쓰던 pickups 컬렉션 사용)
+      setDoc(doc(db, 'pickups', 'master_excel_data'), dataToSave)
         .then(() => {
           alert('✅ 엑셀 명단이 서버에 업데이트되어 모든 기기에 즉시 동기화되었습니다.');
         })
         .catch(err => {
           console.error('엑셀 업데이트 실패:', err);
-          alert('❌ 서버 업로드에 실패했습니다. (용량 제한 또는 네트워크 오류)');
+          alert('❌ 서버 업로드에 실패했습니다. (사유: ' + err.message + ')');
         });
         
       // 2. 로컬 스토리지 및 화면에도 즉시 반영
