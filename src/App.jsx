@@ -17,6 +17,9 @@ function App() {
   const [fileName, setFileName] = useState('')
   const [updatedAt, setUpdatedAt] = useState(null)
   
+  // 접수현황 내 검색 상태
+  const [statusSearchTerm, setStatusSearchTerm] = useState('')
+  
   // 캘린더 팝업 상태
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
@@ -617,9 +620,22 @@ function App() {
     });
   };
 
-  // 선택된 날짜별로 그룹핑하고, 그 안에서 다시 배출번호로 그룹핑
+  // 선택된 날짜별로 그룹핑하고, 그 안에서 다시 배출번호로 그룹핑 (검색어가 있으면 전체 날짜에서 검색)
   const statusDataByDate = useMemo(() => {
-    const filtered = allParsedData.filter(row => selectedDates.includes(row._dateStr));
+    const term = statusSearchTerm.trim().toLowerCase();
+    
+    let filtered = allParsedData;
+    if (term) {
+      filtered = allParsedData.filter(row => {
+        const name = (row['신청자'] || row['성명'] || row['신청인'] || row['이름'] || row['성명(법인명)'] || '').toString().toLowerCase();
+        const id = (row['배출번호'] || '').toString().toLowerCase();
+        const phone = (row['휴대폰'] || row['연락처'] || row['전화번호'] || '').toString().toLowerCase();
+        const address = (row['주소'] || '').toString().toLowerCase();
+        return name.includes(term) || id.includes(term) || phone.includes(term) || address.includes(term);
+      });
+    } else {
+      filtered = allParsedData.filter(row => selectedDates.includes(row._dateStr));
+    }
     
     const groupedByDate = {};
     filtered.forEach(row => {
@@ -823,8 +839,25 @@ function App() {
               )}
             </div>
 
+            {/* 접수현황 내 검색창 */}
+            <div className="search-bar-container" style={{ margin: '16px', marginTop: '0' }}>
+              <div className="search-input-wrapper">
+                <span className="search-icon">🔍</span>
+                <input
+                  type="text"
+                  placeholder="이름, 연락처, 배출번호, 주소 검색..."
+                  value={statusSearchTerm}
+                  onChange={(e) => setStatusSearchTerm(e.target.value)}
+                  className="search-input"
+                />
+                {statusSearchTerm && (
+                  <button className="clear-btn" onClick={() => setStatusSearchTerm('')}>✕</button>
+                )}
+              </div>
+            </div>
+
             {/* 날짜 선택 버튼 */}
-            {availableDates.length > 0 && (
+            {availableDates.length > 0 && !statusSearchTerm && (
               <div className="date-select-wrapper">
                 <button 
                   className="date-select-btn"
