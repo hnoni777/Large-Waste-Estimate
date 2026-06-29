@@ -15,6 +15,7 @@ function App() {
   const [availableDates, setAvailableDates] = useState([])
   const [selectedDates, setSelectedDates] = useState([])
   const [fileName, setFileName] = useState('')
+  const [updatedAt, setUpdatedAt] = useState(null)
   
   // 캘린더 팝업 상태
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
@@ -30,6 +31,7 @@ function App() {
         setAllParsedData(parsed.allParsedData || []);
         setAvailableDates(parsed.availableDates || []);
         setFileName(parsed.fileName || '');
+        setUpdatedAt(parsed.updatedAt || null);
         
         const datesArr = parsed.availableDates || [];
         const dt = new Date();
@@ -56,6 +58,7 @@ function App() {
         setAllParsedData(data.allParsedData || []);
         setAvailableDates(data.availableDates || []);
         setFileName(data.fileName || '');
+        setUpdatedAt(data.updatedAt || null);
         
         // 새로운 데이터로 로컬 캐시 덮어쓰기
         localStorage.setItem('waste_app_data', JSON.stringify(data));
@@ -582,6 +585,7 @@ function App() {
       localStorage.setItem('waste_app_data', JSON.stringify(dataToSave));
       setAllParsedData(enrichedData);
       setAvailableDates(datesArr);
+      setUpdatedAt(dataToSave.updatedAt);
       
       // 초기 선택 날짜: 오늘 날짜가 있으면 선택, 없으면 가장 최근 날짜 1개 선택
       const dt = new Date();
@@ -802,7 +806,16 @@ function App() {
               <label htmlFor="excel-upload" className="upload-btn">
                 엑셀 파일 불러오기
               </label>
-              {fileName && <p className="file-name">선택된 파일: {fileName}</p>}
+              {fileName && (
+                <>
+                  <p className="file-name" style={{ marginBottom: updatedAt ? '4px' : '0' }}>선택된 파일: {fileName}</p>
+                  {updatedAt && (
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#666' }}>
+                      (최근 동기화: {new Date(updatedAt).toLocaleString()})
+                    </p>
+                  )}
+                </>
+              )}
             </div>
 
             {/* 날짜 선택 버튼 */}
