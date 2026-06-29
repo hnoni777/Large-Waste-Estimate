@@ -308,7 +308,7 @@ function App() {
           canvas.toBlob((blob) => {
             if (!blob) reject(new Error("Canvas is empty"));
             resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
-          }, 'image/jpeg', 0.8); 
+          }, 'image/jpeg', 0.7); 
         });
       } catch (e) {
         console.warn("createImageBitmap failed, falling back to FileReader", e);
@@ -336,7 +336,7 @@ function App() {
           canvas.toBlob((blob) => {
             if (!blob) reject(new Error("Canvas is empty"));
             resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
-          }, 'image/jpeg', 0.8); 
+          }, 'image/jpeg', 0.7); 
         };
         img.onerror = (err) => reject(err);
       };
@@ -356,7 +356,7 @@ function App() {
     setUploadingImages(prev => ({ ...prev, [uploadKey]: true }));
 
     try {
-      const compressedFile = await compressImage(file, 800);
+      const compressedFile = await compressImage(file, 600);
 
       const formData = new FormData();
       formData.append('image', compressedFile);
@@ -417,7 +417,7 @@ function App() {
       // 백그라운드 비동기 업로드 (await 없이 실행)
       (async () => {
         try {
-          const compressedFile = await compressImage(file, 800);
+          const compressedFile = await compressImage(file, 600);
           const formData = new FormData();
           formData.append('image', compressedFile);
           
@@ -1011,7 +1011,7 @@ function App() {
                           <div className="photo-upload-box">
                             {(optimisticImages[`${group.id}_before`] || statusData.beforeImage) ? (
                               <div className="uploaded-photo-wrapper" onClick={() => openFullScreen([optimisticImages[`${group.id}_before`] || statusData.beforeImage], 0)}>
-                                <img src={optimisticImages[`${group.id}_before`] || statusData.beforeImage} alt="수거 전" className={`photo-thumb ${uploadingImages[`${group.id}_before`] ? 'uploading-blur' : ''}`} />
+                                <img src={optimisticImages[`${group.id}_before`] || statusData.beforeImage} alt="수거 전" className={`photo-thumb ${uploadingImages[`${group.id}_before`] ? 'uploading-blur' : ''}`} loading="lazy" decoding="async" />
                                 <div className="photo-label">📷 수거 전</div>
                                 {uploadingImages[`${group.id}_before`] && <div className="photo-upload-spinner">⏳</div>}
                                 {!uploadingImages[`${group.id}_before`] && <button className="photo-delete-btn" onClick={(e) => deleteImage(e, group.id, 'before')}>✕</button>}
@@ -1027,7 +1027,7 @@ function App() {
                           <div className="photo-upload-box">
                             {(optimisticImages[`${group.id}_after`] || statusData.afterImage) ? (
                               <div className="uploaded-photo-wrapper" onClick={() => openFullScreen([optimisticImages[`${group.id}_after`] || statusData.afterImage], 0)}>
-                                <img src={optimisticImages[`${group.id}_after`] || statusData.afterImage} alt="수거 후" className={`photo-thumb ${uploadingImages[`${group.id}_after`] ? 'uploading-blur' : ''}`} />
+                                <img src={optimisticImages[`${group.id}_after`] || statusData.afterImage} alt="수거 후" className={`photo-thumb ${uploadingImages[`${group.id}_after`] ? 'uploading-blur' : ''}`} loading="lazy" decoding="async" />
                                 <div className="photo-label">📸 수거 후</div>
                                 {uploadingImages[`${group.id}_after`] && <div className="photo-upload-spinner">⏳</div>}
                                 {!uploadingImages[`${group.id}_after`] && <button className="photo-delete-btn" onClick={(e) => deleteImage(e, group.id, 'after')}>✕</button>}
@@ -1105,6 +1105,8 @@ function App() {
                             <img 
                               src={url} 
                               alt="폐가구" 
+                              loading="lazy"
+                              decoding="async"
                               onClick={() => openFullScreen(waste.photos, idx)}
                             />
                             <button 
@@ -1179,6 +1181,8 @@ function App() {
                       <img 
                         src={photoObj.url} 
                         alt="미리보기" 
+                        loading="lazy"
+                        decoding="async"
                         className={photoObj.isUploading ? 'uploading-blur' : ''}
                         onClick={() => openFullScreen(sharePhotos.map(p => p.url), idx)} 
                       />
@@ -1269,7 +1273,10 @@ function App() {
             <img 
               src={fullScreenData.images[fullScreenData.currentIndex]} 
               alt="크게 보기" 
-              className="fullscreen-image" 
+              loading="lazy"
+              decoding="async"
+              className="fullscreen-image"
+              onClick={(e) => e.stopPropagation()} 
             />
             {fullScreenData.images.length > 1 && (
               <>
