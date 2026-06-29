@@ -712,11 +712,20 @@ function App() {
       }
       
       if (!groupedByDate[dateStr][id]) {
+        const formatKSTDate = (isoStr) => {
+          if (!isoStr) return '';
+          const d = new Date(isoStr);
+          if (isNaN(d.getTime())) return String(isoStr);
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        };
+        
         groupedByDate[dateStr][id] = {
           id,
           name: row['신청자'] || row['성명'] || row['신청인'] || row['이름'] || row['성명(법인명)'] || '이름 없음',
           phone: row['휴대폰'] || row['연락처'] || row['전화번호'] || '',
           address: row['주소'] || '',
+          applyDate: row._dateStr || formatKSTDate(row['신청일자']),
+          pickupDate: formatKSTDate(row['배출일자']),
           items: []
         };
       }
@@ -983,6 +992,10 @@ function App() {
                           <a href={`tel:${group.phone}`} className="status-contact">📞 {group.phone}</a>
                         </div>
                         <div className="status-name-address">
+                          <div className="status-dates" style={{ display: 'flex', gap: '8px', marginBottom: '8px', fontSize: '0.85rem' }}>
+                            {group.applyDate && <span className="status-date-badge apply-date" style={{ background: '#e3f2fd', color: '#1976d2', padding: '4px 8px', borderRadius: '4px' }}>📝 신청: {group.applyDate}</span>}
+                            {group.pickupDate && <span className="status-date-badge pickup-date" style={{ background: '#e8f5e9', color: '#388e3c', padding: '4px 8px', borderRadius: '4px' }}>🚛 배출: {group.pickupDate}</span>}
+                          </div>
                           <div className="status-name">👤 {group.name}</div>
                           <div className="status-address-row">
                             <div className="status-address">📍 {group.address}</div>
