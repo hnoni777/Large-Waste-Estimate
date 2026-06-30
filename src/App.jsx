@@ -70,7 +70,15 @@ function App() {
         const data = docSnap.data();
         
         setAllParsedData(data.allParsedData || []);
-        setAvailableDates(data.availableDates || []);
+        const dt = new Date();
+        const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+        
+        let datesArr = data.availableDates || [];
+        if (!datesArr.includes(todayStr)) {
+          datesArr = [...datesArr, todayStr].sort().reverse();
+        }
+        
+        setAvailableDates(datesArr);
         setFileName(data.fileName || '');
         setUpdatedAt(data.updatedAt || null);
         
@@ -78,7 +86,6 @@ function App() {
         localStorage.setItem('waste_app_data', JSON.stringify(data));
         
         // 날짜 초기화 (기존 선택된 날짜가 새 엑셀에 전혀 없으면 초기화)
-        const datesArr = data.availableDates || [];
         setSelectedDates(prev => {
           const isValid = prev.length > 0 && prev.every(d => datesArr.includes(d));
           if (!isValid && datesArr.length > 0) {
@@ -169,6 +176,9 @@ function App() {
 
   const shareAvailableDates = useMemo(() => {
     const dates = new Set();
+    const dt = new Date();
+    dates.add(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`);
+
     sharedWastes.forEach(item => {
       let dateStr = item.date;
       if (!dateStr && item.createdAt) {
