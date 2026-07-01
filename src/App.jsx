@@ -22,6 +22,7 @@ function App() {
   
   // 접수현황 내 검색 상태
   const [statusSearchTerm, setStatusSearchTerm] = useState('')
+  const [statusSort, setStatusSort] = useState('dateAsc')
   
   // 캘린더 팝업 상태
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
@@ -747,16 +748,40 @@ function App() {
       });
     });
 
-    // 날짜 내림차순 정렬
-    const result = Object.keys(groupedByDate).sort().reverse().map(dateStr => {
-      return {
-        date: dateStr,
-        groups: Object.values(groupedByDate[dateStr])
-      };
+    const flatGroups = [];
+    Object.keys(groupedByDate).forEach(dateStr => {
+      Object.values(groupedByDate[dateStr]).forEach(group => {
+        flatGroups.push({ ...group, _dateStr: dateStr });
+      });
     });
-    
-    return result;
-  }, [allParsedData, selectedDates, statusSearchTerm]);
+
+    if (statusSort === 'address') {
+      flatGroups.sort((a, b) => {
+        const addrA = (a.address || '').trim();
+        const addrB = (b.address || '').trim();
+        if (addrA === addrB) {
+          return (a.detailAddress || '').localeCompare(b.detailAddress || '');
+        }
+        return addrA.localeCompare(addrB);
+      });
+      return [{ date: '선택 날짜 (같은 주소 정렬)', groups: flatGroups }];
+    } else if (statusSort === 'idAsc') {
+      flatGroups.sort((a, b) => a.id.localeCompare(b.id));
+      return [{ date: '선택 날짜 (배출번호 오름차순)', groups: flatGroups }];
+    } else {
+      const dateKeys = Object.keys(groupedByDate).sort();
+      if (statusSort === 'dateDesc') {
+        dateKeys.reverse();
+      }
+      return dateKeys.map(dateStr => {
+        const sortedGroups = Object.values(groupedByDate[dateStr]).sort((a, b) => a.id.localeCompare(b.id));
+        return {
+          date: dateStr,
+          groups: sortedGroups
+        };
+      });
+    }
+  }, [allParsedData, selectedDates, statusSearchTerm, statusSort]);
 
   // 달력 관련 로직
   const handlePrevMonth = () => {
@@ -922,13 +947,13 @@ function App() {
               )}
             </div>
 
-            {/* 접수현황 내 검색창 */}
-            <div className="status-search-container">
+            {/* 접수현황 내 검색창 및 정렬 */}
+            <div className="status-search-container" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div className="status-search-wrapper">
                 <span className="status-search-icon">🔍</span>
                 <input
                   type="text"
-                  placeholder="이름, 연락처, 배출번호, 주소 검색..."
+                  placeholder="이름, 품목, 연락처, 배출번호, 주소 검색..."
                   value={statusSearchTerm}
                   onChange={(e) => setStatusSearchTerm(e.target.value)}
                   className="status-search-input"
@@ -936,6 +961,18 @@ function App() {
                 {statusSearchTerm && (
                   <button className="status-search-clear" onClick={() => setStatusSearchTerm('')}>✕</button>
                 )}
+              </div>
+              <div className="status-sort-wrapper" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <select 
+                  value={statusSort} 
+                  onChange={(e) => setStatusSort(e.target.value)}
+                  style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '0.9rem', backgroundColor: '#fff', cursor: 'pointer' }}
+                >
+                  <option value="dateAsc">📅 날짜순 (오름차순)</option>
+                  <option value="dateDesc">📅 날짜순 (내림차순)</option>
+                  <option value="address">📍 같은 주소끼리</option>
+                  <option value="idAsc">🔢 배출번호순 (오름차순)</option>
+                </select>
               </div>
             </div>
 
