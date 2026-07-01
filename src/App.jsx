@@ -760,11 +760,11 @@ function App() {
         const addrA = (a.address || '').trim();
         const addrB = (b.address || '').trim();
         if (addrA === addrB) {
-          return (a.detailAddress || '').localeCompare(b.detailAddress || '');
+          return (b.detailAddress || '').localeCompare(a.detailAddress || '');
         }
-        return addrA.localeCompare(addrB);
+        return addrB.localeCompare(addrA);
       });
-      return [{ date: '선택 날짜 (같은 주소 정렬)', groups: flatGroups }];
+      return [{ date: '선택 날짜 (같은 주소 내림차순)', groups: flatGroups }];
     } else if (statusSort === 'idAsc') {
       flatGroups.sort((a, b) => a.id.localeCompare(b.id));
       return [{ date: '선택 날짜 (배출번호 오름차순)', groups: flatGroups }];
@@ -970,7 +970,7 @@ function App() {
                 >
                   <option value="dateAsc">📅 날짜순 (오름차순)</option>
                   <option value="dateDesc">📅 날짜순 (내림차순)</option>
-                  <option value="address">📍 같은 주소끼리</option>
+                  <option value="address">📍 같은 주소끼리 (내림차순)</option>
                   <option value="idAsc">🔢 배출번호순 (오름차순)</option>
                 </select>
               </div>
