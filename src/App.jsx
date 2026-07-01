@@ -39,26 +39,21 @@ function App() {
         setFileName(parsed.fileName || '');
         setUpdatedAt(parsed.updatedAt || null);
         
-        const datesArr = parsed.availableDates || [];
         const dt = new Date();
         const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
         const ydt = new Date(dt);
         ydt.setDate(ydt.getDate() - 1);
         const yesterdayStr = `${ydt.getFullYear()}-${String(ydt.getMonth() + 1).padStart(2, '0')}-${String(ydt.getDate()).padStart(2, '0')}`;
         
-        const defaultDates = [];
-        if (datesArr.includes(todayStr)) defaultDates.push(todayStr);
-        if (datesArr.includes(yesterdayStr)) defaultDates.push(yesterdayStr);
+        let datesArr = parsed.availableDates || [];
+        if (!datesArr.includes(todayStr)) datesArr.push(todayStr);
+        if (!datesArr.includes(yesterdayStr)) datesArr.push(yesterdayStr);
+        datesArr.sort().reverse();
+        setAvailableDates(datesArr);
         
-        if (defaultDates.length > 0) {
-          setSelectedDates(prev => prev.length === 0 ? defaultDates : prev);
-          const [y, m] = defaultDates[0].split('-');
-          setCurrentMonth(new Date(Number(y), Number(m) - 1, 1));
-        } else if (datesArr.length > 0) {
-          setSelectedDates(prev => prev.length === 0 ? [datesArr[0]] : prev);
-          const [y, m] = datesArr[0].split('-');
-          setCurrentMonth(new Date(Number(y), Number(m) - 1, 1));
-        }
+        const defaultDates = [todayStr, yesterdayStr];
+        setSelectedDates(prev => prev.length === 0 ? defaultDates : prev);
+        setCurrentMonth(new Date());
       } catch (e) {
         console.error("Failed to parse saved excel data", e);
       }
@@ -72,11 +67,14 @@ function App() {
         setAllParsedData(data.allParsedData || []);
         const dt = new Date();
         const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+        const ydt = new Date(dt);
+        ydt.setDate(ydt.getDate() - 1);
+        const yesterdayStr = `${ydt.getFullYear()}-${String(ydt.getMonth() + 1).padStart(2, '0')}-${String(ydt.getDate()).padStart(2, '0')}`;
         
         let datesArr = data.availableDates || [];
-        if (!datesArr.includes(todayStr)) {
-          datesArr = [...datesArr, todayStr].sort().reverse();
-        }
+        if (!datesArr.includes(todayStr)) datesArr.push(todayStr);
+        if (!datesArr.includes(yesterdayStr)) datesArr.push(yesterdayStr);
+        datesArr.sort().reverse();
         
         setAvailableDates(datesArr);
         setFileName(data.fileName || '');
@@ -85,28 +83,10 @@ function App() {
         // 새로운 데이터로 로컬 캐시 덮어쓰기
         localStorage.setItem('waste_app_data', JSON.stringify(data));
         
-        // 날짜 초기화 (기존 선택된 날짜가 새 엑셀에 전혀 없으면 초기화)
-        setSelectedDates(prev => {
-          const isValid = prev.length > 0 && prev.every(d => datesArr.includes(d));
-          if (!isValid && datesArr.length > 0) {
-            const dt = new Date();
-            const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-            const ydt = new Date(dt);
-            ydt.setDate(ydt.getDate() - 1);
-            const yesterdayStr = `${ydt.getFullYear()}-${String(ydt.getMonth() + 1).padStart(2, '0')}-${String(ydt.getDate()).padStart(2, '0')}`;
-            
-            const defaultDates = [];
-            if (datesArr.includes(todayStr)) defaultDates.push(todayStr);
-            if (datesArr.includes(yesterdayStr)) defaultDates.push(yesterdayStr);
-            
-            if (defaultDates.length > 0) {
-              return defaultDates;
-            } else {
-              return [datesArr[0]];
-            }
-          }
-          return prev;
-        });
+        // 날짜 초기화 (무조건 오늘과 어제 선택)
+        const defaultDates = [todayStr, yesterdayStr];
+        setSelectedDates(prev => prev.length === 0 ? defaultDates : prev);
+        setCurrentMonth(new Date());
       }
     });
 
@@ -177,7 +157,13 @@ function App() {
   const shareAvailableDates = useMemo(() => {
     const dates = new Set();
     const dt = new Date();
-    dates.add(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`);
+    const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    dates.add(todayStr);
+    
+    const ydt = new Date(dt);
+    ydt.setDate(ydt.getDate() - 1);
+    const yesterdayStr = `${ydt.getFullYear()}-${String(ydt.getMonth() + 1).padStart(2, '0')}-${String(ydt.getDate()).padStart(2, '0')}`;
+    dates.add(yesterdayStr);
 
     sharedWastes.forEach(item => {
       let dateStr = item.date;
@@ -200,15 +186,7 @@ function App() {
         ydt.setDate(ydt.getDate() - 1);
         const yesterdayStr = `${ydt.getFullYear()}-${String(ydt.getMonth() + 1).padStart(2, '0')}-${String(ydt.getDate()).padStart(2, '0')}`;
         
-        const defaultDates = [];
-        if (shareAvailableDates.includes(todayStr)) defaultDates.push(todayStr);
-        if (shareAvailableDates.includes(yesterdayStr)) defaultDates.push(yesterdayStr);
-        
-        if (defaultDates.length > 0) {
-          return defaultDates;
-        } else {
-          return [shareAvailableDates[0]];
-        }
+        return [todayStr, yesterdayStr];
       }
       return prev;
     });
