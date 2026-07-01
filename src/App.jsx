@@ -1029,7 +1029,10 @@ function App() {
                           </div>
                           <div className="status-name">👤 {group.name}</div>
                           <div className="status-address-row">
-                            <div className="status-address">📍 {group.address} {group.detailAddress && <span className="status-detail-address">{group.detailAddress}</span>}</div>
+                            <div className="status-address">
+                              <div>📍 {group.address}</div>
+                              {group.detailAddress && <div className="status-detail-address" style={{ marginTop: '4px', color: '#555', fontSize: '0.9em' }}>상세위치: {group.detailAddress}</div>}
+                            </div>
                             <a 
                               href={`https://map.naver.com/v5/search/${encodeURIComponent(group.address)}`} 
                               target="_blank" 
