@@ -703,7 +703,8 @@ function App() {
         const id = (row['배출번호'] || '').toString().replace(/\s+/g, '').toLowerCase();
         const phone = (row['휴대폰'] || row['연락처'] || row['전화번호'] || '').toString().replace(/\s+/g, '').toLowerCase();
         const address = (row['주소'] || '').toString().replace(/\s+/g, '').toLowerCase();
-        return name.includes(searchTarget) || id.includes(searchTarget) || phone.includes(searchTarget) || address.includes(searchTarget);
+        const item = (row['품목'] || '').toString().replace(/\s+/g, '').toLowerCase();
+        return name.includes(searchTarget) || id.includes(searchTarget) || phone.includes(searchTarget) || address.includes(searchTarget) || item.includes(searchTarget);
       });
     } else {
       filtered = allParsedData.filter(row => selectedDates.includes(row._dateStr));
