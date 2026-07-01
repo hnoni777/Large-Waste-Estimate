@@ -22,7 +22,7 @@ function App() {
   
   // 접수현황 내 검색 상태
   const [statusSearchTerm, setStatusSearchTerm] = useState('')
-  const [statusSort, setStatusSort] = useState('dateAsc')
+  const [statusSort, setStatusSort] = useState('dateDesc')
   
   // 캘린더 팝업 상태
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
@@ -764,10 +764,7 @@ function App() {
         }
         return addrB.localeCompare(addrA);
       });
-      return [{ date: '선택 날짜 (같은 주소 내림차순)', groups: flatGroups }];
-    } else if (statusSort === 'idAsc') {
-      flatGroups.sort((a, b) => a.id.localeCompare(b.id));
-      return [{ date: '선택 날짜 (배출번호 오름차순)', groups: flatGroups }];
+      return [{ date: '선택 날짜 (같은 주소별)', groups: flatGroups }];
     } else {
       const dateKeys = Object.keys(groupedByDate).sort();
       if (statusSort === 'dateDesc') {
@@ -968,10 +965,9 @@ function App() {
                   onChange={(e) => setStatusSort(e.target.value)}
                   style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '0.9rem', backgroundColor: '#fff', cursor: 'pointer' }}
                 >
-                  <option value="dateAsc">📅 날짜순 (오름차순)</option>
-                  <option value="dateDesc">📅 날짜순 (내림차순)</option>
-                  <option value="address">📍 같은 주소끼리 (내림차순)</option>
-                  <option value="idAsc">🔢 배출번호순 (오름차순)</option>
+                  <option value="dateDesc">📅 최근 날짜순</option>
+                  <option value="dateAsc">📅 오래된 날짜순</option>
+                  <option value="address">📍 같은 주소별</option>
                 </select>
               </div>
             </div>
