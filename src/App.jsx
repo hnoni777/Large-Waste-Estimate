@@ -754,6 +754,7 @@ function App() {
           name: row['신청자'] || row['성명'] || row['신청인'] || row['이름'] || row['성명(법인명)'] || '이름 없음',
           phone: row['휴대폰'] || row['연락처'] || row['전화번호'] || '',
           address: row['주소'] || '',
+          detailAddress: row['상세위치'] || '',
           applyDate: row._dateStr || formatKSTDate(row['신청일자']),
           pickupDate: formatKSTDate(row['배출일자']),
           items: []
@@ -1028,7 +1029,7 @@ function App() {
                           </div>
                           <div className="status-name">👤 {group.name}</div>
                           <div className="status-address-row">
-                            <div className="status-address">📍 {group.address}</div>
+                            <div className="status-address">📍 {group.address} {group.detailAddress && <span className="status-detail-address">{group.detailAddress}</span>}</div>
                             <a 
                               href={`https://map.naver.com/v5/search/${encodeURIComponent(group.address)}`} 
                               target="_blank" 
