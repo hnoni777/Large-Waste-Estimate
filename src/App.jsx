@@ -953,7 +953,7 @@ function App() {
         {/* === STATUS TAB (폐가구접수현황) === */}
         {activeTab === 'status' && (
           <div className="tab-status">
-            <div className="upload-wrapper">
+            <div className="upload-wrapper" style={{ padding: '0.5rem 1rem', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '10px', borderRadius: '8px', border: '1px dashed #3b82f6' }}>
               <input 
                 id="excel-upload"
                 type="file" 
@@ -961,21 +961,23 @@ function App() {
                 onChange={handleFileUpload}
                 style={{ display: 'none' }} 
               />
-              <label htmlFor="excel-upload" className="upload-btn">
+              <label htmlFor="excel-upload" className="upload-btn" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', margin: 0, whiteSpace: 'nowrap', borderRadius: '6px' }}>
                 엑셀자료 서버전송
               </label>
-              {fileName && (
-                <>
-                  <p className="file-name" style={{ marginBottom: updatedAt ? '4px' : '0', color: 'var(--primary-color)', fontWeight: 'bold' }}>
-                    서버에 등록된 엑셀파일: {fileName}
-                  </p>
-                  {updatedAt && (
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>
-                      (서버에서 동기화됨: {new Date(updatedAt).toLocaleString()})
+              <div style={{ textAlign: 'right', flex: 1, overflow: 'hidden' }}>
+                {fileName && (
+                  <>
+                    <p className="file-name" style={{ margin: 0, color: 'var(--primary-color)', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {fileName}
                     </p>
-                  )}
-                </>
-              )}
+                    {updatedAt && (
+                      <p style={{ margin: 0, fontSize: '0.7rem', color: '#666' }}>
+                        {new Date(updatedAt).toLocaleString()}
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
 
             {/* 접수현황 내 검색창 및 정렬 */}
