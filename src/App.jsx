@@ -992,7 +992,7 @@ function App() {
                     <input 
                       type="checkbox" 
                       checked={statusFilter === 'completed'} 
-                      onChange={() => setStatusFilter(statusFilter === 'completed' ? 'all' : 'completed')} 
+                      onChange={(e) => setStatusFilter(e.target.checked ? 'completed' : 'all')} 
                     />
                     ✅ 수거완료만
                   </label>
@@ -1000,7 +1000,7 @@ function App() {
                     <input 
                       type="checkbox" 
                       checked={statusFilter === 'uncompleted'} 
-                      onChange={() => setStatusFilter(statusFilter === 'uncompleted' ? 'all' : 'uncompleted')} 
+                      onChange={(e) => setStatusFilter(e.target.checked ? 'uncompleted' : 'all')} 
                     />
                     ⏳ 미수거만
                   </label>
