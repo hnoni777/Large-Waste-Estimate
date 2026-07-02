@@ -993,25 +993,7 @@ function App() {
                   <button className="status-search-clear" onClick={() => setStatusSearchTerm('')}>✕</button>
                 )}
               </div>
-              <div className="status-sort-wrapper" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-                <div style={{ display: 'flex', gap: '15px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '0.9rem' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={statusFilter === 'completed'} 
-                      onChange={(e) => setStatusFilter(e.target.checked ? 'completed' : 'all')} 
-                    />
-                    ✅ 수거완료만
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '0.9rem' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={statusFilter === 'uncompleted'} 
-                      onChange={(e) => setStatusFilter(e.target.checked ? 'uncompleted' : 'all')} 
-                    />
-                    ⏳ 미수거만
-                  </label>
-                </div>
+              <div className="status-sort-wrapper" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}>
                 <select 
                   value={statusSort} 
                   onChange={(e) => setStatusSort(e.target.value)}
@@ -1068,6 +1050,26 @@ function App() {
                 statusDataByDate.map((dateObj) => (
                   <div key={dateObj.date} className="date-group-section">
                     <h3 className="date-group-header">📅 {dateObj.date} 접수건</h3>
+                    
+                    <div style={{ display: 'flex', gap: '15px', padding: '10px 16px', background: '#fff', borderBottom: '1px solid #eee' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: statusFilter === 'completed' ? 'bold' : 'normal', color: statusFilter === 'completed' ? '#0066cc' : '#333' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={statusFilter === 'completed'} 
+                          onChange={(e) => setStatusFilter(e.target.checked ? 'completed' : 'all')} 
+                        />
+                        수거완료
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: statusFilter === 'uncompleted' ? 'bold' : 'normal', color: statusFilter === 'uncompleted' ? '#0066cc' : '#333' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={statusFilter === 'uncompleted'} 
+                          onChange={(e) => setStatusFilter(e.target.checked ? 'uncompleted' : 'all')} 
+                        />
+                        미수거
+                      </label>
+                    </div>
+
                     {dateObj.groups.map((group) => {
                       const statusData = pickupStatuses[group.id] || {};
                       const isCompleted = statusData.completed;
