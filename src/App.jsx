@@ -986,7 +986,7 @@ function App() {
                 <span className="status-search-icon">🔍</span>
                 <input
                   type="text"
-                  placeholder="이름, 아파트명, 품목, 연락처, 배출번호, 주소 검색..."
+                  placeholder="이름, 아파트명, 배출번호, 연락처, 주소 검색..."
                   value={statusSearchTerm}
                   onChange={(e) => setStatusSearchTerm(e.target.value)}
                   className="status-search-input"
