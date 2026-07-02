@@ -1,6 +1,38 @@
 import { useState, useMemo, useEffect } from 'react'
 import data from '../data.json'
 import * as XLSX from 'xlsx'
+
+
+const APT_MAPPING = {
+  "오리로 801": "e편한세상 센트레빌",
+  "도덕공원로 35": "브라운스톤 2차",
+  "안현로 34": "하안주공 3단지",
+  "도덕공원로 59": "푸르지오",
+  "가림일로 101": "도덕파크 2단지",
+  "안현로 15": "하안주공 1단지",
+  "가림일로 79": "도덕파크 1단지",
+  "안현로 36": "하안주공 4단지",
+  "가림로 38": "하안주공 5단지",
+  "안현로 35": "하안주공 2단지",
+  "광덕산로 26": "두산위브",
+  "가림일로 55": "현대아파트"
+};
+
+const getAptName = (address) => {
+  if (!address) return null;
+  // 주소에서 동, 호, 괄호 등 불필요한 부분 제거하여 매핑 키와 비교하기 쉽게 정제
+  let cleanAddr = address.replace(/\s*\d+호\s*/g, '')
+                         .replace(/\([^)]+\)/g, '');
+  cleanAddr = cleanAddr.replace(/(?:^|\s)([0-9]+[-a-zA-Z0-9]*\s*동)(?:\s|$)/g, '');
+  cleanAddr = cleanAddr.replace(/\s+/g, ' ').trim();
+
+  for (const [key, apt] of Object.entries(APT_MAPPING)) {
+    if (cleanAddr.includes(key)) {
+      return apt;
+    }
+  }
+  return null;
+};
 import { db } from './firebase'
 import { collection, doc, onSnapshot, setDoc, deleteDoc } from 'firebase/firestore'
 import './index.css'
@@ -1047,7 +1079,14 @@ function App() {
                           <div className="status-name">👤 {group.name}</div>
                           <div className="status-address-row">
                             <div className="status-address">
-                              <div>📍 {group.address}</div>
+                              <div>
+                                📍 {group.address} 
+                                {getAptName(group.address) && (
+                                  <span style={{ color: '#0066cc', fontWeight: 'bold', marginLeft: '6px' }}>
+                                    ({getAptName(group.address)})
+                                  </span>
+                                )}
+                              </div>
                               {group.detailAddress && <div className="status-detail-address" style={{ marginTop: '4px', color: '#555', fontSize: '0.9em' }}>상세위치: {group.detailAddress}</div>}
                             </div>
                             <a 
