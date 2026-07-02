@@ -1060,7 +1060,7 @@ function App() {
                           checked={statusFilter === 'completed'} 
                           onChange={(e) => setStatusFilter(e.target.checked ? 'completed' : 'all')} 
                         />
-                        수거완료
+                        수거완료만 보기
                       </label>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: statusFilter === 'uncompleted' ? 'bold' : 'normal', color: statusFilter === 'uncompleted' ? '#0066cc' : '#333' }}>
                         <input 
@@ -1068,7 +1068,7 @@ function App() {
                           checked={statusFilter === 'uncompleted'} 
                           onChange={(e) => setStatusFilter(e.target.checked ? 'uncompleted' : 'all')} 
                         />
-                        미수거
+                        미수거만 보기
                       </label>
                     </div>
 
