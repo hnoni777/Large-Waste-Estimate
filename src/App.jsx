@@ -747,9 +747,9 @@ function App() {
     }
     
     if (statusFilter === 'completed') {
-      filtered = filtered.filter(row => row['상태'] === '수거완료');
+      filtered = filtered.filter(row => pickupStatuses[row['배출번호']]?.completed === true);
     } else if (statusFilter === 'uncompleted') {
-      filtered = filtered.filter(row => row['상태'] !== '수거완료');
+      filtered = filtered.filter(row => !pickupStatuses[row['배출번호']]?.completed);
     }
     
     const groupedByDate = {};
@@ -805,7 +805,7 @@ function App() {
         groups: sortedGroups
       };
     });
-  }, [allParsedData, selectedDates, statusSearchTerm, statusSort, statusFilter]);
+  }, [allParsedData, selectedDates, statusSearchTerm, statusSort, statusFilter, pickupStatuses]);
 
   // 달력 관련 로직
   const handlePrevMonth = () => {
