@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx'
 
 
 const APT_MAPPING = {
-  "오리로 801": "e편한세상 센트레빌",
+  "오리로 801": "이편한 세상",
   "도덕공원로 35": "브라운스톤 2차",
   "안현로 34": "하안주공 3단지",
   "도덕공원로 59": "푸르지오",
@@ -738,7 +738,8 @@ function App() {
         const phone = (row['휴대폰'] || row['연락처'] || row['전화번호'] || '').toString().replace(/\s+/g, '').toLowerCase();
         const address = (row['주소'] || '').toString().replace(/\s+/g, '').toLowerCase();
         const item = (row['품목'] || '').toString().replace(/\s+/g, '').toLowerCase();
-        return name.includes(searchTarget) || id.includes(searchTarget) || phone.includes(searchTarget) || address.includes(searchTarget) || item.includes(searchTarget);
+        const aptName = (getAptName(row['주소']) || '').toString().replace(/\s+/g, '').toLowerCase();
+        return name.includes(searchTarget) || id.includes(searchTarget) || phone.includes(searchTarget) || address.includes(searchTarget) || item.includes(searchTarget) || aptName.includes(searchTarget);
       });
     } else {
       filtered = allParsedData.filter(row => selectedDates.includes(row._dateStr));
@@ -988,7 +989,7 @@ function App() {
                 <span className="status-search-icon">🔍</span>
                 <input
                   type="text"
-                  placeholder="이름, 품목, 연락처, 배출번호, 주소 검색..."
+                  placeholder="이름, 품목, 연락처, 배출번호, 주소, 아파트명 검색..."
                   value={statusSearchTerm}
                   onChange={(e) => setStatusSearchTerm(e.target.value)}
                   className="status-search-input"
