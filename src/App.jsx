@@ -995,7 +995,7 @@ function App() {
                   <button className="status-search-clear" onClick={() => setStatusSearchTerm('')}>✕</button>
                 )}
               </div>
-              <div className="status-sort-wrapper" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}>
+              <div className="status-sort-wrapper" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '4px' }}>
                 <select 
                   value={statusSort} 
                   onChange={(e) => setStatusSort(e.target.value)}
