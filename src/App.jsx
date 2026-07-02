@@ -782,41 +782,22 @@ function App() {
       });
     });
 
-    const flatGroups = [];
-    Object.keys(groupedByDate).forEach(dateStr => {
-      Object.values(groupedByDate[dateStr]).forEach(group => {
-        flatGroups.push({ ...group, _dateStr: dateStr });
-      });
-    });
-
-    if (statusSort === 'address') {
-      flatGroups.sort((a, b) => {
-        const addrA = (a.address || '').trim();
-        const addrB = (b.address || '').trim();
-        if (addrA === addrB) {
-          return (b.detailAddress || '').localeCompare(a.detailAddress || '');
-        }
-        return addrB.localeCompare(addrA);
-      });
-      return [{ date: '선택 날짜 (같은 주소별)', groups: flatGroups }];
-    } else {
-      const dateKeys = Object.keys(groupedByDate).sort();
-      if (statusSort === 'dateDesc') {
-        dateKeys.reverse();
-      }
-      return dateKeys.map(dateStr => {
-        const sortedGroups = Object.values(groupedByDate[dateStr]).sort((a, b) => {
-          if (statusSort === 'dateDesc') {
-            return b.id.localeCompare(a.id);
-          }
-          return a.id.localeCompare(b.id);
-        });
-        return {
-          date: dateStr,
-          groups: sortedGroups
-        };
-      });
+    const dateKeys = Object.keys(groupedByDate).sort();
+    if (statusSort === 'dateDesc') {
+      dateKeys.reverse();
     }
+    return dateKeys.map(dateStr => {
+      const sortedGroups = Object.values(groupedByDate[dateStr]).sort((a, b) => {
+        if (statusSort === 'dateDesc') {
+          return b.id.localeCompare(a.id);
+        }
+        return a.id.localeCompare(b.id);
+      });
+      return {
+        date: dateStr,
+        groups: sortedGroups
+      };
+    });
   }, [allParsedData, selectedDates, statusSearchTerm, statusSort]);
 
   // 달력 관련 로직
@@ -1006,7 +987,6 @@ function App() {
                 >
                   <option value="dateDesc">📅 최근 날짜순</option>
                   <option value="dateAsc">📅 오래된 날짜순</option>
-                  <option value="address">📍 같은 주소별</option>
                 </select>
               </div>
             </div>
