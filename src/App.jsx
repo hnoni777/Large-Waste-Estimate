@@ -62,6 +62,11 @@ function App() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
 
+  // 탭 변경 시 화면 맨 위로 스크롤
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [activeTab]);
+
   // 앱 실행 시 저장된 엑셀 데이터 불러오기 및 서버 실시간 동기화
   useEffect(() => {
     // 1. 초기 로딩을 빠르게 하기 위해 로컬 스토리지 캐시 적용
