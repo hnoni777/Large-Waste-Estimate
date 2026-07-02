@@ -56,6 +56,7 @@ function App() {
   // 접수현황 내 검색 상태
   const [statusSearchTerm, setStatusSearchTerm] = useState('')
   const [statusSort, setStatusSort] = useState('dateDesc')
+  const [statusFilter, setStatusFilter] = useState('all') // 'all', 'completed', 'uncompleted'
   
   // 캘린더 팝업 상태
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
@@ -745,6 +746,12 @@ function App() {
       filtered = allParsedData.filter(row => selectedDates.includes(row._dateStr));
     }
     
+    if (statusFilter === 'completed') {
+      filtered = filtered.filter(row => row['상태'] === '수거완료');
+    } else if (statusFilter === 'uncompleted') {
+      filtered = filtered.filter(row => row['상태'] !== '수거완료');
+    }
+    
     const groupedByDate = {};
     filtered.forEach(row => {
       const dateStr = row._dateStr;
@@ -798,7 +805,7 @@ function App() {
         groups: sortedGroups
       };
     });
-  }, [allParsedData, selectedDates, statusSearchTerm, statusSort]);
+  }, [allParsedData, selectedDates, statusSearchTerm, statusSort, statusFilter]);
 
   // 달력 관련 로직
   const handlePrevMonth = () => {
@@ -979,7 +986,25 @@ function App() {
                   <button className="status-search-clear" onClick={() => setStatusSearchTerm('')}>✕</button>
                 )}
               </div>
-              <div className="status-sort-wrapper" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <div className="status-sort-wrapper" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+                <div style={{ display: 'flex', gap: '15px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '0.9rem' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={statusFilter === 'completed'} 
+                      onChange={() => setStatusFilter(statusFilter === 'completed' ? 'all' : 'completed')} 
+                    />
+                    ✅ 수거완료만
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '0.9rem' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={statusFilter === 'uncompleted'} 
+                      onChange={() => setStatusFilter(statusFilter === 'uncompleted' ? 'all' : 'uncompleted')} 
+                    />
+                    ⏳ 미수거만
+                  </label>
+                </div>
                 <select 
                   value={statusSort} 
                   onChange={(e) => setStatusSort(e.target.value)}
