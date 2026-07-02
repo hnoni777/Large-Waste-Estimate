@@ -771,7 +771,12 @@ function App() {
         dateKeys.reverse();
       }
       return dateKeys.map(dateStr => {
-        const sortedGroups = Object.values(groupedByDate[dateStr]).sort((a, b) => a.id.localeCompare(b.id));
+        const sortedGroups = Object.values(groupedByDate[dateStr]).sort((a, b) => {
+          if (statusSort === 'dateDesc') {
+            return b.id.localeCompare(a.id);
+          }
+          return a.id.localeCompare(b.id);
+        });
         return {
           date: dateStr,
           groups: sortedGroups
