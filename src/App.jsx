@@ -184,6 +184,8 @@ function App() {
   const [sharePhotos, setSharePhotos] = useState([]); // array of { id, url, isUploading }
   const [shareMemo, setShareMemo] = useState(''); // 메모 상태 추가
   const [shareSelectedDates, setShareSelectedDates] = useState([]);
+  const [shareTeamTab, setShareTeamTab] = useState('0258'); // '0258' | '4069'
+  const [shareFormTeam, setShareFormTeam] = useState('0258');
   const [shareDate, setShareDate] = useState(() => {
     const dt = new Date();
     return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
@@ -281,6 +283,7 @@ function App() {
     setEditingShareId(null);
     setSharePhotos([]);
     setShareMemo('');
+    setShareFormTeam(shareTeamTab);
     window.history.pushState({ type: 'modal', modal: 'shareWrite' }, '');
     setIsShareWriting(true);
   };
@@ -289,6 +292,7 @@ function App() {
     setEditingShareId(waste.id);
     setSharePhotos(waste.photos ? waste.photos.map((url, i) => ({ id: `old_${i}`, url, isUploading: false })) : []);
     setShareMemo(waste.memo || '');
+    setShareFormTeam(waste.team || '0258');
     window.history.pushState({ type: 'modal', modal: 'shareWrite' }, '');
     setIsShareWriting(true);
   };
@@ -513,7 +517,8 @@ function App() {
       if (editingShareId) {
         await setDoc(doc(db, 'shared_wastes', editingShareId), {
           photos: finalUrls,
-          memo: shareMemo.trim()
+          memo: shareMemo.trim(),
+          team: shareFormTeam
         }, { merge: true });
       } else {
         const newDocRef = doc(collection(db, 'shared_wastes'));
@@ -522,7 +527,8 @@ function App() {
           createdAt: Date.now(),
           date: shareDate,
           memo: shareMemo.trim(),
-          completed: false
+          completed: false,
+          team: shareFormTeam
         });
       }
       setSharePhotos([]);
@@ -575,7 +581,8 @@ function App() {
   };
 
   const filteredSharedWastes = useMemo(() => {
-    return sharedWastes.filter(waste => {
+    const teamFiltered = sharedWastes.filter(waste => (waste.team || '0258') === shareTeamTab);
+    return teamFiltered.filter(waste => {
       let dateStr = waste.date;
       if (!dateStr && waste.createdAt) {
         const d = new Date(waste.createdAt);
@@ -583,7 +590,7 @@ function App() {
       }
       return shareSelectedDates.includes(dateStr);
     });
-  }, [sharedWastes, shareSelectedDates]);
+  }, [sharedWastes, shareSelectedDates, shareTeamTab]);
 
   const items = useMemo(() => {
     return data.map((d, index) => ({
@@ -1174,7 +1181,21 @@ function App() {
           <div className="tab-share">
             {!isShareWriting ? (
               <div className="share-list-container">
-                <div className="share-date-header" style={{ justifyContent: 'center', background: 'transparent', boxShadow: 'none' }}>
+                <div className="team-tabs" style={{ display: 'flex', borderBottom: '1px solid #ddd', marginBottom: '15px' }}>
+                  <button 
+                    style={{ flex: 1, padding: '12px', background: shareTeamTab === '0258' ? '#0066cc' : '#f8f9fa', color: shareTeamTab === '0258' ? '#fff' : '#555', border: 'none', fontWeight: shareTeamTab === '0258' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }}
+                    onClick={() => setShareTeamTab('0258')}
+                  >
+                    0258팀
+                  </button>
+                  <button 
+                    style={{ flex: 1, padding: '12px', background: shareTeamTab === '4069' ? '#0066cc' : '#f8f9fa', color: shareTeamTab === '4069' ? '#fff' : '#555', border: 'none', fontWeight: shareTeamTab === '4069' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }}
+                    onClick={() => setShareTeamTab('4069')}
+                  >
+                    4069팀
+                  </button>
+                </div>
+                <div className="share-date-header" style={{ justifyContent: 'center', background: 'transparent', boxShadow: 'none', paddingTop: 0 }}>
                   {shareAvailableDates.length > 0 && (
                     <button 
                       className="date-select-btn"
@@ -1244,6 +1265,32 @@ function App() {
               <div className="share-write-container">
                 <h3 className="share-write-title">{editingShareId ? '폐가구 공유 수정' : '새 폐가구 공유'}</h3>
                 
+                <div className="share-team-select" style={{ marginBottom: '15px', padding: '10px', background: '#f8f9fa', borderRadius: '8px' }}>
+                  <p style={{ margin: '0 0 10px 0', fontSize: '0.9rem', fontWeight: 'bold' }}>담당 수거팀 선택</p>
+                  <div style={{ display: 'flex', gap: '20px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                      <input 
+                        type="radio" 
+                        name="shareTeam" 
+                        value="0258" 
+                        checked={shareFormTeam === '0258'} 
+                        onChange={(e) => setShareFormTeam(e.target.value)} 
+                      />
+                      0258팀
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                      <input 
+                        type="radio" 
+                        name="shareTeam" 
+                        value="4069" 
+                        checked={shareFormTeam === '4069'} 
+                        onChange={(e) => setShareFormTeam(e.target.value)} 
+                      />
+                      4069팀
+                    </label>
+                  </div>
+                </div>
+
                 <div className="share-write-actions">
                   <div className="upload-wrapper" style={{width: '100%', boxSizing: 'border-box', display: 'flex', gap: '0.5rem'}}>
                     <input 
