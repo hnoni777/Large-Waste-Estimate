@@ -35,7 +35,7 @@ const getAptName = (address) => {
   return null;
 };
 import { db } from './firebase'
-import { collection, doc, onSnapshot, setDoc, deleteDoc } from 'firebase/firestore'
+import { collection, doc, onSnapshot, setDoc, deleteDoc, getDocs } from 'firebase/firestore'
 import './index.css'
 
 function App() {
@@ -248,6 +248,22 @@ function App() {
     });
     return () => unsubscribeShare();
   }, []);
+
+  const handleRefreshShare = async () => {
+    try {
+      const snapshot = await getDocs(collection(db, 'shared_wastes'));
+      const wastes = [];
+      snapshot.forEach(doc => {
+        wastes.push({ id: doc.id, ...doc.data() });
+      });
+      wastes.sort((a, b) => b.createdAt - a.createdAt);
+      setSharedWastes(wastes);
+      alert('목록이 최신 상태로 갱신되었습니다.');
+    } catch (error) {
+      console.error('Error refreshing shared wastes:', error);
+      alert('갱신 중 오류가 발생했습니다.');
+    }
+  };
 
   // 뒤로가기(History) 라우팅 처리
   useEffect(() => {
@@ -1218,9 +1234,18 @@ function App() {
                   )}
                 </div>
 
-                <button className="share-write-btn" onClick={openShareWrite}>
-                  ✍️ 새 공유글 작성하기
-                </button>
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                  <button className="share-write-btn" onClick={openShareWrite} style={{ flex: 1 }}>
+                    ✍️ 새 공유글 작성하기
+                  </button>
+                  <button 
+                    onClick={handleRefreshShare} 
+                    style={{ padding: '0 15px', background: '#fff', border: '1px solid #ddd', borderRadius: '8px', cursor: 'pointer', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    title="새로고침"
+                  >
+                    🔄
+                  </button>
+                </div>
                 {filteredSharedWastes.length === 0 ? (
                   <div className="empty-state">해당 날짜에 공유된 폐가구가 없습니다.</div>
                 ) : (
