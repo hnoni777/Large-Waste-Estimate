@@ -258,6 +258,21 @@ function App() {
       });
       wastes.sort((a, b) => b.createdAt - a.createdAt);
       setSharedWastes(wastes);
+
+      // 강제 새로고침 시 날짜 선택을 현재 날짜 기준으로 업데이트 (앱 켜둔 상태 유지 시 누락 방지)
+      const dt = new Date();
+      const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+      const ydt = new Date(dt);
+      ydt.setDate(ydt.getDate() - 1);
+      const yesterdayStr = `${ydt.getFullYear()}-${String(ydt.getMonth() + 1).padStart(2, '0')}-${String(ydt.getDate()).padStart(2, '0')}`;
+      
+      setShareSelectedDates(prev => {
+        if (!prev.includes(todayStr) || !prev.includes(yesterdayStr)) {
+          return Array.from(new Set([todayStr, yesterdayStr, ...prev]));
+        }
+        return prev;
+      });
+
       alert('목록이 최신 상태로 갱신되었습니다.');
     } catch (error) {
       console.error('Error refreshing shared wastes:', error);
@@ -308,6 +323,11 @@ function App() {
     setSharePhotos([]);
     setShareMemo('');
     setShareFormTeam(shareTeamTab);
+    
+    // 글 작성 시 날짜를 무조건 현재 실제 날짜로 갱신
+    const dt = new Date();
+    setShareDate(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`);
+    
     window.history.pushState({ type: 'modal', modal: 'shareWrite' }, '');
     setIsShareWriting(true);
   };
@@ -558,6 +578,15 @@ function App() {
       setSharePhotos([]);
       setShareMemo('');
       setEditingShareId(null);
+      
+      // 방금 올린 글이 목록에 보이도록, 해당 날짜가 필터에 없으면 강제 추가
+      setShareSelectedDates(prev => {
+        if (!prev.includes(shareDate)) {
+          return [shareDate, ...prev];
+        }
+        return prev;
+      });
+
       window.history.back();
     } catch (e) {
       console.error("Error adding shared waste", e);
