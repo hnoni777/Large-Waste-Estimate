@@ -240,11 +240,36 @@ function App() {
   useEffect(() => {
     const unsubscribeShare = onSnapshot(collection(db, 'shared_wastes'), (snapshot) => {
       const wastes = [];
+      let hasVeryRecentPost = false;
+      const recentDates = new Set();
+      
       snapshot.forEach(doc => {
-        wastes.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        wastes.push({ id: doc.id, ...data });
+        
+        // 5분 이내에 새로 올라온 글이 있다면 해당 날짜를 강제로 선택 목록에 추가 (실시간 자동 갱신을 위해)
+        if (data.createdAt && Date.now() - data.createdAt < 5 * 60 * 1000) {
+          hasVeryRecentPost = true;
+          if (data.date) {
+            recentDates.add(data.date);
+          } else {
+            const d = new Date(data.createdAt);
+            recentDates.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+          }
+        }
       });
       wastes.sort((a, b) => b.createdAt - a.createdAt);
       setSharedWastes(wastes);
+
+      if (hasVeryRecentPost && recentDates.size > 0) {
+        setShareSelectedDates(prev => {
+          const newDates = Array.from(recentDates).filter(d => !prev.includes(d));
+          if (newDates.length > 0) {
+            return [...newDates, ...prev];
+          }
+          return prev;
+        });
+      }
     });
     return () => unsubscribeShare();
   }, []);
