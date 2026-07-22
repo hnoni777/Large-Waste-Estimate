@@ -203,14 +203,11 @@ function App() {
 
   const shareAvailableDates = useMemo(() => {
     const dates = new Set();
-    const dt = new Date();
-    const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-    dates.add(todayStr);
-    
-    const ydt = new Date(dt);
-    ydt.setDate(ydt.getDate() - 1);
-    const yesterdayStr = `${ydt.getFullYear()}-${String(ydt.getMonth() + 1).padStart(2, '0')}-${String(ydt.getDate()).padStart(2, '0')}`;
-    dates.add(yesterdayStr);
+    for (let i = 0; i < 5; i++) {
+      const dt = new Date();
+      dt.setDate(dt.getDate() - i);
+      dates.add(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`);
+    }
 
     sharedWastes.forEach(item => {
       let dateStr = item.date;
@@ -227,13 +224,13 @@ function App() {
     setShareSelectedDates(prev => {
       const isValid = prev.length > 0 && prev.every(d => shareAvailableDates.includes(d));
       if (!isValid && shareAvailableDates.length > 0) {
-        const dt = new Date();
-        const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-        const ydt = new Date(dt);
-        ydt.setDate(ydt.getDate() - 1);
-        const yesterdayStr = `${ydt.getFullYear()}-${String(ydt.getMonth() + 1).padStart(2, '0')}-${String(ydt.getDate()).padStart(2, '0')}`;
-        
-        return [todayStr, yesterdayStr];
+        const defaultDates = [];
+        for (let i = 0; i < 5; i++) {
+          const dt = new Date();
+          dt.setDate(dt.getDate() - i);
+          defaultDates.push(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`);
+        }
+        return defaultDates;
       }
       return prev;
     });
@@ -287,15 +284,17 @@ function App() {
       setSharedWastes(wastes);
 
       // 강제 새로고침 시 날짜 선택을 현재 날짜 기준으로 업데이트 (앱 켜둔 상태 유지 시 누락 방지)
-      const dt = new Date();
-      const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-      const ydt = new Date(dt);
-      ydt.setDate(ydt.getDate() - 1);
-      const yesterdayStr = `${ydt.getFullYear()}-${String(ydt.getMonth() + 1).padStart(2, '0')}-${String(ydt.getDate()).padStart(2, '0')}`;
+      const defaultDates = [];
+      for (let i = 0; i < 5; i++) {
+        const dt = new Date();
+        dt.setDate(dt.getDate() - i);
+        defaultDates.push(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`);
+      }
       
       setShareSelectedDates(prev => {
-        if (!prev.includes(todayStr) || !prev.includes(yesterdayStr)) {
-          return Array.from(new Set([todayStr, yesterdayStr, ...prev]));
+        const missing = defaultDates.filter(d => !prev.includes(d));
+        if (missing.length > 0) {
+          return Array.from(new Set([...defaultDates, ...prev]));
         }
         return prev;
       });
