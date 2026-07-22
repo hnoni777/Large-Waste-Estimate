@@ -82,19 +82,20 @@ function App() {
         setFileName(parsed.fileName || '');
         setUpdatedAt(parsed.updatedAt || null);
         
-        const dt = new Date();
-        const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-        const ydt = new Date(dt);
-        ydt.setDate(ydt.getDate() - 1);
-        const yesterdayStr = `${ydt.getFullYear()}-${String(ydt.getMonth() + 1).padStart(2, '0')}-${String(ydt.getDate()).padStart(2, '0')}`;
+        const defaultDates = [];
+        for (let i = 0; i < 5; i++) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          defaultDates.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+        }
         
         let datesArr = parsed.availableDates || [];
-        if (!datesArr.includes(todayStr)) datesArr.push(todayStr);
-        if (!datesArr.includes(yesterdayStr)) datesArr.push(yesterdayStr);
+        defaultDates.forEach(d => {
+          if (!datesArr.includes(d)) datesArr.push(d);
+        });
         datesArr.sort().reverse();
         setAvailableDates(datesArr);
         
-        const defaultDates = [todayStr, yesterdayStr];
         setSelectedDates(prev => prev.length === 0 ? defaultDates : prev);
         setCurrentMonth(new Date());
       } catch (e) {
@@ -108,15 +109,17 @@ function App() {
         const data = docSnap.data();
         
         setAllParsedData(data.allParsedData || []);
-        const dt = new Date();
-        const todayStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-        const ydt = new Date(dt);
-        ydt.setDate(ydt.getDate() - 1);
-        const yesterdayStr = `${ydt.getFullYear()}-${String(ydt.getMonth() + 1).padStart(2, '0')}-${String(ydt.getDate()).padStart(2, '0')}`;
+        const defaultDates = [];
+        for (let i = 0; i < 5; i++) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          defaultDates.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+        }
         
         let datesArr = data.availableDates || [];
-        if (!datesArr.includes(todayStr)) datesArr.push(todayStr);
-        if (!datesArr.includes(yesterdayStr)) datesArr.push(yesterdayStr);
+        defaultDates.forEach(d => {
+          if (!datesArr.includes(d)) datesArr.push(d);
+        });
         datesArr.sort().reverse();
         
         setAvailableDates(datesArr);
@@ -126,8 +129,7 @@ function App() {
         // 새로운 데이터로 로컬 캐시 덮어쓰기
         localStorage.setItem('waste_app_data', JSON.stringify(data));
         
-        // 날짜 초기화 (무조건 오늘과 어제 선택)
-        const defaultDates = [todayStr, yesterdayStr];
+        // 날짜 초기화 (무조건 최근 5일 선택)
         setSelectedDates(prev => prev.length === 0 ? defaultDates : prev);
         setCurrentMonth(new Date());
       }
