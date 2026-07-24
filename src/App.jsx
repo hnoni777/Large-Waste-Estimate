@@ -572,8 +572,8 @@ function App() {
   };
 
   const submitSharePost = async () => {
-    if (sharePhotos.length === 0) {
-      alert("사진을 1장 이상 추가해주세요.");
+    if (sharePhotos.length === 0 && shareMemo.trim() === '') {
+      alert("내용이나 사진을 입력해주세요.");
       return;
     }
     if (sharePhotos.some(p => p.isUploading)) {
@@ -1449,7 +1449,7 @@ function App() {
                   <button className="share-cancel-btn" onClick={() => { setSharePhotos([]); closeShareWrite(); }}>
                     취소
                   </button>
-                  <button className="share-submit-btn" onClick={submitSharePost} disabled={sharePhotos.length === 0 || sharePhotos.some(p => p.isUploading)}>
+                  <button className="share-submit-btn" onClick={submitSharePost} disabled={(sharePhotos.length === 0 && shareMemo.trim() === '') || sharePhotos.some(p => p.isUploading)}>
                     🚀 업로드 완료
                   </button>
                 </div>
