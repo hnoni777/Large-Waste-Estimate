@@ -639,12 +639,36 @@ function App() {
     }
 
     const finalUrls = sharePhotos.map(p => p.url);
+    
+    let finalMemo = shareMemo.trim();
+    if (shareFormTeam === 'office') {
+      const aptName = getAptName(finalMemo);
+      if (aptName && !finalMemo.includes(aptName.split(' ')[0])) {
+         let addressStr = finalMemo.replace(/(01[016789]-?\d{3,4}-?\d{4}|\d{2,3}-?\d{3,4}-?\d{4})/g, ' ');
+         const match = addressStr.match(/([가-힣A-Za-z0-9]+(시|도|구|군|동|읍|면|리|로|길)\s+[\w가-힣\-\s]+)/);
+         if (match) {
+             let candidate = match[0];
+             const breakWords = ['장롱', '책상', '의자', '침대', '소파', '쇼파', '냉장고', '세탁기', '에어컨', '서랍장', '수거', '폐가구', '문앞', '특이사항', '품목', '매트리스', '거울', '장식장', '식탁', '수납장', '폐기물', '테이블', '협탁', '모니터', '티비', 'TV'];
+             let minIndex = candidate.length;
+             for (const bw of breakWords) {
+                 const idx = candidate.indexOf(bw);
+                 if (idx !== -1 && idx < minIndex) {
+                     minIndex = idx;
+                 }
+             }
+             const exactAddr = candidate.substring(0, minIndex).trim();
+             finalMemo = finalMemo.replace(exactAddr, exactAddr + ' ' + aptName);
+         } else {
+             finalMemo = `[${aptName}] ${finalMemo}`;
+         }
+      }
+    }
 
     try {
       if (editingShareId) {
         await setDoc(doc(db, 'shared_wastes', editingShareId), {
           photos: finalUrls,
-          memo: shareMemo.trim(),
+          memo: finalMemo,
           team: shareFormTeam
         }, { merge: true });
       } else {
@@ -653,7 +677,7 @@ function App() {
           photos: finalUrls,
           createdAt: Date.now(),
           date: shareDate,
-          memo: shareMemo.trim(),
+          memo: finalMemo,
           completed: false,
           team: shareFormTeam
         });
