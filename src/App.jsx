@@ -844,9 +844,9 @@ function App() {
         const name = (row['신청자'] || row['성명'] || row['신청인'] || row['이름'] || row['성명(법인명)'] || '').toString().replace(/\s+/g, '').toLowerCase();
         const id = (row['배출번호'] || '').toString().replace(/\s+/g, '').toLowerCase();
         const phone = (row['휴대폰'] || row['연락처'] || row['전화번호'] || '').toString().replace(/\s+/g, '').toLowerCase();
-        const address = (row['주소'] || row['도로명'] || '').toString().replace(/\s+/g, '').toLowerCase();
+        const address = (row['주소'] || row['도로명주소'] || row['도로명'] || '').toString().replace(/\s+/g, '').toLowerCase();
         const item = (row['품목'] || '').toString().replace(/\s+/g, '').toLowerCase();
-        const aptName = (getAptName(row['주소'] || row['도로명']) || '').toString().replace(/\s+/g, '').toLowerCase();
+        const aptName = (getAptName(row['주소'] || row['도로명주소'] || row['도로명']) || '').toString().replace(/\s+/g, '').toLowerCase();
         return name.includes(searchTarget) || id.includes(searchTarget) || phone.includes(searchTarget) || address.includes(searchTarget) || item.includes(searchTarget) || aptName.includes(searchTarget);
       });
     } else {
@@ -882,7 +882,7 @@ function App() {
           id,
           name: row['신청자'] || row['성명'] || row['신청인'] || row['이름'] || row['성명(법인명)'] || '이름 없음',
           phone: row['휴대폰'] || row['연락처'] || row['전화번호'] || '',
-          address: row['주소'] || row['도로명'] || '',
+          address: row['주소'] || row['도로명주소'] || row['도로명'] || '',
           detailAddress: row['상세위치'] || row['상세주소'] || '',
           applyDate: row._dateStr || formatKSTDate(row['신청일자'] || row['신청일'] || row['신철일']),
           pickupDate: formatKSTDate(row['배출일자'] || row['배출일']),
