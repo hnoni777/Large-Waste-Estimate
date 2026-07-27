@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useDeferredValue } from 'react'
 import data from '../data.json'
 import * as XLSX from 'xlsx'
 
@@ -57,6 +57,7 @@ function App() {
   
   // 접수현황 내 검색 상태
   const [statusSearchTerm, setStatusSearchTerm] = useState('')
+  const deferredStatusSearchTerm = useDeferredValue(statusSearchTerm)
   const [statusSort, setStatusSort] = useState('dateDesc') // 'excelOrder', 'dateDesc', 'dateAsc'
   const [statusFilter, setStatusFilter] = useState('all') // 'all', 'completed', 'uncompleted'
   
@@ -885,8 +886,8 @@ function App() {
   const statusDataByDate = useMemo(() => {
     let filtered = combinedData;
 
-    if (statusSearchTerm) {
-      const searchTarget = statusSearchTerm.replace(/\s+/g, '').toLowerCase();
+    if (deferredStatusSearchTerm) {
+      const searchTarget = deferredStatusSearchTerm.replace(/\s+/g, '').toLowerCase();
       filtered = combinedData.filter(row => {
         if (row.source !== activeSourceTab) return false;
         const name = (row['신청자'] || row['성명'] || row['신청인'] || row['이름'] || row['성명(법인명)'] || '').toString().replace(/\s+/g, '').toLowerCase();
@@ -973,7 +974,7 @@ function App() {
         groups: sortedGroups
       };
     });
-  }, [combinedData, selectedDates, statusSearchTerm, statusSort, statusFilter, pickupStatuses]);
+  }, [combinedData, selectedDates, deferredStatusSearchTerm, statusSort, statusFilter, pickupStatuses]);
 
   // 달력 관련 로직
   const handlePrevMonth = () => {
