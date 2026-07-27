@@ -65,7 +65,7 @@ function App() {
   const [oldFixedData, setOldFixedData] = useState([]);
 
   useEffect(() => {
-    fetch('/old_data.json')
+    fetch(import.meta.env.BASE_URL + 'old_data.json')
       .then(res => res.json())
       .then(data => setOldFixedData(data))
       .catch(err => console.error("Failed to load old data", err));
@@ -850,7 +850,7 @@ function App() {
         return name.includes(searchTarget) || id.includes(searchTarget) || phone.includes(searchTarget) || address.includes(searchTarget) || item.includes(searchTarget) || aptName.includes(searchTarget);
       });
     } else {
-      filtered = combinedData.filter(row => selectedDates.includes(row._dateStr));
+      filtered = combinedData.filter(row => row.source === '여기로' || selectedDates.includes(row._dateStr));
     }
     
     if (statusFilter === 'completed') {
@@ -902,10 +902,22 @@ function App() {
       });
     });
 
-    const dateKeys = Object.keys(groupedByDate).sort();
-    if (statusSort === 'dateDesc') {
-      dateKeys.reverse();
-    }
+    const dateKeys = Object.keys(groupedByDate).sort((a, b) => {
+      const aSource = Object.values(groupedByDate[a])[0]?.source;
+      const bSource = Object.values(groupedByDate[b])[0]?.source;
+      
+      // '지구하다'가 무조건 위에 오도록
+      if (aSource !== bSource) {
+        return aSource === '지구하다' ? -1 : 1;
+      }
+      
+      // 같은 출처 내에서는 선택된 정렬 방식을 따름
+      if (statusSort === 'dateDesc') {
+        return b.localeCompare(a);
+      }
+      return a.localeCompare(b);
+    });
+
     return dateKeys.map(dateStr => {
       const sortedGroups = Object.values(groupedByDate[dateStr]).sort((a, b) => {
         // 항상 엑셀 파일 위에서 아래로(행 번호 오름차순) 정렬 유지
