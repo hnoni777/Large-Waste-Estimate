@@ -1033,9 +1033,20 @@ function App() {
                 minIndex = idx;
             }
         }
-        return candidate.substring(0, minIndex).trim();
+        let result = candidate.substring(0, minIndex).trim();
+        const aptName = getAptName(result);
+        if (aptName && !result.includes(aptName.split(' ')[0])) {
+            result = result + ' ' + aptName;
+        }
+        return result;
     }
-    return addressStr.trim();
+    
+    let result = addressStr.trim();
+    const aptName = getAptName(result);
+    if (aptName && !result.includes(aptName.split(' ')[0])) {
+        result = result + ' ' + aptName;
+    }
+    return result;
   };
 
   return (
@@ -1593,7 +1604,8 @@ function App() {
                   />
                 </div>
 
-                <div className="share-preview-grid">
+                {shareFormTeam !== 'office' && (
+                  <div className="share-preview-grid">
                   {sharePhotos.map((photoObj, idx) => (
                     <div key={idx} className="share-preview-item">
                       <img 
@@ -1612,6 +1624,7 @@ function App() {
                     <div className="empty-preview">추가된 사진이 없습니다.</div>
                   )}
                 </div>
+                )}
 
                 <div className="share-write-footer">
                   <button className="share-cancel-btn" onClick={() => { setSharePhotos([]); closeShareWrite(); }}>
