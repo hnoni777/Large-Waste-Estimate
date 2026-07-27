@@ -1206,14 +1206,13 @@ function App() {
                           <div className="status-address-row">
                             <div className="status-address">
                               <div>
-                                📍 {group.address} {group.dong && !group.address.includes(group.dong) ? `(${group.dong})` : ''}
+                                📍 {group.address} {group.detailAddress ? `${group.detailAddress} ` : ''}{group.dong && !group.address.includes(group.dong) ? `(${group.dong})` : ''}
                                 {getAptName(group.address) && (
                                   <span style={{ color: '#0066cc', fontWeight: 'bold', marginLeft: '6px' }}>
                                     ({getAptName(group.address)})
                                   </span>
                                 )}
                               </div>
-                              {group.detailAddress && <div className="status-detail-address" style={{ marginTop: '4px', color: '#555', fontSize: '0.9em' }}>상세위치: {group.detailAddress}</div>}
                               {group.memo && <div className="status-memo" style={{ marginTop: '4px', color: '#d32f2f', fontSize: '0.9em', fontWeight: 'bold' }}>메모: {group.memo}</div>}
                             </div>
                             <a 
