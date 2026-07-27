@@ -784,7 +784,27 @@ function App() {
           const dd = String(d.getDate()).padStart(2, '0');
           const dateStr = `${yyyy}-${mm}-${dd}`;
           
-          enrichedData.push({ ...row, _dateStr: dateStr, source: activeSourceTab });
+          const minimalRow = {};
+          const keepFields = [
+            '신청자', '성명', '신청인', '이름', '성명(법인명)',
+            '휴대폰', '연락처', '전화번호',
+            '주소', '도로명주소', '도로명',
+            '상세위치', '상세주소',
+            '신청일자', '신청일', '신철일',
+            '배출일자', '배출일',
+            '배출동', '배출메모', '베출메모',
+            '품목명', '품목', '규격',
+            '신청수량', '수량',
+            '합계', '단가', '결제금액',
+            '배출번호', '예약번호', '주문번호'
+          ];
+          keepFields.forEach(field => {
+            if (row[field] !== undefined) {
+              minimalRow[field] = row[field];
+            }
+          });
+          
+          enrichedData.push({ ...minimalRow, _dateStr: dateStr, source: activeSourceTab });
         }
       });
 
