@@ -558,12 +558,13 @@ body {
   font-size: 0.9rem;
   border-radius: 50%;
   cursor: default;
-  opacity: 0; /* not in available dates */
-  pointer-events: none; /* Make unclickable just in case */
+  color: #ccc; /* not in available dates, looks disabled */
+  pointer-events: none; /* Make unclickable */
 }
 
 .calendar-day.available {
-  opacity: 1;
+  color: #333;
+  pointer-events: auto;
   cursor: pointer;
 }
 .calendar-day.available:not(.selected):hover {
