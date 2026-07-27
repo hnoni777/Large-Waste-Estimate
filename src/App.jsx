@@ -57,7 +57,7 @@ function App() {
   
   // 접수현황 내 검색 상태
   const [statusSearchTerm, setStatusSearchTerm] = useState('')
-  const [statusSort, setStatusSort] = useState('dateDesc')
+  const [statusSort, setStatusSort] = useState('excelOrder') // 'excelOrder', 'dateDesc', 'dateAsc'
   const [statusFilter, setStatusFilter] = useState('all') // 'all', 'completed', 'uncompleted'
   
   // 캘린더 팝업 상태
@@ -950,6 +950,18 @@ function App() {
       });
     });
 
+    if (statusSort === 'excelOrder') {
+      const allGroups = [];
+      Object.values(groupedByDate).forEach(dateGroup => {
+        allGroups.push(...Object.values(dateGroup));
+      });
+      allGroups.sort((a, b) => a.rowIndex - b.rowIndex);
+      return [{
+        date: '전체 목록 (엑셀 원본 순서)',
+        groups: allGroups
+      }];
+    }
+
     const dateKeys = Object.keys(groupedByDate).sort();
     if (statusSort === 'dateDesc') {
       dateKeys.reverse();
@@ -1173,6 +1185,7 @@ function App() {
                   onChange={(e) => setStatusSort(e.target.value)}
                   style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '0.9rem', backgroundColor: '#fff', cursor: 'pointer' }}
                 >
+                  <option value="excelOrder">📝 엑셀 원본 순서</option>
                   <option value="dateDesc">📅 최근 날짜순</option>
                   <option value="dateAsc">📅 오래된 날짜순</option>
                 </select>
