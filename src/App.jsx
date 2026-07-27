@@ -49,8 +49,6 @@ function App() {
   const [jiguSelectedDates, setJiguSelectedDates] = useState([])
   const [yeogiSelectedDates, setYeogiSelectedDates] = useState([])
   
-  const selectedDates = activeSourceTab === '지구하다' ? jiguSelectedDates : yeogiSelectedDates;
-  const setSelectedDates = activeSourceTab === '지구하다' ? setJiguSelectedDates : setYeogiSelectedDates;
   const [fileName, setFileName] = useState('')
   const [updatedAt, setUpdatedAt] = useState(null)
   
@@ -67,6 +65,8 @@ function App() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
 
   const [activeSourceTab, setActiveSourceTab] = useState('지구하다');
+  const selectedDates = activeSourceTab === '지구하다' ? jiguSelectedDates : yeogiSelectedDates;
+  const setSelectedDates = activeSourceTab === '지구하다' ? setJiguSelectedDates : setYeogiSelectedDates;
   const [oldFixedData, setOldFixedData] = useState([]);
 
   useEffect(() => {
