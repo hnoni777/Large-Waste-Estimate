@@ -1019,6 +1019,25 @@ function App() {
     });
   };
 
+  const extractAddressForMap = (text) => {
+    if (!text) return '';
+    let addressStr = text.replace(/(01[016789]-?\d{3,4}-?\d{4}|\d{2,3}-?\d{3,4}-?\d{4})/g, ' ');
+    const match = addressStr.match(/([가-힣A-Za-z0-9]+(시|도|구|군|동|읍|면|리|로|길)\s+[\w가-힣\-\s]+)/);
+    if (match) {
+        let candidate = match[0];
+        const breakWords = ['장롱', '책상', '의자', '침대', '소파', '쇼파', '냉장고', '세탁기', '에어컨', '서랍장', '수거', '폐가구', '문앞', '특이사항', '품목', '매트리스', '거울', '장식장', '식탁', '수납장', '폐기물', '테이블', '협탁', '모니터', '티비', 'TV'];
+        let minIndex = candidate.length;
+        for (const bw of breakWords) {
+            const idx = candidate.indexOf(bw);
+            if (idx !== -1 && idx < minIndex) {
+                minIndex = idx;
+            }
+        }
+        return candidate.substring(0, minIndex).trim();
+    }
+    return addressStr.trim();
+  };
+
   return (
     <>
       <header className="app-header">
@@ -1451,7 +1470,7 @@ function App() {
                           {renderMemoWithPhoneLinks(waste.memo)}
                           {waste.team === 'office' && (
                             <button 
-                              onClick={() => window.open(`https://map.naver.com/v5/search/${encodeURIComponent(waste.memo)}`, "_blank")}
+                              onClick={() => window.open(`https://map.naver.com/v5/search/${encodeURIComponent(extractAddressForMap(waste.memo))}`, "_blank")}
                               style={{ display: 'block', marginTop: '10px', padding: '6px 12px', background: '#0066cc', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9rem' }}
                             >
                               🗺️ 지도 보기
