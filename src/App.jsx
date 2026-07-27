@@ -63,20 +63,29 @@ function App() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
 
   const [activeSourceTab, setActiveSourceTab] = useState('지구하다');
+  const [oldFixedData, setOldFixedData] = useState([]);
+
+  useEffect(() => {
+    fetch(import.meta.env.BASE_URL + 'old_data.json')
+      .then(res => res.json())
+      .then(data => setOldFixedData(data))
+      .catch(err => console.error("Failed to load old data", err));
+  }, []);
 
   const combinedData = useMemo(() => {
-    return allParsedData;
-  }, [allParsedData]);
+    return activeSourceTab === '지구하다' ? allParsedData : oldFixedData;
+  }, [allParsedData, oldFixedData, activeSourceTab]);
 
   const combinedAvailableDates = useMemo(() => {
     const dates = new Set();
-    allParsedData.forEach(row => {
-      if (row.source === activeSourceTab && row._dateStr) {
+    const sourceData = activeSourceTab === '지구하다' ? allParsedData : oldFixedData;
+    sourceData.forEach(row => {
+      if (row._dateStr) {
         dates.add(row._dateStr);
       }
     });
     return Array.from(dates).sort().reverse();
-  }, [allParsedData, activeSourceTab]);
+  }, [allParsedData, oldFixedData, activeSourceTab]);
 
   // 탭 변경 시 화면 맨 위로 스크롤
   useEffect(() => {
@@ -1095,7 +1104,8 @@ function App() {
               </button>
             </div>
 
-            <div className="upload-wrapper" style={{ padding: '0.5rem 1rem', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '10px', borderRadius: '8px', border: '1px dashed #3b82f6', marginBottom: '15px' }}>
+            {activeSourceTab === '지구하다' && (
+              <div className="upload-wrapper" style={{ padding: '0.5rem 1rem', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '10px', borderRadius: '8px', border: '1px dashed #3b82f6', marginBottom: '15px' }}>
               <input 
                 id="excel-upload"
                 type="file" 
@@ -1121,6 +1131,7 @@ function App() {
                 )}
               </div>
             </div>
+            )}
 
             {/* 접수현황 내 검색창 및 정렬 */}
             <div className="status-search-container" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
