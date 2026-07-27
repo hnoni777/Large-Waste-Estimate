@@ -62,26 +62,21 @@ function App() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
 
-  const [oldFixedData, setOldFixedData] = useState([]);
-
-  useEffect(() => {
-    fetch(import.meta.env.BASE_URL + 'old_data.json')
-      .then(res => res.json())
-      .then(data => setOldFixedData(data))
-      .catch(err => console.error("Failed to load old data", err));
-  }, []);
+  const [activeSourceTab, setActiveSourceTab] = useState('지구하다');
 
   const combinedData = useMemo(() => {
-    return [...oldFixedData, ...allParsedData];
-  }, [oldFixedData, allParsedData]);
+    return allParsedData;
+  }, [allParsedData]);
 
   const combinedAvailableDates = useMemo(() => {
-    const dates = new Set(availableDates);
-    oldFixedData.forEach(row => {
-      if (row._dateStr) dates.add(row._dateStr);
+    const dates = new Set();
+    allParsedData.forEach(row => {
+      if (row.source === activeSourceTab && row._dateStr) {
+        dates.add(row._dateStr);
+      }
     });
     return Array.from(dates).sort().reverse();
-  }, [availableDates, oldFixedData]);
+  }, [allParsedData, activeSourceTab]);
 
   // 탭 변경 시 화면 맨 위로 스크롤
   useEffect(() => {
@@ -789,12 +784,36 @@ function App() {
           const dd = String(d.getDate()).padStart(2, '0');
           const dateStr = `${yyyy}-${mm}-${dd}`;
           
-          enrichedData.push({ ...row, _dateStr: dateStr, source: '지구하다' });
+          const minimalRow = {};
+          const keepFields = [
+            '신청자', '성명', '신청인', '이름', '성명(법인명)',
+            '휴대폰', '연락처', '전화번호',
+            '주소', '도로명주소', '도로명',
+            '상세위치', '상세주소',
+            '신청일자', '신청일', '신철일',
+            '배출일자', '배출일',
+            '배출동', '배출메모', '베출메모',
+            '품목명', '품목', '규격',
+            '신청수량', '수량',
+            '합계', '단가', '결제금액',
+            '배출번호', '예약번호', '주문번호'
+          ];
+          keepFields.forEach(field => {
+            if (row[field] !== undefined) {
+              minimalRow[field] = row[field];
+            }
+          });
+          
+          enrichedData.push({ ...minimalRow, _dateStr: dateStr, source: activeSourceTab });
         }
       });
 
+      // 기존 데이터 중에서 현재 탭(activeSourceTab)이 아닌 다른 탭의 데이터는 유지
+      const otherSourceData = allParsedData.filter(d => d.source !== activeSourceTab);
+      const newAllParsedData = [...otherSourceData, ...enrichedData];
+
       const rawDataToSave = {
-        allParsedData: enrichedData,
+        allParsedData: newAllParsedData,
         fileName: file.name,
         updatedAt: Date.now()
       };
@@ -841,6 +860,7 @@ function App() {
     if (statusSearchTerm) {
       const searchTarget = statusSearchTerm.replace(/\s+/g, '').toLowerCase();
       filtered = combinedData.filter(row => {
+        if (row.source !== activeSourceTab) return false;
         const name = (row['신청자'] || row['성명'] || row['신청인'] || row['이름'] || row['성명(법인명)'] || '').toString().replace(/\s+/g, '').toLowerCase();
         const id = (row['배출번호'] || '').toString().replace(/\s+/g, '').toLowerCase();
         const phone = (row['휴대폰'] || row['연락처'] || row['전화번호'] || '').toString().replace(/\s+/g, '').toLowerCase();
@@ -850,7 +870,7 @@ function App() {
         return name.includes(searchTarget) || id.includes(searchTarget) || phone.includes(searchTarget) || address.includes(searchTarget) || item.includes(searchTarget) || aptName.includes(searchTarget);
       });
     } else {
-      filtered = combinedData.filter(row => row.source === '여기로' || selectedDates.includes(row._dateStr));
+      filtered = combinedData.filter(row => row.source === activeSourceTab && selectedDates.includes(row._dateStr));
     }
     
     if (statusFilter === 'completed') {
@@ -902,21 +922,10 @@ function App() {
       });
     });
 
-    const dateKeys = Object.keys(groupedByDate).sort((a, b) => {
-      const aSource = Object.values(groupedByDate[a])[0]?.source;
-      const bSource = Object.values(groupedByDate[b])[0]?.source;
-      
-      // '지구하다'가 무조건 위에 오도록
-      if (aSource !== bSource) {
-        return aSource === '지구하다' ? -1 : 1;
-      }
-      
-      // 같은 출처 내에서는 선택된 정렬 방식을 따름
-      if (statusSort === 'dateDesc') {
-        return b.localeCompare(a);
-      }
-      return a.localeCompare(b);
-    });
+    const dateKeys = Object.keys(groupedByDate).sort();
+    if (statusSort === 'dateDesc') {
+      dateKeys.reverse();
+    }
 
     return dateKeys.map(dateStr => {
       const sortedGroups = Object.values(groupedByDate[dateStr]).sort((a, b) => {
@@ -1069,7 +1078,24 @@ function App() {
         {/* === STATUS TAB (폐가구접수현황) === */}
         {activeTab === 'status' && (
           <div className="tab-status">
-            <div className="upload-wrapper" style={{ padding: '0.5rem 1rem', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '10px', borderRadius: '8px', border: '1px dashed #3b82f6' }}>
+            <div className="source-tabs" style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+              <button 
+                className={`source-tab-btn ${activeSourceTab === '지구하다' ? 'active' : ''}`}
+                onClick={() => setActiveSourceTab('지구하다')}
+                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #ccc', backgroundColor: activeSourceTab === '지구하다' ? '#3b82f6' : '#fff', color: activeSourceTab === '지구하다' ? '#fff' : '#333', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', transition: 'all 0.2s' }}
+              >
+                🌍 지구하다 (신규)
+              </button>
+              <button 
+                className={`source-tab-btn ${activeSourceTab === '여기로' ? 'active' : ''}`}
+                onClick={() => setActiveSourceTab('여기로')}
+                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #ccc', backgroundColor: activeSourceTab === '여기로' ? '#3b82f6' : '#fff', color: activeSourceTab === '여기로' ? '#fff' : '#333', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', transition: 'all 0.2s' }}
+              >
+                📍 여기로 (기존)
+              </button>
+            </div>
+
+            <div className="upload-wrapper" style={{ padding: '0.5rem 1rem', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '10px', borderRadius: '8px', border: '1px dashed #3b82f6', marginBottom: '15px' }}>
               <input 
                 id="excel-upload"
                 type="file" 
