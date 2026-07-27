@@ -642,26 +642,7 @@ function App() {
     
     let finalMemo = shareMemo.trim();
     if (shareFormTeam === 'office') {
-      const aptName = getAptName(finalMemo);
-      if (aptName && !finalMemo.includes(aptName.split(' ')[0])) {
-         let addressStr = finalMemo.replace(/(01[016789]-?\d{3,4}-?\d{4}|\d{2,3}-?\d{3,4}-?\d{4})/g, ' ');
-         const match = addressStr.match(/([가-힣A-Za-z0-9]+(시|도|구|군|동|읍|면|리|로|길)\s+[\w가-힣\-\s]+)/);
-         if (match) {
-             let candidate = match[0];
-             const breakWords = ['장롱', '책상', '의자', '침대', '소파', '쇼파', '냉장고', '세탁기', '에어컨', '서랍장', '수거', '폐가구', '문앞', '특이사항', '품목', '매트리스', '거울', '장식장', '식탁', '수납장', '폐기물', '테이블', '협탁', '모니터', '티비', 'TV'];
-             let minIndex = candidate.length;
-             for (const bw of breakWords) {
-                 const idx = candidate.indexOf(bw);
-                 if (idx !== -1 && idx < minIndex) {
-                     minIndex = idx;
-                 }
-             }
-             const exactAddr = candidate.substring(0, minIndex).trim();
-             finalMemo = finalMemo.replace(exactAddr, exactAddr + ' ' + aptName);
-         } else {
-             finalMemo = `[${aptName}] ${finalMemo}`;
-         }
-      }
+      finalMemo = injectAptNameIfMissing(finalMemo);
     }
 
     try {
@@ -1026,10 +1007,16 @@ function App() {
     return days;
   }, [currentMonth]);
 
-  const renderMemoWithPhoneLinks = (memoText) => {
+  const renderMemoWithPhoneLinks = (memoText, team) => {
     if (!memoText) return null;
+    
+    let processedText = memoText;
+    if (team === 'office') {
+      processedText = injectAptNameIfMissing(processedText);
+    }
+
     const phoneRegex = /(01[016789]-?\d{3,4}-?\d{4}|\d{2,3}-?\d{3,4}-?\d{4})/g;
-    const parts = memoText.split(phoneRegex);
+    const parts = processedText.split(phoneRegex);
     
     return parts.map((part, index) => {
       if (phoneRegex.test(part)) {
@@ -1041,6 +1028,29 @@ function App() {
       }
       return <span key={index}>{part}</span>;
     });
+  };
+
+  const injectAptNameIfMissing = (text) => {
+    if (!text) return text;
+    const aptName = getAptName(text);
+    if (!aptName || text.includes(aptName.split(' ')[0])) return text;
+
+    let addressStr = text.replace(/(01[016789]-?\d{3,4}-?\d{4}|\d{2,3}-?\d{3,4}-?\d{4})/g, ' ');
+    const match = addressStr.match(/([가-힣A-Za-z0-9]+(시|도|구|군|동|읍|면|리|로|길)\s+[\w가-힣\-\s]+)/);
+    if (match) {
+        let candidate = match[0];
+        const breakWords = ['장롱', '책상', '의자', '침대', '소파', '쇼파', '냉장고', '세탁기', '에어컨', '서랍장', '수거', '폐가구', '문앞', '특이사항', '품목', '매트리스', '거울', '장식장', '식탁', '수납장', '폐기물', '테이블', '협탁', '모니터', '티비', 'TV'];
+        let minIndex = candidate.length;
+        for (const bw of breakWords) {
+            const idx = candidate.indexOf(bw);
+            if (idx !== -1 && idx < minIndex) {
+                minIndex = idx;
+            }
+        }
+        const exactAddr = candidate.substring(0, minIndex).trim();
+        return text.replace(exactAddr, exactAddr + ' ' + aptName);
+    }
+    return `[${aptName}] ${text}`;
   };
 
   const extractAddressForMap = (text) => {
@@ -1502,7 +1512,7 @@ function App() {
                       
                       {waste.memo && (
                         <div className="share-memo-display" style={{ position: 'relative', whiteSpace: 'pre-wrap' }}>
-                          {renderMemoWithPhoneLinks(waste.memo)}
+                          {renderMemoWithPhoneLinks(waste.memo, waste.team)}
                           {waste.team === 'office' && (
                             <button 
                               onClick={() => window.open(`https://map.naver.com/v5/search/${encodeURIComponent(extractAddressForMap(waste.memo))}`, "_blank")}
