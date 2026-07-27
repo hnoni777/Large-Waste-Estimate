@@ -860,7 +860,7 @@ function App() {
     }
     
     const groupedByDate = {};
-    filtered.forEach(row => {
+    filtered.forEach((row, index) => {
       const dateStr = row._dateStr;
       // 배출번호가 없을 경우 대비책 (기존에는 배출번호 없으면 무시)
       const id = row['배출번호'] || row['예약번호'] || row['주문번호'] || ('미상_' + Math.random().toString(36).substr(2, 6));
@@ -880,6 +880,7 @@ function App() {
         
         groupedByDate[dateStr][id] = {
           id,
+          rowIndex: index,
           name: row['신청자'] || row['성명'] || row['신청인'] || row['이름'] || row['성명(법인명)'] || '이름 없음',
           phone: row['휴대폰'] || row['연락처'] || row['전화번호'] || '',
           address: row['주소'] || row['도로명주소'] || row['도로명'] || '',
@@ -908,9 +909,9 @@ function App() {
     return dateKeys.map(dateStr => {
       const sortedGroups = Object.values(groupedByDate[dateStr]).sort((a, b) => {
         if (statusSort === 'dateDesc') {
-          return b.id.localeCompare(a.id);
+          return b.rowIndex - a.rowIndex;
         }
-        return a.id.localeCompare(b.id);
+        return a.rowIndex - b.rowIndex;
       });
       return {
         date: dateStr,
