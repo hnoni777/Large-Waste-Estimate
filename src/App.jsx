@@ -62,6 +62,18 @@ function App() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
 
+  const combinedData = useMemo(() => {
+    return [...oldFixedData, ...allParsedData];
+  }, [oldFixedData, allParsedData]);
+
+  const combinedAvailableDates = useMemo(() => {
+    const dates = new Set(availableDates);
+    oldFixedData.forEach(row => {
+      if (row._dateStr) dates.add(row._dateStr);
+    });
+    return Array.from(dates).sort().reverse();
+  }, [availableDates, oldFixedData]);
+
   // 탭 변경 시 화면 맨 위로 스크롤
   useEffect(() => {
     const contentContainer = document.querySelector('.app-content');
@@ -69,6 +81,15 @@ function App() {
       contentContainer.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     }
   }, [activeTab]);
+
+  const [oldFixedData, setOldFixedData] = useState([]);
+
+  useEffect(() => {
+    fetch('/old_data.json')
+      .then(res => res.json())
+      .then(data => setOldFixedData(data))
+      .catch(err => console.error("Failed to load old data", err));
+  }, []);
 
   // 앱 실행 시 저장된 엑셀 데이터 불러오기 및 서버 실시간 동기화
   useEffect(() => {
@@ -553,6 +574,18 @@ function App() {
     setSharePhotos(prev => prev.filter((_, i) => i !== index));
   };
 
+  const exportToExcel = (data) => {
+    if (!combinedData || combinedData.length === 0) {
+      alert("출력할 데이터가 없습니다.");
+      return;
+    }
+    
+    // 엑셀 출력용 데이터 변환
+    const excelData = data.map((d, index) => ({
+      ...d
+    }));
+  };
+
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
       alert("이 기기에서는 위치 정보를 지원하지 않습니다.");
@@ -738,45 +771,39 @@ function App() {
       const ws = wb.Sheets[wsname];
       const parsedData = XLSX.utils.sheet_to_json(ws);
       
-      const datesSet = new Set();
       const enrichedData = [];
 
-      // 💥 서버 용량 초과 방지를 위해 '최근 30일' 데이터만 필터링 💥
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - 30);
-      cutoffDate.setHours(0, 0, 0, 0); // 30일 전 자정 기준
-
       parsedData.forEach(row => {
-        const d = row['신청일자'];
-        // 날짜 객체이고, 30일 전보다 이후(최근) 데이터인 경우에만 추가
-        if (d instanceof Date && d >= cutoffDate) {
+        let d = row['신청일자'] || row['신청일'] || row['신철일'] || row['배출일자'] || row['배출일'];
+        
+        if (typeof d === 'string' || typeof d === 'number') {
+          const parsed = new Date(d);
+          if (!isNaN(parsed.getTime())) {
+             d = parsed;
+          }
+        }
+
+        if (d instanceof Date && !isNaN(d)) {
           const yyyy = d.getFullYear();
           const mm = String(d.getMonth() + 1).padStart(2, '0');
           const dd = String(d.getDate()).padStart(2, '0');
           const dateStr = `${yyyy}-${mm}-${dd}`;
           
-          datesSet.add(dateStr);
-          enrichedData.push({ ...row, _dateStr: dateStr });
+          enrichedData.push({ ...row, _dateStr: dateStr, source: '지구하다' });
         }
       });
 
-      const datesArr = Array.from(datesSet).sort().reverse(); // 최근 날짜가 먼저 오게 정렬
-      
       const rawDataToSave = {
         allParsedData: enrichedData,
-        availableDates: datesArr,
         fileName: file.name,
         updatedAt: Date.now()
       };
 
-      // 파이어베이스는 undefined를 허용하지 않으므로 JSON 변환으로 깔끔하게 정리 (크기 최적화 포함)
       const dataToSave = JSON.parse(JSON.stringify(rawDataToSave));
 
-      // 1. 파이어베이스에 업로드 (권한 문제가 없도록 기존에 잘 쓰던 pickups 컬렉션 사용)
       setDoc(doc(db, 'pickups', 'master_excel_data'), dataToSave)
         .then(() => {
-          alert('✅ 엑셀 명단이 서버에 성공적으로 전송되었습니다!\n이제 서버에서 명단을 불러옵니다.');
-          // 전송 성공 시 입력창 초기화 (같은 파일 다시 올릴 수 있도록)
+          alert(`✅ 새로운 엑셀 명단이 서버에 전송되었습니다!`);
           e.target.value = '';
         })
         .catch(err => {
@@ -784,10 +811,6 @@ function App() {
           alert('❌ 서버 업로드에 실패했습니다. (사유: ' + err.message + ')');
           e.target.value = '';
         });
-        
-      // 주의: 여기서 직접 화면(state)을 갱신하지 않습니다.
-      // 서버에 전송되면 useEffect의 onSnapshot이 새 데이터를 감지하고 화면을 갱신합니다.
-      // (이것이 사용자가 원하는 "서버에 올리고 -> 서버에서 불러오기" 로직입니다.)
     };
     reader.readAsBinaryString(file);
   };
@@ -812,24 +835,22 @@ function App() {
     }
   };
 
-  // 선택된 날짜별로 그룹핑하고, 그 안에서 다시 배출번호로 그룹핑 (검색어가 있으면 전체 날짜에서 검색)
   const statusDataByDate = useMemo(() => {
-    const term = statusSearchTerm.trim().toLowerCase();
-    
-    let filtered = allParsedData;
-    if (term) {
-      const searchTarget = term.replace(/\s+/g, '');
-      filtered = allParsedData.filter(row => {
+    let filtered = combinedData;
+
+    if (statusSearchTerm) {
+      const searchTarget = statusSearchTerm.replace(/\s+/g, '').toLowerCase();
+      filtered = combinedData.filter(row => {
         const name = (row['신청자'] || row['성명'] || row['신청인'] || row['이름'] || row['성명(법인명)'] || '').toString().replace(/\s+/g, '').toLowerCase();
         const id = (row['배출번호'] || '').toString().replace(/\s+/g, '').toLowerCase();
         const phone = (row['휴대폰'] || row['연락처'] || row['전화번호'] || '').toString().replace(/\s+/g, '').toLowerCase();
-        const address = (row['주소'] || '').toString().replace(/\s+/g, '').toLowerCase();
+        const address = (row['주소'] || row['도로명'] || '').toString().replace(/\s+/g, '').toLowerCase();
         const item = (row['품목'] || '').toString().replace(/\s+/g, '').toLowerCase();
-        const aptName = (getAptName(row['주소']) || '').toString().replace(/\s+/g, '').toLowerCase();
+        const aptName = (getAptName(row['주소'] || row['도로명']) || '').toString().replace(/\s+/g, '').toLowerCase();
         return name.includes(searchTarget) || id.includes(searchTarget) || phone.includes(searchTarget) || address.includes(searchTarget) || item.includes(searchTarget) || aptName.includes(searchTarget);
       });
     } else {
-      filtered = allParsedData.filter(row => selectedDates.includes(row._dateStr));
+      filtered = combinedData.filter(row => selectedDates.includes(row._dateStr));
     }
     
     if (statusFilter === 'completed') {
@@ -841,7 +862,8 @@ function App() {
     const groupedByDate = {};
     filtered.forEach(row => {
       const dateStr = row._dateStr;
-      const id = row['배출번호'];
+      // 배출번호가 없을 경우 대비책 (기존에는 배출번호 없으면 무시)
+      const id = row['배출번호'] || row['예약번호'] || row['주문번호'] || ('미상_' + Math.random().toString(36).substr(2, 6));
       if (!id) return;
       
       if (!groupedByDate[dateStr]) {
@@ -860,10 +882,13 @@ function App() {
           id,
           name: row['신청자'] || row['성명'] || row['신청인'] || row['이름'] || row['성명(법인명)'] || '이름 없음',
           phone: row['휴대폰'] || row['연락처'] || row['전화번호'] || '',
-          address: row['주소'] || '',
-          detailAddress: row['상세위치'] || '',
-          applyDate: row._dateStr || formatKSTDate(row['신청일자']),
-          pickupDate: formatKSTDate(row['배출일자']),
+          address: row['주소'] || row['도로명'] || '',
+          detailAddress: row['상세위치'] || row['상세주소'] || '',
+          applyDate: row._dateStr || formatKSTDate(row['신청일자'] || row['신청일'] || row['신철일']),
+          pickupDate: formatKSTDate(row['배출일자'] || row['배출일']),
+          source: row.source || '여기로',
+          dong: row['배출동'] || '',
+          memo: row['배출메모'] || row['베출메모'] || '',
           items: []
         };
       }
@@ -871,7 +896,8 @@ function App() {
       groupedByDate[dateStr][id].items.push({
         item: row['품목'],
         spec: row['규격'],
-        qty: row['신청수량'] || 1
+        qty: row['신청수량'] || row['수량'] || 1,
+        price: row['합계'] || row['단가'] || row['결제금액'] || 0
       });
     });
 
@@ -891,7 +917,7 @@ function App() {
         groups: sortedGroups
       };
     });
-  }, [allParsedData, selectedDates, statusSearchTerm, statusSort, statusFilter, pickupStatuses]);
+  }, [combinedData, selectedDates, statusSearchTerm, statusSort, statusFilter, pickupStatuses]);
 
   // 달력 관련 로직
   const handlePrevMonth = () => {
@@ -1099,7 +1125,7 @@ function App() {
             )}
 
             {/* 날짜 선택 버튼 */}
-            {availableDates.length > 0 && !statusSearchTerm && (
+            {combinedAvailableDates.length > 0 && !statusSearchTerm && (
               <div className="date-select-wrapper">
                 <button 
                   className="date-select-btn"
@@ -1169,15 +1195,18 @@ function App() {
                           <a href={`tel:${group.phone}`} className="status-contact">📞 {group.phone}</a>
                         </div>
                         <div className="status-name-address">
-                          <div className="status-dates" style={{ display: 'flex', gap: '8px', marginBottom: '8px', fontSize: '0.85rem' }}>
-                            {group.applyDate && <span className="status-date-badge apply-date" style={{ background: '#e3f2fd', color: '#1976d2', padding: '4px 8px', borderRadius: '4px' }}>신청일자: {group.applyDate}</span>}
-                            {group.pickupDate && <span className="status-date-badge pickup-date" style={{ background: '#e8f5e9', color: '#388e3c', padding: '4px 8px', borderRadius: '4px' }}>배출일자: {group.pickupDate}</span>}
+                          <div className="status-dates" style={{ display: 'flex', gap: '8px', marginBottom: '8px', fontSize: '0.85rem', alignItems: 'center' }}>
+                            <span className={`status-source-badge ${group.source === '지구하다' ? 'source-earth' : 'source-here'}`}>
+                              {group.source === '지구하다' ? '지구하다' : '여기로'}
+                            </span>
+                            {group.applyDate && <span className="status-date-badge apply-date" style={{ background: '#e3f2fd', color: '#1976d2', padding: '4px 8px', borderRadius: '4px' }}>신청일: {group.applyDate}</span>}
+                            {group.pickupDate && <span className="status-date-badge pickup-date" style={{ background: '#e8f5e9', color: '#388e3c', padding: '4px 8px', borderRadius: '4px' }}>배출일: {group.pickupDate}</span>}
                           </div>
                           <div className="status-name">👤 {group.name}</div>
                           <div className="status-address-row">
                             <div className="status-address">
                               <div>
-                                📍 {group.address} 
+                                📍 {group.address} {group.dong ? `(${group.dong})` : ''}
                                 {getAptName(group.address) && (
                                   <span style={{ color: '#0066cc', fontWeight: 'bold', marginLeft: '6px' }}>
                                     ({getAptName(group.address)})
@@ -1185,6 +1214,7 @@ function App() {
                                 )}
                               </div>
                               {group.detailAddress && <div className="status-detail-address" style={{ marginTop: '4px', color: '#555', fontSize: '0.9em' }}>상세위치: {group.detailAddress}</div>}
+                              {group.memo && <div className="status-memo" style={{ marginTop: '4px', color: '#d32f2f', fontSize: '0.9em', fontWeight: 'bold' }}>메모: {group.memo}</div>}
                             </div>
                             <a 
                               href={`https://map.naver.com/v5/search/${encodeURIComponent(group.address)}`} 
@@ -1202,6 +1232,7 @@ function App() {
                               <span className="s-item-name">{item.item}</span>
                               <span className="s-item-spec">{item.spec}</span>
                               <span className="s-item-qty">x{item.qty}</span>
+                              {item.price > 0 && <span className="s-item-price" style={{marginLeft: 'auto', fontWeight: 'bold', color: '#555'}}>{Number(item.price).toLocaleString()}원</span>}
                             </div>
                           ))}
                         </div>

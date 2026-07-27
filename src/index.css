@@ -1238,3 +1238,19 @@ body {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+.status-source-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.8rem;
+  color: white;
+}
+
+.source-here {
+  background-color: #3b82f6; /* Blue for 여기로 */
+}
+
+.source-earth {
+  background-color: #10b981; /* Green for 지구하다 */
+}
