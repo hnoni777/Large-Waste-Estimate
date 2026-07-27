@@ -1383,6 +1383,12 @@ function App() {
                   >
                     4069팀
                   </button>
+                  <button 
+                    style={{ flex: 1, padding: '12px', background: shareTeamTab === 'office' ? '#0066cc' : '#f8f9fa', color: shareTeamTab === 'office' ? '#fff' : '#555', border: 'none', fontWeight: shareTeamTab === 'office' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }}
+                    onClick={() => setShareTeamTab('office')}
+                  >
+                    사무실민원
+                  </button>
                 </div>
                 <div className="share-date-header" style={{ justifyContent: 'center', background: 'transparent', boxShadow: 'none', paddingTop: 0 }}>
                   {shareAvailableDates.length > 0 && (
@@ -1424,8 +1430,16 @@ function App() {
                       </div>
                       
                       {waste.memo && (
-                        <div className="share-memo-display">
+                        <div className="share-memo-display" style={{ position: 'relative' }}>
                           {waste.memo}
+                          {waste.team === 'office' && (
+                            <button 
+                              onClick={() => window.open(`https://map.naver.com/v5/search/${encodeURIComponent(waste.memo)}`, "_blank")}
+                              style={{ display: 'block', marginTop: '10px', padding: '6px 12px', background: '#0066cc', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9rem' }}
+                            >
+                              🗺️ 지도 보기
+                            </button>
+                          )}
                         </div>
                       )}
 
@@ -1486,10 +1500,21 @@ function App() {
                       />
                       4069팀
                     </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                      <input 
+                        type="radio" 
+                        name="shareTeam" 
+                        value="office" 
+                        checked={shareFormTeam === 'office'} 
+                        onChange={(e) => setShareFormTeam(e.target.value)} 
+                      />
+                      사무실민원
+                    </label>
                   </div>
                 </div>
 
-                <div className="share-write-actions">
+                {shareFormTeam !== 'office' && (
+                  <div className="share-write-actions">
                   <div className="upload-wrapper" style={{width: '100%', boxSizing: 'border-box', display: 'flex', gap: '0.5rem'}}>
                     <input 
                       id="share-photo-capture"
@@ -1520,11 +1545,12 @@ function App() {
                     📍 내 위치 지도 보기 (스샷용)
                   </button>
                 </div>
+                )}
 
                 <div className="share-memo-wrapper">
                   <textarea
                     className="share-memo-input"
-                    placeholder="특이사항이나 메모를 입력해주세요 (선택사항)"
+                    placeholder={shareFormTeam === 'office' ? "민원 주소 및 내용을 입력해주세요" : "특이사항이나 메모를 입력해주세요 (선택사항)"}
                     value={shareMemo}
                     onChange={(e) => setShareMemo(e.target.value)}
                     rows={3}
@@ -1546,7 +1572,7 @@ function App() {
                       {!photoObj.isUploading && <button className="share-preview-remove" onClick={() => removeSharePhoto(idx)}>✕</button>}
                     </div>
                   ))}
-                  {sharePhotos.length === 0 && (
+                  {sharePhotos.length === 0 && shareFormTeam !== 'office' && (
                     <div className="empty-preview">추가된 사진이 없습니다.</div>
                   )}
                 </div>
