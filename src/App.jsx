@@ -62,6 +62,15 @@ function App() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
 
+  const [oldFixedData, setOldFixedData] = useState([]);
+
+  useEffect(() => {
+    fetch('/old_data.json')
+      .then(res => res.json())
+      .then(data => setOldFixedData(data))
+      .catch(err => console.error("Failed to load old data", err));
+  }, []);
+
   const combinedData = useMemo(() => {
     return [...oldFixedData, ...allParsedData];
   }, [oldFixedData, allParsedData]);
@@ -81,15 +90,6 @@ function App() {
       contentContainer.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     }
   }, [activeTab]);
-
-  const [oldFixedData, setOldFixedData] = useState([]);
-
-  useEffect(() => {
-    fetch('/old_data.json')
-      .then(res => res.json())
-      .then(data => setOldFixedData(data))
-      .catch(err => console.error("Failed to load old data", err));
-  }, []);
 
   // 앱 실행 시 저장된 엑셀 데이터 불러오기 및 서버 실시간 동기화
   useEffect(() => {
