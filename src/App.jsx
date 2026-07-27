@@ -1556,7 +1556,7 @@ function App() {
                 if (!dateStr) return <div key={idx} className="calendar-day empty"></div>;
                 
                 const dayNum = parseInt(dateStr.split('-')[2], 10);
-                const activeAvailableDates = calendarMode === 'share' ? shareAvailableDates : availableDates;
+                const activeAvailableDates = calendarMode === 'share' ? shareAvailableDates : combinedAvailableDates;
                 const activeSelectedDates = calendarMode === 'share' ? shareSelectedDates : selectedDates;
                 const isAvailable = activeAvailableDates.includes(dateStr);
                 const isSelected = activeSelectedDates.includes(dateStr);
