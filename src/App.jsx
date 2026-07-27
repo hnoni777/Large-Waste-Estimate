@@ -1011,8 +1011,10 @@ function App() {
     if (!memoText) return null;
     
     let processedText = memoText;
+    let aptName = null;
     if (team === 'office') {
       processedText = injectAptNameIfMissing(processedText);
+      aptName = getAptName(processedText);
     }
 
     const phoneRegex = /(01[016789]-?\d{3,4}-?\d{4}|\d{2,3}-?\d{3,4}-?\d{4})/g;
@@ -1026,6 +1028,23 @@ function App() {
           </a>
         );
       }
+      
+      if (aptName && part.includes(aptName)) {
+        const aptParts = part.split(aptName);
+        return (
+          <span key={index}>
+            {aptParts.map((subPart, subIdx) => (
+              <span key={subIdx}>
+                {subPart}
+                {subIdx < aptParts.length - 1 && (
+                  <span style={{ color: '#0066cc', fontWeight: 'bold' }}>{aptName}</span>
+                )}
+              </span>
+            ))}
+          </span>
+        );
+      }
+
       return <span key={index}>{part}</span>;
     });
   };
