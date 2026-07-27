@@ -908,9 +908,7 @@ function App() {
     }
     return dateKeys.map(dateStr => {
       const sortedGroups = Object.values(groupedByDate[dateStr]).sort((a, b) => {
-        if (statusSort === 'dateDesc') {
-          return b.rowIndex - a.rowIndex;
-        }
+        // 항상 엑셀 파일 위에서 아래로(행 번호 오름차순) 정렬 유지
         return a.rowIndex - b.rowIndex;
       });
       return {
