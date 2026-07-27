@@ -57,7 +57,7 @@ function App() {
   
   // 접수현황 내 검색 상태
   const [statusSearchTerm, setStatusSearchTerm] = useState('')
-  const [statusSort, setStatusSort] = useState('excelOrder') // 'excelOrder', 'dateDesc', 'dateAsc'
+  const [statusSort, setStatusSort] = useState('dateDesc') // 'excelOrder', 'dateDesc', 'dateAsc'
   const [statusFilter, setStatusFilter] = useState('all') // 'all', 'completed', 'uncompleted'
   
   // 캘린더 팝업 상태
@@ -950,21 +950,17 @@ function App() {
       });
     });
 
-    if (statusSort === 'excelOrder') {
-      const allGroups = [];
-      Object.values(groupedByDate).forEach(dateGroup => {
-        allGroups.push(...Object.values(dateGroup));
-      });
-      allGroups.sort((a, b) => a.rowIndex - b.rowIndex);
-      return [{
-        date: '전체 목록 (엑셀 원본 순서)',
-        groups: allGroups
-      }];
-    }
-
-    const dateKeys = Object.keys(groupedByDate).sort();
+    const dateKeys = Object.keys(groupedByDate);
     if (statusSort === 'dateDesc') {
-      dateKeys.reverse();
+      dateKeys.sort().reverse();
+    } else if (statusSort === 'dateAsc') {
+      dateKeys.sort();
+    } else if (statusSort === 'excelOrder') {
+      dateKeys.sort((a, b) => {
+        const minA = Math.min(...Object.values(groupedByDate[a]).map(g => g.rowIndex));
+        const minB = Math.min(...Object.values(groupedByDate[b]).map(g => g.rowIndex));
+        return minA - minB;
+      });
     }
 
     return dateKeys.map(dateStr => {
