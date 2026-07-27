@@ -203,7 +203,7 @@ function App() {
 
   const shareAvailableDates = useMemo(() => {
     const dates = new Set();
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 2; i++) {
       const dt = new Date();
       dt.setDate(dt.getDate() - i);
       dates.add(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`);
@@ -225,7 +225,7 @@ function App() {
       const isValid = prev.length > 0 && prev.every(d => shareAvailableDates.includes(d));
       if (!isValid && shareAvailableDates.length > 0) {
         const defaultDates = [];
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 2; i++) {
           const dt = new Date();
           dt.setDate(dt.getDate() - i);
           defaultDates.push(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`);
@@ -285,7 +285,7 @@ function App() {
 
       // 강제 새로고침 시 날짜 선택을 현재 날짜 기준으로 업데이트 (앱 켜둔 상태 유지 시 누락 방지)
       const defaultDates = [];
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 2; i++) {
         const dt = new Date();
         dt.setDate(dt.getDate() - i);
         defaultDates.push(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`);
