@@ -845,7 +845,7 @@ function App() {
         const id = (row['배출번호'] || '').toString().replace(/\s+/g, '').toLowerCase();
         const phone = (row['휴대폰'] || row['연락처'] || row['전화번호'] || '').toString().replace(/\s+/g, '').toLowerCase();
         const address = (row['주소'] || row['도로명주소'] || row['도로명'] || '').toString().replace(/\s+/g, '').toLowerCase();
-        const item = (row['품목'] || '').toString().replace(/\s+/g, '').toLowerCase();
+        const item = (row['품목명'] || row['품목'] || '').toString().replace(/\s+/g, '').toLowerCase();
         const aptName = (getAptName(row['주소'] || row['도로명주소'] || row['도로명']) || '').toString().replace(/\s+/g, '').toLowerCase();
         return name.includes(searchTarget) || id.includes(searchTarget) || phone.includes(searchTarget) || address.includes(searchTarget) || item.includes(searchTarget) || aptName.includes(searchTarget);
       });
@@ -894,7 +894,7 @@ function App() {
       }
       
       groupedByDate[dateStr][id].items.push({
-        item: row['품목'],
+        item: row['품목명'] || row['품목'],
         spec: row['규격'],
         qty: row['신청수량'] || row['수량'] || 1,
         price: row['합계'] || row['단가'] || row['결제금액'] || 0
