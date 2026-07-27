@@ -1206,7 +1206,7 @@ function App() {
                           <div className="status-address-row">
                             <div className="status-address">
                               <div>
-                                📍 {group.address} {group.dong ? `(${group.dong})` : ''}
+                                📍 {group.address} {group.dong && !group.address.includes(group.dong) ? `(${group.dong})` : ''}
                                 {getAptName(group.address) && (
                                   <span style={{ color: '#0066cc', fontWeight: 'bold', marginLeft: '6px' }}>
                                     ({getAptName(group.address)})
@@ -1232,7 +1232,6 @@ function App() {
                               <span className="s-item-name">{item.item}</span>
                               <span className="s-item-spec">{item.spec}</span>
                               <span className="s-item-qty">x{item.qty}</span>
-                              {item.price > 0 && <span className="s-item-price" style={{marginLeft: 'auto', fontWeight: 'bold', color: '#555'}}>{Number(item.price).toLocaleString()}원</span>}
                             </div>
                           ))}
                         </div>
