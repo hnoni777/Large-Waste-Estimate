@@ -1002,6 +1002,23 @@ function App() {
     return days;
   }, [currentMonth]);
 
+  const renderMemoWithPhoneLinks = (memoText) => {
+    if (!memoText) return null;
+    const phoneRegex = /(01[016789]-?\d{3,4}-?\d{4}|\d{2,3}-?\d{3,4}-?\d{4})/g;
+    const parts = memoText.split(phoneRegex);
+    
+    return parts.map((part, index) => {
+      if (phoneRegex.test(part)) {
+        return (
+          <a key={index} href={`tel:${part.replace(/-/g, '')}`} style={{ color: '#0066cc', fontWeight: 'bold', textDecoration: 'underline' }}>
+            {part}
+          </a>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
+  };
+
   return (
     <>
       <header className="app-header">
@@ -1430,8 +1447,8 @@ function App() {
                       </div>
                       
                       {waste.memo && (
-                        <div className="share-memo-display" style={{ position: 'relative' }}>
-                          {waste.memo}
+                        <div className="share-memo-display" style={{ position: 'relative', whiteSpace: 'pre-wrap' }}>
+                          {renderMemoWithPhoneLinks(waste.memo)}
                           {waste.team === 'office' && (
                             <button 
                               onClick={() => window.open(`https://map.naver.com/v5/search/${encodeURIComponent(waste.memo)}`, "_blank")}
