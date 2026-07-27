@@ -46,7 +46,11 @@ function App() {
   // 배출현황 관련 상태
   const [allParsedData, setAllParsedData] = useState([])
   const [availableDates, setAvailableDates] = useState([])
-  const [selectedDates, setSelectedDates] = useState([])
+  const [jiguSelectedDates, setJiguSelectedDates] = useState([])
+  const [yeogiSelectedDates, setYeogiSelectedDates] = useState([])
+  
+  const selectedDates = activeSourceTab === '지구하다' ? jiguSelectedDates : yeogiSelectedDates;
+  const setSelectedDates = activeSourceTab === '지구하다' ? setJiguSelectedDates : setYeogiSelectedDates;
   const [fileName, setFileName] = useState('')
   const [updatedAt, setUpdatedAt] = useState(null)
   
@@ -87,6 +91,26 @@ function App() {
     return Array.from(dates).sort().reverse();
   }, [allParsedData, oldFixedData, activeSourceTab]);
 
+  // 지구하다 기본 5일 세팅
+  useEffect(() => {
+    const dates = new Set();
+    allParsedData.forEach(row => { if (row._dateStr) dates.add(row._dateStr); });
+    const available = Array.from(dates).sort().reverse();
+    if (jiguSelectedDates.length === 0 && available.length > 0) {
+      setJiguSelectedDates(available.slice(0, 5));
+    }
+  }, [allParsedData]);
+
+  // 여기로 기본 5일 세팅
+  useEffect(() => {
+    const dates = new Set();
+    oldFixedData.forEach(row => { if (row._dateStr) dates.add(row._dateStr); });
+    const available = Array.from(dates).sort().reverse();
+    if (yeogiSelectedDates.length === 0 && available.length > 0) {
+      setYeogiSelectedDates(available.slice(0, 5));
+    }
+  }, [oldFixedData]);
+
   // 탭 변경 시 화면 맨 위로 스크롤
   useEffect(() => {
     const contentContainer = document.querySelector('.app-content');
@@ -120,8 +144,6 @@ function App() {
         });
         datesArr.sort().reverse();
         setAvailableDates(datesArr);
-        
-        setSelectedDates(prev => prev.length === 0 ? defaultDates : prev);
         setCurrentMonth(new Date());
       } catch (e) {
         console.error("Failed to parse saved excel data", e);
@@ -153,9 +175,6 @@ function App() {
         
         // 새로운 데이터로 로컬 캐시 덮어쓰기
         localStorage.setItem('waste_app_data', JSON.stringify(data));
-        
-        // 날짜 초기화 (무조건 최근 5일 선택)
-        setSelectedDates(prev => prev.length === 0 ? defaultDates : prev);
         setCurrentMonth(new Date());
       }
     });

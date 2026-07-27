@@ -558,7 +558,8 @@ body {
   font-size: 0.9rem;
   border-radius: 50%;
   cursor: default;
-  opacity: 0.2; /* not in available dates */
+  opacity: 0; /* not in available dates */
+  pointer-events: none; /* Make unclickable just in case */
 }
 
 .calendar-day.available {
