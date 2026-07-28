@@ -92,15 +92,22 @@ function App() {
     return Array.from(dates).sort().reverse();
   }, [allParsedData, oldFixedData, activeSourceTab]);
 
-  // 지구하다 기본 5일 세팅
+  // 지구하다 기본 세팅 (현재날짜 포함 5일치)
   useEffect(() => {
-    const dates = new Set();
-    allParsedData.forEach(row => { if (row._dateStr) dates.add(row._dateStr); });
-    const available = Array.from(dates).sort().reverse();
-    if (jiguSelectedDates.length === 0 && available.length > 0) {
-      setJiguSelectedDates(available.slice(0, 5));
+    if (jiguSelectedDates.length === 0) {
+      const dates = [];
+      const today = new Date();
+      for (let i = 0; i < 5; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() + i); // 0(오늘), 1(내일), 2(모레), 3(글피), 4
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        dates.push(`${year}-${month}-${day}`);
+      }
+      setJiguSelectedDates(dates);
     }
-  }, [allParsedData]);
+  }, []);
 
   // 여기로 기본 5일 세팅
   useEffect(() => {
