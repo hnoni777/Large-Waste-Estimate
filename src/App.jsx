@@ -92,14 +92,14 @@ function App() {
     return Array.from(dates).sort().reverse();
   }, [allParsedData, oldFixedData, activeSourceTab]);
 
-  // 지구하다 기본 세팅 (현재날짜 포함 5일치)
+  // 지구하다 기본 세팅 (현재날짜 포함 과거 5일치)
   useEffect(() => {
     if (jiguSelectedDates.length === 0) {
       const dates = [];
       const today = new Date();
       for (let i = 0; i < 5; i++) {
         const d = new Date(today);
-        d.setDate(today.getDate() + i); // 0(오늘), 1(내일), 2(모레), 3(글피), 4
+        d.setDate(today.getDate() - i); // 0(오늘), -1(어제), -2(그제), -3, -4
         const year = d.getFullYear();
         const month = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
