@@ -255,7 +255,8 @@ function App() {
 
   const shareAvailableDates = useMemo(() => {
     const dates = new Set();
-    for (let i = 0; i < 2; i++) {
+    const defaultDays = shareTeamTab === 'office' ? 5 : 2;
+    for (let i = 0; i < defaultDays; i++) {
       const dt = new Date();
       dt.setDate(dt.getDate() - i);
       dates.add(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`);
@@ -270,14 +271,20 @@ function App() {
       if (dateStr) dates.add(dateStr);
     });
     return Array.from(dates).sort().reverse();
-  }, [sharedWastes]);
+  }, [sharedWastes, shareTeamTab]);
+
+  const prevShareTeamRef = useRef(shareTeamTab);
 
   useEffect(() => {
+    const isTabChanged = prevShareTeamRef.current !== shareTeamTab;
+    prevShareTeamRef.current = shareTeamTab;
+    const defaultDays = shareTeamTab === 'office' ? 5 : 2;
+
     setShareSelectedDates(prev => {
       const isValid = prev.length > 0 && prev.every(d => shareAvailableDates.includes(d));
-      if (!isValid && shareAvailableDates.length > 0) {
+      if (isTabChanged || !isValid) {
         const defaultDates = [];
-        for (let i = 0; i < 2; i++) {
+        for (let i = 0; i < defaultDays; i++) {
           const dt = new Date();
           dt.setDate(dt.getDate() - i);
           defaultDates.push(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`);
@@ -286,7 +293,7 @@ function App() {
       }
       return prev;
     });
-  }, [shareAvailableDates]);
+  }, [shareAvailableDates, shareTeamTab]);
 
   useEffect(() => {
     const unsubscribeShare = onSnapshot(collection(db, 'shared_wastes'), (snapshot) => {
