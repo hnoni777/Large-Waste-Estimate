@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useDeferredValue } from 'react'
+import { useState, useMemo, useEffect, useDeferredValue, useRef } from 'react'
 import data from '../data.json'
 import * as XLSX from 'xlsx'
 
