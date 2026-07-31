@@ -1661,9 +1661,10 @@ function App() {
                                 <div style={{
                                   marginTop: '2px',
                                   background: 'rgba(255, 255, 255, 0.95)',
-                                  padding: '3px 6px',
-                                  borderRadius: '6px',
+                                  padding: '0px 2px',
+                                  borderRadius: '4px',
                                   fontSize: '0.75rem',
+                                  lineHeight: '1.1',
                                   fontWeight: 'bold',
                                   color: '#333',
                                   whiteSpace: 'nowrap',
