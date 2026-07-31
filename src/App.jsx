@@ -1691,10 +1691,9 @@ function App() {
                 ) : (
                   <>
                     <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                      <label className="share-write-btn" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0, cursor: 'pointer' }}>
-                        📸 새 사진 촬영하기
-                        <input type="file" accept="image/*" capture="environment" onChange={handleSharePhotoUpload} style={{ display: 'none' }} />
-                      </label>
+                      <button className="share-write-btn" onClick={openShareWrite} style={{ flex: 1 }}>
+                        ✍️ 새 공유글 작성하기
+                      </button>
                       <button 
                         onClick={handleRefreshShare} 
                         style={{ padding: '0 15px', background: '#fff', border: '1px solid #ddd', borderRadius: '8px', cursor: 'pointer', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
