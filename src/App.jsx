@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useDeferredValue, useRef } from 'react'
+import { Map, MapMarker, CustomOverlayMap } from 'react-kakao-maps-sdk'
 import data from '../data.json'
 import * as XLSX from 'xlsx'
 
@@ -246,8 +247,11 @@ function App() {
   const [sharePhotos, setSharePhotos] = useState([]); // array of { id, url, isUploading }
   const [shareMemo, setShareMemo] = useState(''); // 메모 상태 추가
   const [shareSelectedDates, setShareSelectedDates] = useState([]);
-  const [shareTeamTab, setShareTeamTab] = useState('0258'); // '0258' | '4069'
+  const [shareTeamTab, setShareTeamTab] = useState('0258'); // '0258' | '4069' | 'office'
   const [shareFormTeam, setShareFormTeam] = useState('0258');
+  const [shareViewMode, setShareViewMode] = useState('map'); // 'map' | 'list'
+  const [shareLocation, setShareLocation] = useState(null); // { lat, lng }
+  const [selectedMapPin, setSelectedMapPin] = useState(null); // clicked pin for popup
   const [shareDate, setShareDate] = useState(() => {
     const dt = new Date();
     return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
@@ -408,6 +412,18 @@ function App() {
     setSharePhotos([]);
     setShareMemo('');
     setShareFormTeam(shareTeamTab);
+    setShareLocation(null);
+    
+    // GPS 위치 획득 시도
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setShareLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
+        },
+        (err) => console.warn("GPS location failed", err),
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    }
     
     // 글 작성 시 날짜를 무조건 현재 실제 날짜로 갱신
     const dt = new Date();
@@ -661,21 +677,25 @@ function App() {
 
     try {
       if (editingShareId) {
-        await setDoc(doc(db, 'shared_wastes', editingShareId), {
+        const updateData = {
           photos: finalUrls,
           memo: finalMemo,
           team: shareFormTeam
-        }, { merge: true });
+        };
+        if (shareLocation) updateData.location = shareLocation;
+        await setDoc(doc(db, 'shared_wastes', editingShareId), updateData, { merge: true });
       } else {
         const newDocRef = doc(collection(db, 'shared_wastes'));
-        await setDoc(newDocRef, {
+        const newData = {
           photos: finalUrls,
           createdAt: Date.now(),
           date: shareDate,
           memo: finalMemo,
           completed: false,
           team: shareFormTeam
-        });
+        };
+        if (shareLocation) newData.location = shareLocation;
+        await setDoc(newDocRef, newData);
       }
       setSharePhotos([]);
       setShareMemo('');
@@ -1484,6 +1504,21 @@ function App() {
           <div className="tab-share">
             {!isShareWriting ? (
               <div className="share-list-container">
+                <div className="share-view-toggle" style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                  <button 
+                    style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ddd', background: shareViewMode === 'map' ? '#0066cc' : '#fff', color: shareViewMode === 'map' ? '#fff' : '#333', fontWeight: shareViewMode === 'map' ? 'bold' : 'normal' }}
+                    onClick={() => setShareViewMode('map')}
+                  >
+                    🗺️ 지도 보기
+                  </button>
+                  <button 
+                    style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ddd', background: shareViewMode === 'list' ? '#0066cc' : '#fff', color: shareViewMode === 'list' ? '#fff' : '#333', fontWeight: shareViewMode === 'list' ? 'bold' : 'normal' }}
+                    onClick={() => setShareViewMode('list')}
+                  >
+                    📝 목록 보기
+                  </button>
+                </div>
+
                 <div className="team-tabs" style={{ display: 'flex', borderBottom: '1px solid #ddd', marginBottom: '15px' }}>
                   <button 
                     style={{ flex: 1, padding: '12px', background: shareTeamTab === '0258' ? '#0066cc' : '#f8f9fa', color: shareTeamTab === '0258' ? '#fff' : '#555', border: 'none', fontWeight: shareTeamTab === '0258' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }}
@@ -1515,22 +1550,69 @@ function App() {
                   )}
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                  <button className="share-write-btn" onClick={openShareWrite} style={{ flex: 1 }}>
-                    ✍️ 새 공유글 작성하기
-                  </button>
-                  <button 
-                    onClick={handleRefreshShare} 
-                    style={{ padding: '0 15px', background: '#fff', border: '1px solid #ddd', borderRadius: '8px', cursor: 'pointer', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    title="새로고침"
-                  >
-                    🔄
-                  </button>
-                </div>
-                {filteredSharedWastes.length === 0 ? (
-                  <div className="empty-state">해당 날짜에 공유된 폐가구가 없습니다.</div>
+                {shareViewMode === 'map' ? (
+                  <div className="share-map-container" style={{ position: 'relative', width: '100%', height: 'calc(100vh - 280px)', borderRadius: '12px', overflow: 'hidden', border: '1px solid #ddd' }}>
+                    <Map
+                      center={{ lat: 37.478, lng: 126.884 }} // 광명 중심 좌표 (임시)
+                      style={{ width: '100%', height: '100%' }}
+                      level={5}
+                    >
+                      {filteredSharedWastes.map(waste => {
+                        if (!waste.location) return null;
+                        return (
+                          <MapMarker
+                            key={`marker_${waste.id}`}
+                            position={{ lat: waste.location.lat, lng: waste.location.lng }}
+                            onClick={() => setSelectedMapPin(waste)}
+                          />
+                        );
+                      })}
+                      {selectedMapPin && (
+                        <CustomOverlayMap position={{ lat: selectedMapPin.location.lat, lng: selectedMapPin.location.lng }} yAnchor={1.2}>
+                          <div style={{ background: '#fff', padding: '10px', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', width: '220px', fontSize: '0.9rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                              <strong style={{ color: '#0066cc' }}>{selectedMapPin.team}팀</strong>
+                              <button onClick={() => setSelectedMapPin(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '1rem' }}>✕</button>
+                            </div>
+                            {selectedMapPin.photos && selectedMapPin.photos.length > 0 && (
+                              <img src={selectedMapPin.photos[0]} alt="미리보기" style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '4px', marginBottom: '8px' }} onClick={() => openFullScreen(selectedMapPin.photos, 0)} />
+                            )}
+                            <div style={{ whiteSpace: 'pre-wrap', maxHeight: '60px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {selectedMapPin.memo}
+                            </div>
+                            <div style={{ marginTop: '8px', fontSize: '0.8rem', color: '#888', textAlign: 'right' }}>
+                              {new Date(selectedMapPin.createdAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </CustomOverlayMap>
+                      )}
+                    </Map>
+                    
+                    <button 
+                      onClick={openShareWrite} 
+                      style={{ position: 'absolute', bottom: '20px', right: '20px', zIndex: 10, width: '60px', height: '60px', borderRadius: '30px', background: '#0066cc', color: '#fff', fontSize: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', border: 'none', cursor: 'pointer' }}
+                    >
+                      📸
+                    </button>
+                  </div>
                 ) : (
-                  filteredSharedWastes.map(waste => (
+                  <>
+                    <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                      <button className="share-write-btn" onClick={openShareWrite} style={{ flex: 1 }}>
+                        ✍️ 새 공유글 작성하기
+                      </button>
+                      <button 
+                        onClick={handleRefreshShare} 
+                        style={{ padding: '0 15px', background: '#fff', border: '1px solid #ddd', borderRadius: '8px', cursor: 'pointer', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        title="새로고침"
+                      >
+                        🔄
+                      </button>
+                    </div>
+                    {filteredSharedWastes.length === 0 ? (
+                      <div className="empty-state">해당 날짜에 공유된 폐가구가 없습니다.</div>
+                    ) : (
+                      filteredSharedWastes.map(waste => (
                     <div key={waste.id} className={`share-card ${waste.completed ? 'completed' : ''}`}>
                       <div className="share-card-header">
                         <span className="share-time">
@@ -1577,14 +1659,37 @@ function App() {
                           </div>
                         ))}
                       </div>
-                      <button 
-                        className="share-complete-btn" 
-                        onClick={() => toggleShareComplete(waste.id, waste.completed)}
-                      >
-                        {waste.completed ? '수거 취소' : '✅ 수거 완료 처리'}
-                      </button>
-                    </div>
-                  ))
+
+                          <div className="share-photo-grid">
+                            {waste.photos && waste.photos.map((url, idx) => (
+                              <div key={idx} className="share-preview-item">
+                                <img 
+                                  src={url} 
+                                  alt="폐가구" 
+                                  loading="lazy"
+                                  decoding="async"
+                                  onClick={() => openFullScreen(waste.photos, idx)}
+                                />
+                                <button 
+                                  className="share-preview-remove" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteSingleSharePhoto(waste.id, waste.photos, idx);
+                                  }}
+                                >✕</button>
+                              </div>
+                            ))}
+                          </div>
+                          <button 
+                            className="share-complete-btn" 
+                            onClick={() => toggleShareComplete(waste.id, waste.completed)}
+                          >
+                            {waste.completed ? '수거 취소' : '✅ 수거 완료 처리'}
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </>
                 )}
               </div>
             ) : (
