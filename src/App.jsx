@@ -1680,26 +1680,18 @@ function App() {
                       })}
                     </Map>
                     
-                    <label 
-                      style={{ position: 'absolute', bottom: '20px', right: '20px', zIndex: 10, width: '60px', height: '60px', borderRadius: '30px', background: '#0066cc', color: '#fff', fontSize: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', border: 'none', cursor: 'pointer', margin: 0 }}
-                    >
-                      📸
-                      <input type="file" accept="image/*" capture="environment" onChange={handleSharePhotoUpload} style={{ display: 'none' }} />
-                    </label>
+                    {/* FAB moved to global container */}
                   </div>
                   </>
                 ) : (
                   <>
-                    <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                      <button className="share-write-btn" onClick={openShareWrite} style={{ flex: 1 }}>
-                        ✍️ 새 공유글 작성하기
-                      </button>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '15px' }}>
                       <button 
                         onClick={handleRefreshShare} 
-                        style={{ padding: '0 15px', background: '#fff', border: '1px solid #ddd', borderRadius: '8px', cursor: 'pointer', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ padding: '8px 15px', background: '#fff', border: '1px solid #ddd', borderRadius: '8px', cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         title="새로고침"
                       >
-                        🔄
+                        🔄 새로고침
                       </button>
                     </div>
                     {filteredSharedWastes.length === 0 ? (
@@ -1764,6 +1756,24 @@ function App() {
                     )}
                   </>
                 )}
+
+                {/* Global FABs for Share Tab (List & Map views) */}
+                <div style={{ position: 'fixed', bottom: '85px', right: '20px', zIndex: 90, display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                  <button 
+                    onClick={openShareWrite}
+                    style={{ width: '60px', height: '60px', borderRadius: '30px', background: '#4caf50', color: '#fff', fontSize: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', border: 'none', cursor: 'pointer', margin: 0 }}
+                    title="메모 작성하기"
+                  >
+                    📝
+                  </button>
+                  <label 
+                    style={{ width: '60px', height: '60px', borderRadius: '30px', background: '#0066cc', color: '#fff', fontSize: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', border: 'none', cursor: 'pointer', margin: 0 }}
+                    title="사진 촬영하기"
+                  >
+                    📸
+                    <input type="file" accept="image/*" capture="environment" onChange={handleSharePhotoUpload} style={{ display: 'none' }} />
+                  </label>
+                </div>
               </div>
             ) : (
               <div className="share-write-container" style={{ height: '100%', overflowY: 'auto', paddingBottom: '20px' }}>
