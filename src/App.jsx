@@ -1923,7 +1923,7 @@ function App() {
 
       {/* 사진 크게 보기 모달 */}
       {fullScreenData.images && fullScreenData.images.length > 0 && (
-        <div className="modal-overlay" onClick={closeFullScreen}>
+        <div className="modal-overlay" onClick={closeFullScreen} style={{ zIndex: 1100 }}>
           <div 
             className="fullscreen-image-container" 
             onClick={(e) => e.stopPropagation()}
