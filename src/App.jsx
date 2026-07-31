@@ -1178,13 +1178,14 @@ function App() {
   return (
     <>
       <header className="app-header">
-        <h1 className="app-title">폐가구처리 매니저</h1>
-        <div className="app-subtitle">
-          {activeTab === 'search' && '🔍 품목검색'}
-          {activeTab === 'cart' && '🧾 견적 총비용'}
-          {activeTab === 'status' && '📋 접수현황 관리'}
-          {activeTab === 'share' && '🤝 폐가구공유'}
-        </div>
+        <h1 className="app-title">{activeTab === 'share' ? '폐가구 공유' : '폐가구처리 매니저'}</h1>
+        {activeTab !== 'share' && (
+          <div className="app-subtitle">
+            {activeTab === 'search' && '🔍 품목검색'}
+            {activeTab === 'cart' && '🧾 견적 총비용'}
+            {activeTab === 'status' && '📋 접수현황 관리'}
+          </div>
+        )}
       </header>
 
       <main className="app-content">
@@ -1543,54 +1544,59 @@ function App() {
           <div className="tab-share" style={shareViewMode === 'map' ? { height: '100%', overflow: 'hidden', paddingBottom: 0 } : {}}>
             {!isShareWriting ? (
               <div className="share-list-container" style={shareViewMode === 'map' ? { height: '100%', display: 'flex', flexDirection: 'column' } : {}}>
-                <div className="share-view-toggle" style={{ display: 'flex', gap: '10px', marginBottom: shareViewMode === 'map' ? '5px' : '15px' }}>
-                  <button 
-                    style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ddd', background: shareViewMode === 'map' ? '#0066cc' : '#fff', color: shareViewMode === 'map' ? '#fff' : '#333', fontWeight: shareViewMode === 'map' ? 'bold' : 'normal' }}
-                    onClick={() => setShareViewMode('map')}
-                  >
-                    🗺️ 지도 보기
-                  </button>
-                  <button 
-                    style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ddd', background: shareViewMode === 'list' ? '#0066cc' : '#fff', color: shareViewMode === 'list' ? '#fff' : '#333', fontWeight: shareViewMode === 'list' ? 'bold' : 'normal' }}
-                    onClick={() => setShareViewMode('list')}
-                  >
-                    📝 목록 보기
-                  </button>
-                </div>
-
-                <div className="team-tabs" style={{ display: 'flex', borderBottom: '1px solid #ddd', marginBottom: shareViewMode === 'map' ? '5px' : '15px' }}>
-                  <button 
-                    style={{ flex: 1, padding: '12px', background: shareTeamTab === '0258' ? '#0066cc' : '#f8f9fa', color: shareTeamTab === '0258' ? '#fff' : '#555', border: 'none', fontWeight: shareTeamTab === '0258' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }}
-                    onClick={() => setShareTeamTab('0258')}
-                  >
-                    0258팀
-                  </button>
-                  <button 
-                    style={{ flex: 1, padding: '12px', background: shareTeamTab === '4069' ? '#0066cc' : '#f8f9fa', color: shareTeamTab === '4069' ? '#fff' : '#555', border: 'none', fontWeight: shareTeamTab === '4069' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }}
-                    onClick={() => setShareTeamTab('4069')}
-                  >
-                    4069팀
-                  </button>
-                  <button 
-                    style={{ flex: 1, padding: '12px', background: shareTeamTab === 'office' ? '#0066cc' : '#f8f9fa', color: shareTeamTab === 'office' ? '#fff' : '#555', border: 'none', fontWeight: shareTeamTab === 'office' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }}
-                    onClick={() => setShareTeamTab('office')}
-                  >
-                    사무실민원
-                  </button>
-                </div>
-                <div className="share-date-header" style={{ justifyContent: 'center', background: 'transparent', boxShadow: 'none', paddingTop: 0 }}>
-                  {shareAvailableDates.length > 0 && (
+                {shareViewMode === 'list' && (
+                  <div className="share-view-toggle" style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
                     <button 
-                      className="date-select-btn"
-                      onClick={() => openCalendar('share')}
+                      style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ddd', background: '#fff', color: '#333' }}
+                      onClick={() => setShareViewMode('map')}
                     >
-                      📅 날짜 선택하기 <span className="date-count">({shareSelectedDates.length}일 선택됨)</span>
+                      🗺️ 지도 보기
                     </button>
-                  )}
-                </div>
+                    <button 
+                      style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ddd', background: '#0066cc', color: '#fff', fontWeight: 'bold' }}
+                      onClick={() => setShareViewMode('list')}
+                    >
+                      📝 목록 보기
+                    </button>
+                  </div>
+                )}
+
+                {/* Team tabs hidden per user request */}
+                {false && (
+                  <div className="team-tabs" style={{ display: 'flex', borderBottom: '1px solid #ddd', marginBottom: '15px' }}>
+                    <button onClick={() => setShareTeamTab('0258')}>0258팀</button>
+                  </div>
+                )}
+
+                {shareViewMode === 'list' && (
+                  <div className="share-date-header" style={{ justifyContent: 'center', background: 'transparent', boxShadow: 'none', paddingTop: 0 }}>
+                    {shareAvailableDates.length > 0 && (
+                      <button 
+                        className="date-select-btn"
+                        onClick={() => openCalendar('share')}
+                      >
+                        📅 날짜 선택하기 <span className="date-count">({shareSelectedDates.length}일 선택됨)</span>
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {shareViewMode === 'map' ? (
-                  <div className="share-map-container" style={{ position: 'relative', width: '100%', flex: 1, minHeight: 'calc(100vh - 230px)', borderRadius: '12px', overflow: 'hidden', border: '1px solid #ddd' }}>
+                  <div className="share-map-container" style={{ position: 'relative', width: '100%', flex: 1, borderRadius: '0', overflow: 'hidden', borderTop: '1px solid #ddd' }}>
+                    <div style={{ position: 'absolute', top: '15px', left: '15px', right: '15px', zIndex: 10, display: 'flex', gap: '10px', boxShadow: '0 4px 10px rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                      <button 
+                        style={{ flex: 1, padding: '12px', borderRadius: '8px 0 0 8px', border: 'none', background: '#0066cc', color: '#fff', fontWeight: 'bold', fontSize: '1rem' }}
+                        onClick={() => setShareViewMode('map')}
+                      >
+                        🗺️ 지도 보기
+                      </button>
+                      <button 
+                        style={{ flex: 1, padding: '12px', borderRadius: '0 8px 8px 0', border: 'none', background: '#fff', color: '#333', fontSize: '1rem' }}
+                        onClick={() => setShareViewMode('list')}
+                      >
+                        📝 목록 보기
+                      </button>
+                    </div>
                     <Map
                       center={{ lat: 37.478, lng: 126.884 }}
                       style={{ width: '100%', height: '100%' }}
