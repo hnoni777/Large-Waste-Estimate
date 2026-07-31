@@ -1830,7 +1830,7 @@ function App() {
                   <div className="share-write-actions" style={{ marginBottom: '15px', display: 'flex', justifyContent: 'flex-start' }}>
                     <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', width: '75px', height: '75px', background: '#ffffff', color: '#333', borderRadius: '16px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', border: '1px solid #eaeaea', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                       <span style={{ fontSize: '1.6rem', lineHeight: '1' }}>📸</span>
-                      <span>추가촬영</span>
+                      <span>사진촬영</span>
                       <input type="file" accept="image/*" capture="environment" onChange={handleSharePhotoUpload} style={{ display: 'none' }} />
                     </label>
                   </div>
