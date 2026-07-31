@@ -245,6 +245,7 @@ function App() {
   const [isShareWriting, setIsShareWriting] = useState(false);
   const [editingShareId, setEditingShareId] = useState(null);
   const [sharePhotos, setSharePhotos] = useState([]); // array of { id, url, isUploading }
+  const [isShareTextOnly, setIsShareTextOnly] = useState(false);
   const [shareMemo, setShareMemo] = useState(''); // 메모 상태 추가
   const [shareSelectedDates, setShareSelectedDates] = useState([]);
   const [shareTeamTab, setShareTeamTab] = useState('0258'); // '0258' | '4069' | 'office'
@@ -410,7 +411,8 @@ function App() {
     if (isCalendarOpen) window.history.back();
   };
 
-  const openShareWrite = () => {
+  const openShareWrite = (isTextOnly = false) => {
+    setIsShareTextOnly(isTextOnly === true);
     setEditingShareId(null);
     setSharePhotos([]);
     setShareMemo('');
@@ -437,6 +439,7 @@ function App() {
   };
 
   const editSharePost = (waste) => {
+    setIsShareTextOnly(false);
     setEditingShareId(waste.id);
     setSharePhotos(waste.photos ? waste.photos.map((url, i) => ({ id: `old_${i}`, url, isUploading: false })) : []);
     setShareMemo(waste.memo || '');
@@ -1686,8 +1689,8 @@ function App() {
                 ) : (
                   <>
                     <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                      <button className="share-write-btn" onClick={openShareWrite} style={{ flex: 1 }}>
-                        ✍️ 새 공유글 작성하기
+                      <button className="share-write-btn" onClick={() => openShareWrite(false)} style={{ flex: 1 }}>
+                        ✍️ 새 공유글 올리기
                       </button>
                       <button 
                         onClick={handleRefreshShare} 
@@ -1760,23 +1763,25 @@ function App() {
                   </>
                 )}
 
-                {/* Global FABs for Share Tab (List & Map views) */}
-                <div style={{ position: 'fixed', bottom: '70px', right: '15px', zIndex: 90, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <button 
-                    onClick={openShareWrite}
-                    style={{ width: '50px', height: '50px', borderRadius: '25px', background: '#4caf50', color: '#fff', fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 8px rgba(0,0,0,0.25)', border: 'none', cursor: 'pointer', margin: 0 }}
-                    title="메모 작성하기"
-                  >
-                    📝
-                  </button>
-                  <label 
-                    style={{ width: '50px', height: '50px', borderRadius: '25px', background: '#0066cc', color: '#fff', fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 8px rgba(0,0,0,0.25)', border: 'none', cursor: 'pointer', margin: 0 }}
-                    title="사진 촬영하기"
-                  >
-                    📸
-                    <input type="file" accept="image/*" capture="environment" onChange={handleSharePhotoUpload} style={{ display: 'none' }} />
-                  </label>
-                </div>
+                {/* Global FABs for Share Tab (Map view only) */}
+                {shareViewMode === 'map' && (
+                  <div style={{ position: 'fixed', bottom: '70px', right: '15px', zIndex: 90, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <button 
+                      onClick={() => openShareWrite(true)}
+                      style={{ width: '50px', height: '50px', borderRadius: '25px', background: '#4caf50', color: '#fff', fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 8px rgba(0,0,0,0.25)', border: 'none', cursor: 'pointer', margin: 0 }}
+                      title="메모 작성하기"
+                    >
+                      📝
+                    </button>
+                    <label 
+                      style={{ width: '50px', height: '50px', borderRadius: '25px', background: '#0066cc', color: '#fff', fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 8px rgba(0,0,0,0.25)', border: 'none', cursor: 'pointer', margin: 0 }}
+                      title="사진 촬영하기"
+                    >
+                      📸
+                      <input type="file" accept="image/*" capture="environment" onChange={handleSharePhotoUpload} style={{ display: 'none' }} />
+                    </label>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="share-write-container" style={{ height: '100%', overflowY: 'auto', paddingBottom: '20px' }}>
@@ -1821,7 +1826,7 @@ function App() {
                   </div>
                 )}
 
-                {shareFormTeam !== 'office' && sharePhotos.length > 0 && (
+                {shareFormTeam !== 'office' && !isShareTextOnly && (
                   <div className="share-write-actions" style={{ marginBottom: '15px', display: 'flex', justifyContent: 'flex-start' }}>
                     <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', width: '75px', height: '75px', background: '#ffffff', color: '#333', borderRadius: '16px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', border: '1px solid #eaeaea', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                       <span style={{ fontSize: '1.6rem', lineHeight: '1' }}>📸</span>
@@ -1840,7 +1845,7 @@ function App() {
                   />
                 </div>
 
-                {shareFormTeam !== 'office' && sharePhotos.length > 0 && (
+                {shareFormTeam !== 'office' && !isShareTextOnly && (
                   <div className="share-preview-grid">
                   {sharePhotos.map((photoObj, idx) => (
                     <div key={idx} className="share-preview-item">
