@@ -1640,19 +1640,41 @@ function App() {
                             position={{ lat: waste.location.lat, lng: waste.location.lng }}
                             zIndex={selectedMapPin?.id === waste.id ? 10 : 1}
                           >
-                            <div 
-                              onClick={() => setSelectedMapPin(waste)}
-                              style={{
-                                width: '16px',
-                                height: '16px',
-                                borderRadius: '50%',
-                                backgroundColor: waste.completed ? '#0066cc' : '#ff3333',
-                                border: '2px solid white',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
-                                cursor: 'pointer',
-                                transform: 'translate(-50%, -50%)'
-                              }}
-                            />
+                            <div style={{ position: 'absolute', transform: 'translate(-50%, -50%)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                              <div 
+                                onClick={() => setSelectedMapPin(waste)}
+                                style={{
+                                  width: '16px',
+                                  height: '16px',
+                                  borderRadius: '50%',
+                                  backgroundColor: waste.completed ? '#0066cc' : '#ff3333',
+                                  border: '2px solid white',
+                                  boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
+                                  cursor: 'pointer',
+                                  zIndex: 2,
+                                }}
+                              />
+                              {waste.memo && (
+                                <div style={{
+                                  marginTop: '4px',
+                                  background: 'rgba(255, 255, 255, 0.95)',
+                                  padding: '2px 5px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 'bold',
+                                  color: '#333',
+                                  whiteSpace: 'nowrap',
+                                  boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                                  border: `1px solid ${waste.completed ? '#0066cc' : '#ff3333'}`,
+                                  maxWidth: '80px',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  pointerEvents: 'none'
+                                }}>
+                                  {waste.memo}
+                                </div>
+                              )}
+                            </div>
                           </CustomOverlayMap>
                         );
                       })}
