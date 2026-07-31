@@ -370,22 +370,6 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    if (map && shareViewMode === 'map' && filteredSharedWastes.length > 0) {
-      const bounds = new window.kakao.maps.LatLngBounds();
-      let hasMarker = false;
-      filteredSharedWastes.forEach(waste => {
-        if (waste.location && waste.location.lat && waste.location.lng) {
-          bounds.extend(new window.kakao.maps.LatLng(waste.location.lat, waste.location.lng));
-          hasMarker = true;
-        }
-      });
-      if (hasMarker) {
-        map.setBounds(bounds);
-      }
-    }
-  }, [map, shareViewMode, filteredSharedWastes]);
-
   // 뒤로가기(History) 라우팅 처리
   useEffect(() => {
     window.history.replaceState({ type: 'tab', tab: 'search' }, '');
@@ -800,6 +784,22 @@ function App() {
       return shareSelectedDates.includes(dateStr);
     });
   }, [sharedWastes, shareSelectedDates, shareTeamTab]);
+
+  useEffect(() => {
+    if (map && shareViewMode === 'map' && filteredSharedWastes.length > 0) {
+      const bounds = new window.kakao.maps.LatLngBounds();
+      let hasMarker = false;
+      filteredSharedWastes.forEach(waste => {
+        if (waste.location && waste.location.lat && waste.location.lng) {
+          bounds.extend(new window.kakao.maps.LatLng(waste.location.lat, waste.location.lng));
+          hasMarker = true;
+        }
+      });
+      if (hasMarker) {
+        map.setBounds(bounds);
+      }
+    }
+  }, [map, shareViewMode, filteredSharedWastes]);
 
   const items = useMemo(() => {
     return data.map((d, index) => ({
