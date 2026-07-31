@@ -1656,11 +1656,11 @@ function App() {
                               />
                               {waste.memo && (
                                 <div style={{
-                                  marginTop: '4px',
+                                  marginTop: '0px',
                                   background: 'rgba(255, 255, 255, 0.95)',
-                                  padding: '2px 5px',
+                                  padding: '1px 4px',
                                   borderRadius: '4px',
-                                  fontSize: '0.7rem',
+                                  fontSize: '0.6rem',
                                   fontWeight: 'bold',
                                   color: '#333',
                                   whiteSpace: 'nowrap',
@@ -1972,8 +1972,7 @@ function App() {
       {selectedMapPin && shareViewMode === 'map' && (
         <div className="modal-overlay" onClick={() => setSelectedMapPin(null)} style={{ zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="map-pin-modal" onClick={e => e.stopPropagation()} style={{ background: '#fff', padding: '20px', borderRadius: '12px', width: '90%', maxWidth: '350px', boxShadow: '0 10px 25px rgba(0,0,0,0.3)', position: 'relative' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', alignItems: 'center' }}>
-              <strong style={{ color: '#0066cc', fontSize: '1.2rem' }}>{selectedMapPin.team}팀</strong>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '15px' }}>
               <button onClick={() => setSelectedMapPin(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '1.5rem', padding: '0 5px', color: '#555' }}>✕</button>
             </div>
             {selectedMapPin.photos && selectedMapPin.photos.length > 0 && (
