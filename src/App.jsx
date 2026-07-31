@@ -1809,8 +1809,21 @@ function App() {
                   </div>
                 )}
 
-                {/* Photo capture buttons removed from write view per user request */}
+                {shareFormTeam !== 'office' && (
+                  <div className="share-write-actions" style={{ marginBottom: '10px' }}>
+                    <div className="upload-wrapper" style={{width: '100%', boxSizing: 'border-box', display: 'flex', gap: '0.5rem'}}>
+                      <label style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f5ff', color: '#0066cc', padding: '10px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem', border: '1px solid #d0e1ff' }}>
+                        📸 사진 추가 촬영
+                        <input type="file" accept="image/*" capture="environment" onChange={handleSharePhotoUpload} style={{ display: 'none' }} />
+                      </label>
 
+                      <label style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f7fa', color: '#555', padding: '10px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.9rem', border: '1px solid #ddd' }}>
+                        📁 사진 불러오기
+                        <input type="file" accept="image/*" multiple onChange={handleSharePhotoUpload} style={{ display: 'none' }} />
+                      </label>
+                    </div>
+                  </div>
+                )}
                 <div className="share-memo-wrapper">
                   <textarea
                     className="share-memo-input"
