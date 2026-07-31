@@ -1685,7 +1685,10 @@ function App() {
                   </>
                 ) : (
                   <>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '15px' }}>
+                    <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                      <button className="share-write-btn" onClick={openShareWrite} style={{ flex: 1 }}>
+                        ✍️ 새 공유글 작성하기
+                      </button>
                       <button 
                         onClick={handleRefreshShare} 
                         style={{ padding: '8px 15px', background: '#fff', border: '1px solid #ddd', borderRadius: '8px', cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
