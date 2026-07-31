@@ -1756,7 +1756,7 @@ function App() {
                             className="share-complete-btn" 
                             onClick={() => toggleShareComplete(waste.id, waste.completed)}
                           >
-                            {waste.completed ? '수거완료 취소하기' : '✅ 수거완료하기'}
+                            {waste.completed ? '✅ 수거 완료됨 (클릭 시 취소)' : '⬜ 수거 완료 처리'}
                           </button>
                         </div>
                       ))
@@ -2029,7 +2029,7 @@ function App() {
               }}
               style={{ width: '100%', padding: '15px', borderRadius: '8px', border: 'none', background: selectedMapPin.completed ? '#f1f3f5' : '#4caf50', color: selectedMapPin.completed ? '#495057' : '#fff', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.2s' }}
             >
-              {selectedMapPin.completed ? '수거완료 취소하기' : '✅ 수거완료하기'}
+              {selectedMapPin.completed ? '✅ 수거 완료됨 (클릭 시 취소)' : '⬜ 수거 완료 처리'}
             </button>
           </div>
         </div>
