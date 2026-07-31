@@ -776,6 +776,9 @@ function App() {
   };
 
   const filteredSharedWastes = useMemo(() => {
+    const todayDt = new Date();
+    const todayStr = `${todayDt.getFullYear()}-${String(todayDt.getMonth() + 1).padStart(2, '0')}-${String(todayDt.getDate()).padStart(2, '0')}`;
+
     const teamFiltered = sharedWastes.filter(waste => (waste.team || '0258') === shareTeamTab);
     const dateFiltered = teamFiltered.filter(waste => {
       let dateStr = waste.date;
@@ -783,6 +786,11 @@ function App() {
         const d = new Date(waste.createdAt);
         dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       }
+      
+      if (shareViewMode === 'map') {
+        return dateStr === todayStr;
+      }
+      
       return shareSelectedDates.includes(dateStr);
     });
     
