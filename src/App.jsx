@@ -1714,77 +1714,83 @@ function App() {
                 )}
               </div>
             ) : (
-              <div className="share-write-container">
+              <div className="share-write-container" style={{ height: '100%', overflowY: 'auto', paddingBottom: '20px' }}>
                 <h3 className="share-write-title">{editingShareId ? '폐가구 공유 수정' : '새 폐가구 공유'}</h3>
                 
-                <div className="share-team-select" style={{ marginBottom: '15px', padding: '10px', background: '#f8f9fa', borderRadius: '8px' }}>
-                  <p style={{ margin: '0 0 10px 0', fontSize: '0.9rem', fontWeight: 'bold' }}>담당 수거팀 선택</p>
-                  <div style={{ display: 'flex', gap: '20px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-                      <input 
-                        type="radio" 
-                        name="shareTeam" 
-                        value="0258" 
-                        checked={shareFormTeam === '0258'} 
-                        onChange={(e) => setShareFormTeam(e.target.value)} 
-                      />
-                      0258팀
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-                      <input 
-                        type="radio" 
-                        name="shareTeam" 
-                        value="4069" 
-                        checked={shareFormTeam === '4069'} 
-                        onChange={(e) => setShareFormTeam(e.target.value)} 
-                      />
-                      4069팀
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-                      <input 
-                        type="radio" 
-                        name="shareTeam" 
-                        value="office" 
-                        checked={shareFormTeam === 'office'} 
-                        onChange={(e) => setShareFormTeam(e.target.value)} 
-                      />
-                      사무실민원
-                    </label>
+                {/* Team selection hidden per user request */}
+                {false && (
+                  <div className="share-team-select" style={{ marginBottom: '15px', padding: '10px', background: '#f8f9fa', borderRadius: '8px' }}>
+                    <p style={{ margin: '0 0 10px 0', fontSize: '0.9rem', fontWeight: 'bold' }}>담당 수거팀 선택</p>
+                    <div style={{ display: 'flex', gap: '20px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                        <input 
+                          type="radio" 
+                          name="shareTeam" 
+                          value="0258" 
+                          checked={shareFormTeam === '0258'} 
+                          onChange={(e) => setShareFormTeam(e.target.value)} 
+                        />
+                        0258팀
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                        <input 
+                          type="radio" 
+                          name="shareTeam" 
+                          value="4069" 
+                          checked={shareFormTeam === '4069'} 
+                          onChange={(e) => setShareFormTeam(e.target.value)} 
+                        />
+                        4069팀
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                        <input 
+                          type="radio" 
+                          name="shareTeam" 
+                          value="office" 
+                          checked={shareFormTeam === 'office'} 
+                          onChange={(e) => setShareFormTeam(e.target.value)} 
+                        />
+                        사무실민원
+                      </label>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {shareFormTeam !== 'office' && (
                   <div className="share-write-actions">
-                  <div className="upload-wrapper" style={{width: '100%', boxSizing: 'border-box', display: 'flex', gap: '0.5rem'}}>
-                    <input 
-                      id="share-photo-capture"
-                      type="file" 
-                      accept="image/*"
-                      capture="environment"
-                      onChange={handleSharePhotoUpload}
-                      style={{ display: 'none' }} 
-                    />
-                    <label htmlFor="share-photo-capture" className="share-action-btn primary" style={{flex: 1}}>
-                      📷 사진촬영
-                    </label>
+                    <div className="upload-wrapper" style={{width: '100%', boxSizing: 'border-box', display: 'flex', gap: '0.5rem'}}>
+                      <input 
+                        id="share-photo-capture"
+                        type="file" 
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleSharePhotoUpload}
+                        style={{ display: 'none' }} 
+                      />
+                      <label htmlFor="share-photo-capture" className="share-action-btn primary" style={{flex: 1}}>
+                        📷 사진촬영
+                      </label>
 
-                    <input 
-                      id="share-photo-upload"
-                      type="file" 
-                      accept="image/*"
-                      multiple
-                      onChange={handleSharePhotoUpload}
-                      style={{ display: 'none' }} 
-                    />
-                    <label htmlFor="share-photo-upload" className="share-action-btn secondary" style={{flex: 1}}>
-                      📁 사진불러오기
-                    </label>
+                      <input 
+                        id="share-photo-upload"
+                        type="file" 
+                        accept="image/*"
+                        multiple
+                        onChange={handleSharePhotoUpload}
+                        style={{ display: 'none' }} 
+                      />
+                      <label htmlFor="share-photo-upload" className="share-action-btn secondary" style={{flex: 1}}>
+                        📁 사진불러오기
+                      </label>
+                    </div>
+                    
+                    {/* Location button hidden per user request */}
+                    {false && (
+                      <button className="share-action-btn secondary" onClick={handleGetLocation}>
+                        📍 내 위치 지도 보기 (스샷용)
+                      </button>
+                    )}
                   </div>
-                  
-                  <button className="share-action-btn secondary" onClick={handleGetLocation}>
-                    📍 내 위치 지도 보기 (스샷용)
-                  </button>
-                </div>
                 )}
 
                 <div className="share-memo-wrapper">
