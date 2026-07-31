@@ -1545,39 +1545,32 @@ function App() {
             {!isShareWriting ? (
               <div className="share-list-container" style={shareViewMode === 'map' ? { height: '100%', display: 'flex', flexDirection: 'column' } : {}}>
                 {shareViewMode === 'list' && (
-                  <div className="share-view-toggle" style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                    <button 
-                      style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ddd', background: '#fff', color: '#333' }}
-                      onClick={() => setShareViewMode('map')}
-                    >
-                      🗺️ 지도 보기
-                    </button>
-                    <button 
-                      style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ddd', background: '#0066cc', color: '#fff', fontWeight: 'bold' }}
-                      onClick={() => setShareViewMode('list')}
-                    >
-                      📝 목록 보기
-                    </button>
-                  </div>
-                )}
-
-                {/* Team tabs hidden per user request */}
-                {false && (
-                  <div className="team-tabs" style={{ display: 'flex', borderBottom: '1px solid #ddd', marginBottom: '15px' }}>
-                    <button onClick={() => setShareTeamTab('0258')}>0258팀</button>
-                  </div>
-                )}
-
-                {shareViewMode === 'list' && (
-                  <div className="share-date-header" style={{ justifyContent: 'center', background: 'transparent', boxShadow: 'none', paddingTop: 0 }}>
-                    {shareAvailableDates.length > 0 && (
+                  <div style={{ position: 'sticky', top: '-1rem', zIndex: 100, background: '#f5f7fa', margin: '-1rem -1rem 15px -1rem', padding: '1rem 1rem 0 1rem', borderBottom: '1px solid #ddd' }}>
+                    <div className="share-view-toggle" style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
                       <button 
-                        className="date-select-btn"
-                        onClick={() => openCalendar('share')}
+                        style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ddd', background: '#fff', color: '#333' }}
+                        onClick={() => setShareViewMode('map')}
                       >
-                        📅 날짜 선택하기 <span className="date-count">({shareSelectedDates.length}일 선택됨)</span>
+                        🗺️ 지도 보기
                       </button>
-                    )}
+                      <button 
+                        style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ddd', background: '#0066cc', color: '#fff', fontWeight: 'bold' }}
+                        onClick={() => setShareViewMode('list')}
+                      >
+                        📝 목록 보기
+                      </button>
+                    </div>
+
+                    <div className="share-date-header" style={{ justifyContent: 'center', background: 'transparent', boxShadow: 'none', paddingTop: 0, paddingBottom: '15px' }}>
+                      {shareAvailableDates.length > 0 && (
+                        <button 
+                          className="date-select-btn"
+                          onClick={() => openCalendar('share')}
+                        >
+                          📅 날짜 선택하기 <span className="date-count">({shareSelectedDates.length}일 선택됨)</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
 
