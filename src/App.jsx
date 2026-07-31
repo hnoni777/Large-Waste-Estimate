@@ -676,13 +676,30 @@ function App() {
     }
 
     try {
+      let finalLocation = shareLocation;
+      
+      // 위치 정보가 아직 없으면 제출 순간에 다시 한 번 짧게(3초) 시도
+      if (!finalLocation && navigator.geolocation) {
+        try {
+          finalLocation = await new Promise((resolve) => {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+              (err) => resolve(null),
+              { enableHighAccuracy: true, timeout: 3000, maximumAge: 0 }
+            );
+          });
+        } catch (e) {
+          // ignore
+        }
+      }
+
       if (editingShareId) {
         const updateData = {
           photos: finalUrls,
           memo: finalMemo,
           team: shareFormTeam
         };
-        if (shareLocation) updateData.location = shareLocation;
+        if (finalLocation) updateData.location = finalLocation;
         await setDoc(doc(db, 'shared_wastes', editingShareId), updateData, { merge: true });
       } else {
         const newDocRef = doc(collection(db, 'shared_wastes'));
@@ -694,7 +711,7 @@ function App() {
           completed: false,
           team: shareFormTeam
         };
-        if (shareLocation) newData.location = shareLocation;
+        if (finalLocation) newData.location = finalLocation;
         await setDoc(newDocRef, newData);
       }
       setSharePhotos([]);
@@ -1660,26 +1677,6 @@ function App() {
                         ))}
                       </div>
 
-                          <div className="share-photo-grid">
-                            {waste.photos && waste.photos.map((url, idx) => (
-                              <div key={idx} className="share-preview-item">
-                                <img 
-                                  src={url} 
-                                  alt="폐가구" 
-                                  loading="lazy"
-                                  decoding="async"
-                                  onClick={() => openFullScreen(waste.photos, idx)}
-                                />
-                                <button 
-                                  className="share-preview-remove" 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    deleteSingleSharePhoto(waste.id, waste.photos, idx);
-                                  }}
-                                >✕</button>
-                              </div>
-                            ))}
-                          </div>
                           <button 
                             className="share-complete-btn" 
                             onClick={() => toggleShareComplete(waste.id, waste.completed)}
