@@ -1198,7 +1198,7 @@ function App() {
 
   return (
     <>
-      <header className="app-header">
+      <header className="app-header" style={activeTab === 'share' && shareViewMode === 'map' && !isShareWriting ? { padding: '10px 15px' } : {}}>
         <h1 className="app-title">{activeTab === 'share' ? '폐가구 공유' : '폐가구처리 매니저'}</h1>
         {activeTab !== 'share' && (
           <div className="app-subtitle">
@@ -1209,7 +1209,7 @@ function App() {
         )}
       </header>
 
-      <main className="app-content">
+      <main className="app-content" style={activeTab === 'share' && shareViewMode === 'map' && !isShareWriting ? { padding: 0, paddingBottom: '80px' } : {}}>
         
         {/* === SEARCH TAB === */}
         {activeTab === 'search' && (
