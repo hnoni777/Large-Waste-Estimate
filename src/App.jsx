@@ -1433,7 +1433,7 @@ function App() {
                           checked={statusFilter === 'uncompleted'} 
                           onChange={(e) => setStatusFilter(e.target.checked ? 'uncompleted' : 'all')} 
                         />
-                        미수거만 보기
+                        진행중만 보기
                       </label>
                     </div>
 
@@ -1589,7 +1589,7 @@ function App() {
                       <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: '#555' }}>
                         <input type="checkbox" checked={shareMapFilterUncompleted} onChange={(e) => setShareMapFilterUncompleted(e.target.checked)} style={{ transform: 'scale(0.85)', margin: 0 }} />
                         <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ff3333' }}></span>
-                        미수거 보기
+                        진행중 보기
                       </label>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: '#555' }}>
                         <input type="checkbox" checked={shareMapFilterCompleted} onChange={(e) => setShareMapFilterCompleted(e.target.checked)} style={{ transform: 'scale(0.85)', margin: 0 }} />
