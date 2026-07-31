@@ -1569,13 +1569,13 @@ function App() {
                   <div style={{ position: 'sticky', top: '-1rem', zIndex: 100, background: '#f5f7fa', margin: '-1rem -1rem 15px -1rem', padding: '1rem 1rem 0 1rem', borderBottom: '1px solid #ddd' }}>
                     <div className="share-view-toggle" style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
                       <button 
-                        style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ddd', background: '#fff', color: '#333' }}
+                        style={{ flex: 1, padding: '6px 10px', borderRadius: '8px', border: '1px solid #ddd', background: '#fff', color: '#333', fontSize: '0.9rem' }}
                         onClick={() => setShareViewMode('map')}
                       >
                         🗺️ 지도 보기
                       </button>
                       <button 
-                        style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ddd', background: '#0066cc', color: '#fff', fontWeight: 'bold' }}
+                        style={{ flex: 1, padding: '6px 10px', borderRadius: '8px', border: '1px solid #ddd', background: '#0066cc', color: '#fff', fontWeight: 'bold', fontSize: '0.9rem' }}
                         onClick={() => setShareViewMode('list')}
                       >
                         📝 목록 보기
@@ -1613,13 +1613,13 @@ function App() {
                     <div className="share-map-container" style={{ position: 'relative', width: '100%', flex: 1, borderRadius: '0', overflow: 'hidden', borderTop: '1px solid #ddd' }}>
                       <div style={{ position: 'absolute', top: '15px', left: '15px', right: '15px', zIndex: 10, display: 'flex', gap: '10px', boxShadow: '0 4px 10px rgba(0,0,0,0.2)', borderRadius: '8px' }}>
                         <button 
-                          style={{ flex: 1, padding: '12px', borderRadius: '8px 0 0 8px', border: 'none', background: '#0066cc', color: '#fff', fontWeight: 'bold', fontSize: '1rem' }}
+                          style={{ flex: 1, padding: '8px 12px', borderRadius: '8px 0 0 8px', border: 'none', background: '#0066cc', color: '#fff', fontWeight: 'bold', fontSize: '0.9rem' }}
                           onClick={() => setShareViewMode('map')}
                         >
                           🗺️ 지도 보기
                         </button>
                         <button 
-                          style={{ flex: 1, padding: '12px', borderRadius: '0 8px 8px 0', border: 'none', background: '#fff', color: '#333', fontSize: '1rem' }}
+                          style={{ flex: 1, padding: '8px 12px', borderRadius: '0 8px 8px 0', border: 'none', background: '#fff', color: '#333', fontSize: '0.9rem' }}
                           onClick={() => setShareViewMode('list')}
                         >
                           📝 목록 보기
