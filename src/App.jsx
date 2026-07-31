@@ -252,6 +252,7 @@ function App() {
   const [shareViewMode, setShareViewMode] = useState('map'); // 'map' | 'list'
   const [shareLocation, setShareLocation] = useState(null); // { lat, lng }
   const [selectedMapPin, setSelectedMapPin] = useState(null); // clicked pin for popup
+  const [map, setMap] = useState(null); // kakao map instance
   const [shareDate, setShareDate] = useState(() => {
     const dt = new Date();
     return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
@@ -368,6 +369,22 @@ function App() {
       alert('갱신 중 오류가 발생했습니다.');
     }
   };
+
+  useEffect(() => {
+    if (map && shareViewMode === 'map' && filteredSharedWastes.length > 0) {
+      const bounds = new window.kakao.maps.LatLngBounds();
+      let hasMarker = false;
+      filteredSharedWastes.forEach(waste => {
+        if (waste.location && waste.location.lat && waste.location.lng) {
+          bounds.extend(new window.kakao.maps.LatLng(waste.location.lat, waste.location.lng));
+          hasMarker = true;
+        }
+      });
+      if (hasMarker) {
+        map.setBounds(bounds);
+      }
+    }
+  }, [map, shareViewMode, filteredSharedWastes]);
 
   // 뒤로가기(History) 라우팅 처리
   useEffect(() => {
@@ -1518,10 +1535,10 @@ function App() {
 
         {/* === SHARE TAB (폐가구공유) === */}
         {activeTab === 'share' && (
-          <div className="tab-share">
+          <div className="tab-share" style={shareViewMode === 'map' ? { height: '100%', overflow: 'hidden', paddingBottom: 0 } : {}}>
             {!isShareWriting ? (
-              <div className="share-list-container">
-                <div className="share-view-toggle" style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+              <div className="share-list-container" style={shareViewMode === 'map' ? { height: '100%', display: 'flex', flexDirection: 'column' } : {}}>
+                <div className="share-view-toggle" style={{ display: 'flex', gap: '10px', marginBottom: shareViewMode === 'map' ? '5px' : '15px' }}>
                   <button 
                     style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ddd', background: shareViewMode === 'map' ? '#0066cc' : '#fff', color: shareViewMode === 'map' ? '#fff' : '#333', fontWeight: shareViewMode === 'map' ? 'bold' : 'normal' }}
                     onClick={() => setShareViewMode('map')}
@@ -1536,7 +1553,7 @@ function App() {
                   </button>
                 </div>
 
-                <div className="team-tabs" style={{ display: 'flex', borderBottom: '1px solid #ddd', marginBottom: '15px' }}>
+                <div className="team-tabs" style={{ display: 'flex', borderBottom: '1px solid #ddd', marginBottom: shareViewMode === 'map' ? '5px' : '15px' }}>
                   <button 
                     style={{ flex: 1, padding: '12px', background: shareTeamTab === '0258' ? '#0066cc' : '#f8f9fa', color: shareTeamTab === '0258' ? '#fff' : '#555', border: 'none', fontWeight: shareTeamTab === '0258' ? 'bold' : 'normal', cursor: 'pointer', transition: 'all 0.2s' }}
                     onClick={() => setShareTeamTab('0258')}
@@ -1568,38 +1585,62 @@ function App() {
                 </div>
 
                 {shareViewMode === 'map' ? (
-                  <div className="share-map-container" style={{ position: 'relative', width: '100%', height: 'calc(100vh - 280px)', borderRadius: '12px', overflow: 'hidden', border: '1px solid #ddd' }}>
+                  <div className="share-map-container" style={{ position: 'relative', width: '100%', flex: 1, minHeight: 'calc(100vh - 230px)', borderRadius: '12px', overflow: 'hidden', border: '1px solid #ddd' }}>
                     <Map
-                      center={{ lat: 37.478, lng: 126.884 }} // 광명 중심 좌표 (임시)
+                      center={{ lat: 37.478, lng: 126.884 }}
                       style={{ width: '100%', height: '100%' }}
                       level={5}
+                      onCreate={setMap}
                     >
                       {filteredSharedWastes.map(waste => {
                         if (!waste.location) return null;
                         return (
-                          <MapMarker
+                          <CustomOverlayMap
                             key={`marker_${waste.id}`}
                             position={{ lat: waste.location.lat, lng: waste.location.lng }}
-                            onClick={() => setSelectedMapPin(waste)}
-                          />
+                            zIndex={selectedMapPin?.id === waste.id ? 10 : 1}
+                          >
+                            <div 
+                              onClick={() => setSelectedMapPin(waste)}
+                              style={{
+                                width: '16px',
+                                height: '16px',
+                                borderRadius: '50%',
+                                backgroundColor: waste.completed ? '#0066cc' : '#ff3333',
+                                border: '2px solid white',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
+                                cursor: 'pointer',
+                                transform: 'translate(-50%, -50%)'
+                              }}
+                            />
+                          </CustomOverlayMap>
                         );
                       })}
                       {selectedMapPin && (
-                        <CustomOverlayMap position={{ lat: selectedMapPin.location.lat, lng: selectedMapPin.location.lng }} yAnchor={1.2}>
-                          <div style={{ background: '#fff', padding: '10px', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', width: '220px', fontSize: '0.9rem' }}>
+                        <CustomOverlayMap position={{ lat: selectedMapPin.location.lat, lng: selectedMapPin.location.lng }} yAnchor={1.3} zIndex={20}>
+                          <div style={{ background: '#fff', padding: '12px', borderRadius: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', width: '240px', fontSize: '0.9rem', border: '1px solid #eee' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                              <strong style={{ color: '#0066cc' }}>{selectedMapPin.team}팀</strong>
-                              <button onClick={() => setSelectedMapPin(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '1rem' }}>✕</button>
+                              <strong style={{ color: '#0066cc', fontSize: '1rem' }}>{selectedMapPin.team}팀</strong>
+                              <button onClick={() => setSelectedMapPin(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '1.2rem', padding: '0 5px' }}>✕</button>
                             </div>
                             {selectedMapPin.photos && selectedMapPin.photos.length > 0 && (
-                              <img src={selectedMapPin.photos[0]} alt="미리보기" style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '4px', marginBottom: '8px' }} onClick={() => openFullScreen(selectedMapPin.photos, 0)} />
+                              <img src={selectedMapPin.photos[0]} alt="미리보기" style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '6px', marginBottom: '8px', cursor: 'pointer' }} onClick={() => openFullScreen(selectedMapPin.photos, 0)} />
                             )}
-                            <div style={{ whiteSpace: 'pre-wrap', maxHeight: '60px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div style={{ whiteSpace: 'pre-wrap', maxHeight: '60px', overflowY: 'auto', marginBottom: '8px' }}>
                               {selectedMapPin.memo}
                             </div>
-                            <div style={{ marginTop: '8px', fontSize: '0.8rem', color: '#888', textAlign: 'right' }}>
+                            <div style={{ fontSize: '0.8rem', color: '#888', textAlign: 'right', marginBottom: '10px' }}>
                               {new Date(selectedMapPin.createdAt).toLocaleDateString()}
                             </div>
+                            <button 
+                              onClick={() => {
+                                toggleShareComplete(selectedMapPin.id, selectedMapPin.completed);
+                                setSelectedMapPin({...selectedMapPin, completed: !selectedMapPin.completed});
+                              }}
+                              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: 'none', background: selectedMapPin.completed ? '#f1f3f5' : '#4caf50', color: selectedMapPin.completed ? '#495057' : '#fff', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.2s' }}
+                            >
+                              {selectedMapPin.completed ? '수거 취소 (다시 대기)' : '✅ 수거 완료 처리'}
+                            </button>
                           </div>
                         </CustomOverlayMap>
                       )}
