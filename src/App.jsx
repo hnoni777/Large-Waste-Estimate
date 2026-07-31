@@ -1659,17 +1659,17 @@ function App() {
                               />
                               {waste.memo && (
                                 <div style={{
-                                  marginTop: '0px',
+                                  marginTop: '2px',
                                   background: 'rgba(255, 255, 255, 0.95)',
-                                  padding: '1px 4px',
-                                  borderRadius: '4px',
-                                  fontSize: '0.6rem',
+                                  padding: '3px 6px',
+                                  borderRadius: '6px',
+                                  fontSize: '0.75rem',
                                   fontWeight: 'bold',
                                   color: '#333',
                                   whiteSpace: 'nowrap',
                                   boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
                                   border: `1px solid ${waste.completed ? '#0066cc' : '#ff3333'}`,
-                                  maxWidth: '80px',
+                                  maxWidth: '120px',
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
                                   pointerEvents: 'none'
