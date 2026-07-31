@@ -1584,34 +1584,35 @@ function App() {
                 )}
 
                 {shareViewMode === 'map' ? (
-                  <div className="share-map-container" style={{ position: 'relative', width: '100%', flex: 1, borderRadius: '0', overflow: 'hidden', borderTop: '1px solid #ddd' }}>
-                    <div style={{ position: 'absolute', top: '15px', left: '15px', right: '15px', zIndex: 10, display: 'flex', gap: '10px', boxShadow: '0 4px 10px rgba(0,0,0,0.2)', borderRadius: '8px' }}>
-                      <button 
-                        style={{ flex: 1, padding: '12px', borderRadius: '8px 0 0 8px', border: 'none', background: '#0066cc', color: '#fff', fontWeight: 'bold', fontSize: '1rem' }}
-                        onClick={() => setShareViewMode('map')}
-                      >
-                        🗺️ 지도 보기
-                      </button>
-                      <button 
-                        style={{ flex: 1, padding: '12px', borderRadius: '0 8px 8px 0', border: 'none', background: '#fff', color: '#333', fontSize: '1rem' }}
-                        onClick={() => setShareViewMode('list')}
-                      >
-                        📝 목록 보기
-                      </button>
-                    </div>
-
-                    <div style={{ position: 'absolute', top: '70px', left: '15px', right: '15px', zIndex: 10, display: 'flex', gap: '15px', background: 'rgba(255,255,255,0.95)', padding: '10px 15px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem', fontWeight: 'bold', cursor: 'pointer', flex: 1, justifyContent: 'center' }}>
-                        <input type="checkbox" checked={shareMapFilterUncompleted} onChange={(e) => setShareMapFilterUncompleted(e.target.checked)} />
-                        <span style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ff3333' }}></span>
+                  <>
+                    <div style={{ display: 'flex', gap: '15px', justifyContent: 'flex-end', padding: '8px 15px', fontSize: '0.85rem', background: '#f8f9fa' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: '#555' }}>
+                        <input type="checkbox" checked={shareMapFilterUncompleted} onChange={(e) => setShareMapFilterUncompleted(e.target.checked)} style={{ transform: 'scale(0.85)', margin: 0 }} />
+                        <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ff3333' }}></span>
                         미수거만
                       </label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem', fontWeight: 'bold', cursor: 'pointer', flex: 1, justifyContent: 'center' }}>
-                        <input type="checkbox" checked={shareMapFilterCompleted} onChange={(e) => setShareMapFilterCompleted(e.target.checked)} />
-                        <span style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#0066cc' }}></span>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: '#555' }}>
+                        <input type="checkbox" checked={shareMapFilterCompleted} onChange={(e) => setShareMapFilterCompleted(e.target.checked)} style={{ transform: 'scale(0.85)', margin: 0 }} />
+                        <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#0066cc' }}></span>
                         수거완료만
                       </label>
                     </div>
+
+                    <div className="share-map-container" style={{ position: 'relative', width: '100%', flex: 1, borderRadius: '0', overflow: 'hidden', borderTop: '1px solid #ddd' }}>
+                      <div style={{ position: 'absolute', top: '15px', left: '15px', right: '15px', zIndex: 10, display: 'flex', gap: '10px', boxShadow: '0 4px 10px rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                        <button 
+                          style={{ flex: 1, padding: '12px', borderRadius: '8px 0 0 8px', border: 'none', background: '#0066cc', color: '#fff', fontWeight: 'bold', fontSize: '1rem' }}
+                          onClick={() => setShareViewMode('map')}
+                        >
+                          🗺️ 지도 보기
+                        </button>
+                        <button 
+                          style={{ flex: 1, padding: '12px', borderRadius: '0 8px 8px 0', border: 'none', background: '#fff', color: '#333', fontSize: '1rem' }}
+                          onClick={() => setShareViewMode('list')}
+                        >
+                          📝 목록 보기
+                        </button>
+                      </div>
 
                     <Map
                       center={{ lat: 37.478, lng: 126.884 }}
@@ -1652,6 +1653,7 @@ function App() {
                       📸
                     </button>
                   </div>
+                  </>
                 ) : (
                   <>
                     <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
