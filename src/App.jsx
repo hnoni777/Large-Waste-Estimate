@@ -801,7 +801,7 @@ function App() {
       } else {
         // 하안1동, 하안2동, 철산4동 중심점 부근
         map.setCenter(new window.kakao.maps.LatLng(37.4680, 126.8720));
-        map.setLevel(5); // 적절하게 줌인 (숫자가 작을수록 확대)
+        map.setLevel(6); // 5보다 조금 더 줌아웃 (하안동 전체가 다 보이도록)
       }
     }
   }, [map, shareViewMode, filteredSharedWastes]);
