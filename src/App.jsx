@@ -1550,7 +1550,7 @@ function App() {
                             className={`complete-btn ${isCompleted ? 'is-completed' : ''}`}
                             onClick={() => toggleComplete(group.id, isCompleted)}
                           >
-                            {isCompleted ? '✅ 수거완료 취소하기' : '⬜ 수거완료하기'}
+                            {isCompleted ? '✅ 수거 완료됨 (클릭 시 취소)' : '⬜ 수거 완료 처리'}
                           </button>
                         </div>
                       </div>
