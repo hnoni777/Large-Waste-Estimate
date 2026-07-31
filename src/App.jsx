@@ -250,6 +250,8 @@ function App() {
   const [shareTeamTab, setShareTeamTab] = useState('0258'); // '0258' | '4069' | 'office'
   const [shareFormTeam, setShareFormTeam] = useState('0258');
   const [shareViewMode, setShareViewMode] = useState('map'); // 'map' | 'list'
+  const [shareMapFilterUncompleted, setShareMapFilterUncompleted] = useState(false);
+  const [shareMapFilterCompleted, setShareMapFilterCompleted] = useState(false);
   const [shareLocation, setShareLocation] = useState(null); // { lat, lng }
   const [selectedMapPin, setSelectedMapPin] = useState(null); // clicked pin for popup
   const [map, setMap] = useState(null); // kakao map instance
@@ -775,7 +777,7 @@ function App() {
 
   const filteredSharedWastes = useMemo(() => {
     const teamFiltered = sharedWastes.filter(waste => (waste.team || '0258') === shareTeamTab);
-    return teamFiltered.filter(waste => {
+    const dateFiltered = teamFiltered.filter(waste => {
       let dateStr = waste.date;
       if (!dateStr && waste.createdAt) {
         const d = new Date(waste.createdAt);
@@ -783,7 +785,14 @@ function App() {
       }
       return shareSelectedDates.includes(dateStr);
     });
-  }, [sharedWastes, shareSelectedDates, shareTeamTab]);
+    
+    if (shareViewMode === 'map') {
+      if (shareMapFilterUncompleted && !shareMapFilterCompleted) return dateFiltered.filter(w => !w.completed);
+      if (!shareMapFilterUncompleted && shareMapFilterCompleted) return dateFiltered.filter(w => w.completed);
+    }
+    
+    return dateFiltered;
+  }, [sharedWastes, shareSelectedDates, shareTeamTab, shareViewMode, shareMapFilterUncompleted, shareMapFilterCompleted]);
 
   useEffect(() => {
     if (map && shareViewMode === 'map') {
@@ -1590,6 +1599,20 @@ function App() {
                         📝 목록 보기
                       </button>
                     </div>
+
+                    <div style={{ position: 'absolute', top: '70px', left: '15px', right: '15px', zIndex: 10, display: 'flex', gap: '15px', background: 'rgba(255,255,255,0.95)', padding: '10px 15px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem', fontWeight: 'bold', cursor: 'pointer', flex: 1, justifyContent: 'center' }}>
+                        <input type="checkbox" checked={shareMapFilterUncompleted} onChange={(e) => setShareMapFilterUncompleted(e.target.checked)} />
+                        <span style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ff3333' }}></span>
+                        미수거만
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem', fontWeight: 'bold', cursor: 'pointer', flex: 1, justifyContent: 'center' }}>
+                        <input type="checkbox" checked={shareMapFilterCompleted} onChange={(e) => setShareMapFilterCompleted(e.target.checked)} />
+                        <span style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#0066cc' }}></span>
+                        수거완료만
+                      </label>
+                    </div>
+
                     <Map
                       center={{ lat: 37.478, lng: 126.884 }}
                       style={{ width: '100%', height: '100%' }}
