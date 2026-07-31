@@ -786,7 +786,7 @@ function App() {
   }, [sharedWastes, shareSelectedDates, shareTeamTab]);
 
   useEffect(() => {
-    if (map && shareViewMode === 'map' && filteredSharedWastes.length > 0) {
+    if (map && shareViewMode === 'map') {
       const bounds = new window.kakao.maps.LatLngBounds();
       let hasMarker = false;
       filteredSharedWastes.forEach(waste => {
@@ -795,7 +795,13 @@ function App() {
           hasMarker = true;
         }
       });
+      
       if (hasMarker) {
+        map.setBounds(bounds);
+      } else {
+        // 하안1동, 하안2동, 철산4동을 아우르는 기본 바운더리
+        bounds.extend(new window.kakao.maps.LatLng(37.4800, 126.8600)); // 북서 (철산4동 부근)
+        bounds.extend(new window.kakao.maps.LatLng(37.4560, 126.8850)); // 남동 (하안동 부근)
         map.setBounds(bounds);
       }
     }
