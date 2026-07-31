@@ -1818,7 +1818,7 @@ function App() {
                   </div>
                 )}
 
-                {shareFormTeam !== 'office' && (
+                {shareFormTeam !== 'office' && sharePhotos.length > 0 && (
                   <div className="share-write-actions" style={{ marginBottom: '15px', display: 'flex', justifyContent: 'flex-start' }}>
                     <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', width: '75px', height: '75px', background: '#ffffff', color: '#333', borderRadius: '16px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', border: '1px solid #eaeaea', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                       <span style={{ fontSize: '1.6rem', lineHeight: '1' }}>📸</span>
@@ -1837,7 +1837,7 @@ function App() {
                   />
                 </div>
 
-                {shareFormTeam !== 'office' && (
+                {shareFormTeam !== 'office' && sharePhotos.length > 0 && (
                   <div className="share-preview-grid">
                   {sharePhotos.map((photoObj, idx) => (
                     <div key={idx} className="share-preview-item">
@@ -1853,10 +1853,7 @@ function App() {
                       {!photoObj.isUploading && <button className="share-preview-remove" onClick={() => removeSharePhoto(idx)}>✕</button>}
                     </div>
                   ))}
-                  {sharePhotos.length === 0 && shareFormTeam !== 'office' && (
-                    <div className="empty-preview">추가된 사진이 없습니다.</div>
-                  )}
-                </div>
+                  </div>
                 )}
 
                 <div className="share-write-footer">
