@@ -592,6 +592,10 @@ function App() {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
     
+    if (!isShareWriting) {
+      openShareWrite();
+    }
+    
     e.target.value = ''; // Reset input
     
     for (const file of files) {
@@ -1654,20 +1658,21 @@ function App() {
                       })}
                     </Map>
                     
-                    <button 
-                      onClick={openShareWrite} 
-                      style={{ position: 'absolute', bottom: '20px', right: '20px', zIndex: 10, width: '60px', height: '60px', borderRadius: '30px', background: '#0066cc', color: '#fff', fontSize: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', border: 'none', cursor: 'pointer' }}
+                    <label 
+                      style={{ position: 'absolute', bottom: '20px', right: '20px', zIndex: 10, width: '60px', height: '60px', borderRadius: '30px', background: '#0066cc', color: '#fff', fontSize: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', border: 'none', cursor: 'pointer', margin: 0 }}
                     >
                       📸
-                    </button>
+                      <input type="file" accept="image/*" capture="environment" onChange={handleSharePhotoUpload} style={{ display: 'none' }} />
+                    </label>
                   </div>
                   </>
                 ) : (
                   <>
                     <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                      <button className="share-write-btn" onClick={openShareWrite} style={{ flex: 1 }}>
-                        ✍️ 새 공유글 작성하기
-                      </button>
+                      <label className="share-write-btn" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0, cursor: 'pointer' }}>
+                        📸 새 사진 촬영하기
+                        <input type="file" accept="image/*" capture="environment" onChange={handleSharePhotoUpload} style={{ display: 'none' }} />
+                      </label>
                       <button 
                         onClick={handleRefreshShare} 
                         style={{ padding: '0 15px', background: '#fff', border: '1px solid #ddd', borderRadius: '8px', cursor: 'pointer', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -1782,42 +1787,7 @@ function App() {
                   </div>
                 )}
 
-                {shareFormTeam !== 'office' && (
-                  <div className="share-write-actions">
-                    <div className="upload-wrapper" style={{width: '100%', boxSizing: 'border-box', display: 'flex', gap: '0.5rem'}}>
-                      <input 
-                        id="share-photo-capture"
-                        type="file" 
-                        accept="image/*"
-                        capture="environment"
-                        onChange={handleSharePhotoUpload}
-                        style={{ display: 'none' }} 
-                      />
-                      <label htmlFor="share-photo-capture" className="share-action-btn primary" style={{flex: 1}}>
-                        📷 사진촬영
-                      </label>
-
-                      <input 
-                        id="share-photo-upload"
-                        type="file" 
-                        accept="image/*"
-                        multiple
-                        onChange={handleSharePhotoUpload}
-                        style={{ display: 'none' }} 
-                      />
-                      <label htmlFor="share-photo-upload" className="share-action-btn secondary" style={{flex: 1}}>
-                        📁 사진불러오기
-                      </label>
-                    </div>
-                    
-                    {/* Location button hidden per user request */}
-                    {false && (
-                      <button className="share-action-btn secondary" onClick={handleGetLocation}>
-                        📍 내 위치 지도 보기 (스샷용)
-                      </button>
-                    )}
-                  </div>
-                )}
+                {/* Photo capture buttons removed from write view per user request */}
 
                 <div className="share-memo-wrapper">
                   <textarea
