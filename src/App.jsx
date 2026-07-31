@@ -799,10 +799,9 @@ function App() {
       if (hasMarker) {
         map.setBounds(bounds);
       } else {
-        // 하안1동, 하안2동, 철산4동을 아우르는 기본 바운더리
-        bounds.extend(new window.kakao.maps.LatLng(37.4800, 126.8600)); // 북서 (철산4동 부근)
-        bounds.extend(new window.kakao.maps.LatLng(37.4560, 126.8850)); // 남동 (하안동 부근)
-        map.setBounds(bounds);
+        // 하안1동, 하안2동, 철산4동 중심점 부근
+        map.setCenter(new window.kakao.maps.LatLng(37.4680, 126.8720));
+        map.setLevel(5); // 적절하게 줌인 (숫자가 작을수록 확대)
       }
     }
   }, [map, shareViewMode, filteredSharedWastes]);
