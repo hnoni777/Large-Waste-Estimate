@@ -1758,16 +1758,16 @@ function App() {
                 )}
 
                 {/* Global FABs for Share Tab (List & Map views) */}
-                <div style={{ position: 'fixed', bottom: '85px', right: '20px', zIndex: 90, display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                <div style={{ position: 'fixed', bottom: '70px', right: '15px', zIndex: 90, display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <button 
                     onClick={openShareWrite}
-                    style={{ width: '60px', height: '60px', borderRadius: '30px', background: '#4caf50', color: '#fff', fontSize: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', border: 'none', cursor: 'pointer', margin: 0 }}
+                    style={{ width: '50px', height: '50px', borderRadius: '25px', background: '#4caf50', color: '#fff', fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 8px rgba(0,0,0,0.25)', border: 'none', cursor: 'pointer', margin: 0 }}
                     title="메모 작성하기"
                   >
                     📝
                   </button>
                   <label 
-                    style={{ width: '60px', height: '60px', borderRadius: '30px', background: '#0066cc', color: '#fff', fontSize: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', border: 'none', cursor: 'pointer', margin: 0 }}
+                    style={{ width: '50px', height: '50px', borderRadius: '25px', background: '#0066cc', color: '#fff', fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 8px rgba(0,0,0,0.25)', border: 'none', cursor: 'pointer', margin: 0 }}
                     title="사진 촬영하기"
                   >
                     📸
