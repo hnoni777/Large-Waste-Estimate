@@ -1984,7 +1984,7 @@ function App() {
               <button onClick={() => setSelectedMapPin(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '1.5rem', padding: '0 5px', color: '#555' }}>✕</button>
             </div>
             {selectedMapPin.photos && selectedMapPin.photos.length > 0 && (
-              <img src={selectedMapPin.photos[0]} alt="미리보기" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px', marginBottom: '15px', cursor: 'pointer' }} onClick={() => openFullScreen(selectedMapPin.photos, 0)} />
+              <img src={selectedMapPin.photos[0]} alt="미리보기" style={{ width: '100%', height: '200px', objectFit: 'contain', backgroundColor: '#f0f0f0', borderRadius: '8px', marginBottom: '15px', cursor: 'pointer' }} onClick={() => openFullScreen(selectedMapPin.photos, 0)} />
             )}
             <div style={{ whiteSpace: 'pre-wrap', maxHeight: '150px', overflowY: 'auto', marginBottom: '15px', fontSize: '1rem', lineHeight: '1.5' }}>
               {selectedMapPin.memo}
