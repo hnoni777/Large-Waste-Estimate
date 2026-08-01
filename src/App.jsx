@@ -35,9 +35,8 @@ const getAptName = (address) => {
   }
   return null;
 };
-import { db, messaging } from './firebase'
+import { db } from './firebase'
 import { collection, doc, onSnapshot, setDoc, deleteDoc, getDocs } from 'firebase/firestore'
-import { getToken, onMessage } from 'firebase/messaging'
 import './index.css'
 
 function App() {
@@ -46,34 +45,18 @@ function App() {
   const [cart, setCart] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
   
-  // 푸시 알림 설정
+  // 푸시 알림 권한 요청 (로컬 알림용)
   useEffect(() => {
-    const setupPushNotifications = async () => {
+    const setupNotifications = async () => {
       try {
-        if (!messaging) return;
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-          const currentToken = await getToken(messaging);
-          if (currentToken) {
-            await setDoc(doc(db, 'fcm_tokens', currentToken), { token: currentToken, updatedAt: new Date() });
-          }
+        if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+          await Notification.requestPermission();
         }
       } catch (error) {
-        console.error('Push notification setup failed:', error);
+        console.error('Notification setup failed:', error);
       }
     };
-    setupPushNotifications();
-
-    if (messaging) {
-      onMessage(messaging, (payload) => {
-        console.log('Message received in foreground: ', payload);
-        // 포그라운드 수신 시 뱃지 업데이트
-        setUnreadCount(prev => prev + 1);
-        if (navigator.setAppBadge) {
-          navigator.setAppBadge(unreadCount + 1).catch(console.error);
-        }
-      });
-    }
+    setupNotifications();
   }, []);
 
   // 배출현황 관련 상태
@@ -340,6 +323,27 @@ function App() {
       const wastes = [];
       let hasVeryRecentPost = false;
       const recentDates = new Set();
+      
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const data = change.doc.data();
+          // 최초 로딩 시가 아니라, 앱이 켜져있는 동안 방금(10초 이내) 새로 추가된 데이터인 경우 알림 발생
+          if (data.createdAt && Date.now() - data.createdAt < 10 * 1000) {
+            // 본인이 작성한 글일 수도 있으므로 (옵션)
+            if (Notification.permission === 'granted') {
+              new Notification('새로운 폐가구 공유', {
+                body: data.memo ? (data.memo.length > 20 ? data.memo.substring(0, 20) + "..." : data.memo) : "새로운 폐가구가 등록되었습니다.",
+                icon: '/waste_app_icon_192.png'
+              });
+              setUnreadCount(prev => {
+                const next = prev + 1;
+                if (navigator.setAppBadge) navigator.setAppBadge(next).catch(console.error);
+                return next;
+              });
+            }
+          }
+        }
+      });
       
       snapshot.forEach(doc => {
         const data = doc.data();
