@@ -603,15 +603,14 @@ function App() {
     if (!file) return;
 
     const uploadKey = `${pickupId}_${type}`;
-    const localUrl = URL.createObjectURL(file);
+    const compressedFile = await compressImage(file, 600);
+    const localUrl = URL.createObjectURL(compressedFile);
     
-    // 즉각적인 피드백을 위한 낙관적 UI 적용
+    // 즉각적인 피드백을 위한 낙관적 UI 적용 (압축된 이미지로 렌더링 속도 향상)
     setOptimisticImages(prev => ({ ...prev, [uploadKey]: localUrl }));
     setUploadingImages(prev => ({ ...prev, [uploadKey]: true }));
 
     try {
-      const compressedFile = await compressImage(file, 600);
-
       const formData = new FormData();
       formData.append('image', compressedFile);
       
@@ -666,16 +665,17 @@ function App() {
     e.target.value = ''; // Reset input
     
     for (const file of files) {
-      const localUrl = URL.createObjectURL(file);
+      // 업로드 전 압축을 먼저 수행하여 미리보기 렌더링 속도를 획기적으로 높임
+      const compressedFile = await compressImage(file, 600);
+      const localUrl = URL.createObjectURL(compressedFile);
       const tempId = Date.now() + Math.random();
       
-      // 즉시 UI 반영 (Optimistic UI)
+      // 즉시 UI 반영 (Optimistic UI) - 용량이 작아진 압축 파일로 미리보기를 띄움
       setSharePhotos(prev => [...prev, { id: tempId, url: localUrl, isUploading: true }]);
       
       // 백그라운드 비동기 업로드 (await 없이 실행)
       (async () => {
         try {
-          const compressedFile = await compressImage(file, 600);
           const formData = new FormData();
           formData.append('image', compressedFile);
           
