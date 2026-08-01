@@ -40,7 +40,10 @@ import { collection, doc, onSnapshot, setDoc, deleteDoc, getDocs } from 'firebas
 import './index.css'
 
 function App() {
-  const [activeTab, setActiveTab] = useState('search') // 'search', 'cart', 'status'
+  const [activeTab, setActiveTab] = useState(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('tab') || 'share';
+  }); // 'search', 'cart', 'status', 'share'
   const [searchTerm, setSearchTerm] = useState('')
   const [cart, setCart] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -54,7 +57,7 @@ function App() {
       return next;
     });
   };
-  // 푸시 알림 권한 요청 (로컬 알림용)
+  // 앱 활성화(포커스) 및 푸시 알림 설정
   useEffect(() => {
     const setupNotifications = async () => {
       try {
@@ -66,6 +69,34 @@ function App() {
       }
     };
     setupNotifications();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        if (navigator.clearAppBadge) {
+          navigator.clearAppBadge().catch(console.error);
+        }
+        setUnreadCount(0);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // 초기 로딩 시에도 뱃지 지우기
+    handleVisibilityChange();
+
+    const handleMessage = (event) => {
+      if (event.data && event.data.type === 'NAVIGATE_TO_SHARE') {
+        setActiveTab('share');
+      }
+    };
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleMessage);
+    }
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', handleMessage);
+      }
+    };
   }, []);
 
   // 배출현황 관련 상태
