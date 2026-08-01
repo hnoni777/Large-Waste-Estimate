@@ -53,7 +53,7 @@ const myClientId = getClientId();
 function App() {
   const [activeTab, setActiveTab] = useState(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('tab') || 'share';
+    return urlParams.get('tab') || 'search';
   }); // 'search', 'cart', 'status', 'share'
   const [searchTerm, setSearchTerm] = useState('')
   const [cart, setCart] = useState([])
