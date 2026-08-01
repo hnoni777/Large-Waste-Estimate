@@ -380,30 +380,32 @@ function App() {
           const data = change.doc.data();
           // 방금(10초 이내) 추가된 데이터인지 확인. 본인이 방금 등록한 글일 수도 있음.
           if (data.createdAt && Date.now() - data.createdAt < 10 * 1000) {
-            // 본인이 쓴 글이면 알림 무시
             if (data.authorId !== myClientId) {
-              if (Notification.permission === 'granted') {
-                const title = '새로운 폐가구 공유';
-                const options = {
-                  body: data.memo ? (data.memo.length > 20 ? data.memo.substring(0, 20) + "..." : data.memo) : "새로운 폐가구가 등록되었습니다.",
-                  icon: '/waste_app_icon_192.png'
-                };
-                
-                if ('serviceWorker' in navigator) {
-                  navigator.serviceWorker.ready.then(registration => {
-                    registration.showNotification(title, options);
-                  }).catch(() => {
-                    new Notification(title, options); // fallback
-                  });
-                } else {
-                  new Notification(title, options);
-                }
+              // 앱이 백그라운드(화면이 꺼지거나 다른 앱 사용 중)일 때만 알림과 뱃지 표시
+              if (document.visibilityState === 'hidden') {
+                if (Notification.permission === 'granted') {
+                  const title = '새로운 폐가구 공유';
+                  const options = {
+                    body: data.memo ? (data.memo.length > 20 ? data.memo.substring(0, 20) + "..." : data.memo) : "새로운 폐가구가 등록되었습니다.",
+                    icon: '/waste_app_icon_192.png'
+                  };
+                  
+                  if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.ready.then(registration => {
+                      registration.showNotification(title, options);
+                    }).catch(() => {
+                      new Notification(title, options); // fallback
+                    });
+                  } else {
+                    new Notification(title, options);
+                  }
 
-                setUnreadCount(prev => {
-                  const next = prev + 1;
-                  if (navigator.setAppBadge) navigator.setAppBadge(next).catch(console.error);
-                  return next;
-                });
+                  setUnreadCount(prev => {
+                    const next = prev + 1;
+                    if (navigator.setAppBadge) navigator.setAppBadge(next).catch(console.error);
+                    return next;
+                  });
+                }
               }
             }
           }
