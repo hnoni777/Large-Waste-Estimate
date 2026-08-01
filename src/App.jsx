@@ -1756,7 +1756,7 @@ function App() {
                                   setSelectedMapPin(waste);
                                   markAsViewed(waste.id);
                                 }}
-                                className={!viewedWastes.includes(waste.id) ? 'blink-marker' : ''}
+                                className={(!viewedWastes.includes(waste.id) && waste.createdAt && (Date.now() - waste.createdAt < 6 * 60 * 60 * 1000)) ? 'blink-marker' : ''}
                                 style={{
                                   width: '16px',
                                   height: '16px',
