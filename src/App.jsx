@@ -81,17 +81,27 @@ function App() {
     };
     setupNotifications();
 
+    const clearBadge = () => {
+      if (navigator.clearAppBadge) {
+        navigator.clearAppBadge().catch(console.error);
+      }
+      if (navigator.setAppBadge) {
+        navigator.setAppBadge(0).catch(console.error);
+      }
+      setUnreadCount(0);
+    };
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        if (navigator.clearAppBadge) {
-          navigator.clearAppBadge().catch(console.error);
-        }
-        setUnreadCount(0);
+        clearBadge();
       }
     };
+    
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', clearBadge);
+    
     // 초기 로딩 시에도 뱃지 지우기
-    handleVisibilityChange();
+    clearBadge();
 
     const handleMessage = (event) => {
       if (event.data && event.data.type === 'NAVIGATE_TO_SHARE') {
