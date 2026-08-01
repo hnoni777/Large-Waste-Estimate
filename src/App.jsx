@@ -44,7 +44,16 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('')
   const [cart, setCart] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
+  const [viewedWastes, setViewedWastes] = useState(() => JSON.parse(localStorage.getItem('viewedWastes') || '[]'))
   
+  const markAsViewed = (id) => {
+    setViewedWastes(prev => {
+      if (prev.includes(id)) return prev;
+      const next = [...prev, id];
+      localStorage.setItem('viewedWastes', JSON.stringify(next));
+      return next;
+    });
+  };
   // 푸시 알림 권한 요청 (로컬 알림용)
   useEffect(() => {
     const setupNotifications = async () => {
@@ -501,9 +510,12 @@ function App() {
     if (isShareWriting) window.history.back();
   };
 
-  const openFullScreen = (images, index) => {
+  const openFullScreen = (images, index, wasteId = null) => {
     window.history.pushState({ type: 'modal', modal: 'fullscreen' }, '');
     setFullScreenData({ images, currentIndex: index });
+    if (wasteId) {
+      markAsViewed(wasteId);
+    }
   };
 
   const closeFullScreen = () => {
@@ -760,6 +772,7 @@ function App() {
         };
         if (finalLocation) updateData.location = finalLocation;
         await setDoc(doc(db, 'shared_wastes', editingShareId), updateData, { merge: true });
+        markAsViewed(editingShareId);
       } else {
         const newDocRef = doc(collection(db, 'shared_wastes'));
         const newData = {
@@ -772,6 +785,7 @@ function App() {
         };
         if (finalLocation) newData.location = finalLocation;
         await setDoc(newDocRef, newData);
+        markAsViewed(newDocRef.id);
       }
       setSharePhotos([]);
       setShareMemo('');
@@ -1694,7 +1708,11 @@ function App() {
                           >
                             <div style={{ position: 'absolute', transform: 'translate(-50%, -50%)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                               <div 
-                                onClick={() => setSelectedMapPin(waste)}
+                                onClick={() => {
+                                  setSelectedMapPin(waste);
+                                  markAsViewed(waste.id);
+                                }}
+                                className={!viewedWastes.includes(waste.id) ? 'blink-marker' : ''}
                                 style={{
                                   width: '16px',
                                   height: '16px',
@@ -1788,7 +1806,7 @@ function App() {
                               alt="폐가구" 
                               loading="lazy"
                               decoding="async"
-                              onClick={() => openFullScreen(waste.photos, idx)}
+                              onClick={() => openFullScreen(waste.photos, idx, waste.id)}
                             />
                             <button 
                               className="share-preview-remove" 
@@ -2060,7 +2078,7 @@ function App() {
                       borderRadius: '8px', 
                       cursor: 'pointer' 
                     }} 
-                    onClick={() => openFullScreen(selectedMapPin.photos, idx)} 
+                    onClick={() => openFullScreen(selectedMapPin.photos, idx, selectedMapPin.id)} 
                   />
                 ))}
               </div>
