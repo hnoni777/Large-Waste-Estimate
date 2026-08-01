@@ -370,16 +370,16 @@ function App() {
   }, [shareAvailableDates, shareTeamTab]);
 
   useEffect(() => {
+    let isInitialFetch = true;
     const unsubscribeShare = onSnapshot(collection(db, 'shared_wastes'), (snapshot) => {
       const wastes = [];
       let hasVeryRecentPost = false;
       const recentDates = new Set();
       
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === 'added') {
-          const data = change.doc.data();
-          // 방금(10초 이내) 추가된 데이터인지 확인. 본인이 방금 등록한 글일 수도 있음.
-          if (data.createdAt && Date.now() - data.createdAt < 10 * 1000) {
+      if (!isInitialFetch) {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'added') {
+            const data = change.doc.data();
             if (data.authorId !== myClientId) {
               // 앱이 백그라운드(화면이 꺼지거나 다른 앱 사용 중)일 때만 뱃지(알림 숫자/점) 표시
               if (document.visibilityState === 'hidden') {
@@ -391,8 +391,9 @@ function App() {
               }
             }
           }
-        }
-      });
+        });
+      }
+      isInitialFetch = false;
       
       snapshot.forEach(doc => {
         const data = doc.data();
