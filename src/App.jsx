@@ -426,6 +426,20 @@ function App() {
     return () => unsubscribeShare();
   }, []);
 
+  useEffect(() => {
+    const handleFocus = () => {
+      if (document.visibilityState === 'visible' && activeTab === 'share') {
+        handleRefreshShare();
+      }
+    };
+    document.addEventListener('visibilitychange', handleFocus);
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', handleFocus);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [activeTab]);
+
   const handleRefreshShare = async () => {
     try {
       const snapshot = await getDocs(collection(db, 'shared_wastes'));
