@@ -57,7 +57,7 @@ function App() {
   }); // 'search', 'cart', 'status', 'share'
   const [searchTerm, setSearchTerm] = useState('')
   const [cart, setCart] = useState([])
-  const [unreadCount, setUnreadCount] = useState(0)
+
   const [viewedWastes, setViewedWastes] = useState(() => JSON.parse(localStorage.getItem('viewedWastes') || '[]'))
   
   const markAsViewed = (id) => {
@@ -68,31 +68,9 @@ function App() {
       return next;
     });
   };
-  // 앱 활성화(포커스) 시 뱃지 초기화
+  
+  // 앱 활성화(포커스) 처리
   useEffect(() => {
-
-    const clearBadge = () => {
-      if (navigator.clearAppBadge) {
-        navigator.clearAppBadge().catch(console.error);
-      }
-      if (navigator.setAppBadge) {
-        navigator.setAppBadge(0).catch(console.error);
-      }
-      setUnreadCount(0);
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        clearBadge();
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', clearBadge);
-    
-    // 초기 로딩 시에도 뱃지 지우기
-    clearBadge();
-
     const handleMessage = (event) => {
       if (event.data && event.data.type === 'NAVIGATE_TO_SHARE') {
         setActiveTab('share');
@@ -103,7 +81,6 @@ function App() {
     }
 
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.removeEventListener('message', handleMessage);
       }
@@ -370,30 +347,10 @@ function App() {
   }, [shareAvailableDates, shareTeamTab]);
 
   useEffect(() => {
-    let isInitialFetch = true;
     const unsubscribeShare = onSnapshot(collection(db, 'shared_wastes'), (snapshot) => {
       const wastes = [];
       let hasVeryRecentPost = false;
       const recentDates = new Set();
-      
-      if (!isInitialFetch) {
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === 'added') {
-            const data = change.doc.data();
-            if (data.authorId !== myClientId) {
-              // 앱이 백그라운드(화면이 꺼지거나 다른 앱 사용 중)일 때만 뱃지(알림 숫자/점) 표시
-              if (document.visibilityState === 'hidden') {
-                setUnreadCount(prev => {
-                  const next = prev + 1;
-                  if (navigator.setAppBadge) navigator.setAppBadge(next).catch(console.error);
-                  return next;
-                });
-              }
-            }
-          }
-        });
-      }
-      isInitialFetch = false;
       
       snapshot.forEach(doc => {
         const data = doc.data();
