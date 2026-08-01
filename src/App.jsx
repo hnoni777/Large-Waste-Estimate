@@ -86,9 +86,6 @@ function App() {
         if (navigator.clearAppBadge) {
           navigator.clearAppBadge().catch(console.error);
         }
-        if (navigator.setAppBadge) {
-          navigator.setAppBadge(0).catch(console.error);
-        }
         setUnreadCount(0);
       }
     };
