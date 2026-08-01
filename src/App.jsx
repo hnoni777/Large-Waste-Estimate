@@ -35,15 +35,47 @@ const getAptName = (address) => {
   }
   return null;
 };
-import { db } from './firebase'
+import { db, messaging } from './firebase'
 import { collection, doc, onSnapshot, setDoc, deleteDoc, getDocs } from 'firebase/firestore'
+import { getToken, onMessage } from 'firebase/messaging'
 import './index.css'
 
 function App() {
   const [activeTab, setActiveTab] = useState('search') // 'search', 'cart', 'status'
   const [searchTerm, setSearchTerm] = useState('')
   const [cart, setCart] = useState([])
+  const [unreadCount, setUnreadCount] = useState(0)
   
+  // 푸시 알림 설정
+  useEffect(() => {
+    const setupPushNotifications = async () => {
+      try {
+        if (!messaging) return;
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          const currentToken = await getToken(messaging);
+          if (currentToken) {
+            await setDoc(doc(db, 'fcm_tokens', currentToken), { token: currentToken, updatedAt: new Date() });
+          }
+        }
+      } catch (error) {
+        console.error('Push notification setup failed:', error);
+      }
+    };
+    setupPushNotifications();
+
+    if (messaging) {
+      onMessage(messaging, (payload) => {
+        console.log('Message received in foreground: ', payload);
+        // 포그라운드 수신 시 뱃지 업데이트
+        setUnreadCount(prev => prev + 1);
+        if (navigator.setAppBadge) {
+          navigator.setAppBadge(unreadCount + 1).catch(console.error);
+        }
+      });
+    }
+  }, []);
+
   // 배출현황 관련 상태
   const [allParsedData, setAllParsedData] = useState([])
   const [availableDates, setAvailableDates] = useState([])
