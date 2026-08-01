@@ -429,7 +429,7 @@ function App() {
   useEffect(() => {
     const handleFocus = () => {
       if (document.visibilityState === 'visible' && activeTab === 'share') {
-        handleRefreshShare();
+        handleRefreshShare(true);
       }
     };
     document.addEventListener('visibilitychange', handleFocus);
@@ -440,7 +440,7 @@ function App() {
     };
   }, [activeTab]);
 
-  const handleRefreshShare = async () => {
+  const handleRefreshShare = async (silent = false) => {
     try {
       const snapshot = await getDocs(collection(db, 'shared_wastes'));
       const wastes = [];
@@ -466,10 +466,14 @@ function App() {
         return prev;
       });
 
-      alert('목록이 최신 상태로 갱신되었습니다.');
+      if (!silent) {
+        alert('목록이 최신 상태로 갱신되었습니다.');
+      }
     } catch (error) {
       console.error('Error refreshing shared wastes:', error);
-      alert('갱신 중 오류가 발생했습니다.');
+      if (!silent) {
+        alert('갱신 중 오류가 발생했습니다.');
+      }
     }
   };
 
