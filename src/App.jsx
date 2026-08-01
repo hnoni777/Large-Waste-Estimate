@@ -39,6 +39,17 @@ import { db } from './firebase'
 import { collection, doc, onSnapshot, setDoc, deleteDoc, getDocs } from 'firebase/firestore'
 import './index.css'
 
+const getClientId = () => {
+  let clientId = localStorage.getItem('waste_client_id');
+  if (!clientId) {
+    clientId = 'client_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+    localStorage.setItem('waste_client_id', clientId);
+  }
+  return clientId;
+};
+
+const myClientId = getClientId();
+
 function App() {
   const [activeTab, setActiveTab] = useState(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -368,31 +379,32 @@ function App() {
         if (change.type === 'added') {
           const data = change.doc.data();
           // 방금(10초 이내) 추가된 데이터인지 확인. 본인이 방금 등록한 글일 수도 있음.
-          // 사용자가 방금 등록한 글이라서 location 펜딩 중인 상태(캐시)일 때는 건너뛸 수도 있지만
-          // 일단 알림은 띄웁니다.
           if (data.createdAt && Date.now() - data.createdAt < 10 * 1000) {
-            if (Notification.permission === 'granted') {
-              const title = '새로운 폐가구 공유';
-              const options = {
-                body: data.memo ? (data.memo.length > 20 ? data.memo.substring(0, 20) + "..." : data.memo) : "새로운 폐가구가 등록되었습니다.",
-                icon: '/waste_app_icon_192.png'
-              };
-              
-              if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.ready.then(registration => {
-                  registration.showNotification(title, options);
-                }).catch(() => {
-                  new Notification(title, options); // fallback
-                });
-              } else {
-                new Notification(title, options);
-              }
+            // 본인이 쓴 글이면 알림 무시
+            if (data.authorId !== myClientId) {
+              if (Notification.permission === 'granted') {
+                const title = '새로운 폐가구 공유';
+                const options = {
+                  body: data.memo ? (data.memo.length > 20 ? data.memo.substring(0, 20) + "..." : data.memo) : "새로운 폐가구가 등록되었습니다.",
+                  icon: '/waste_app_icon_192.png'
+                };
+                
+                if ('serviceWorker' in navigator) {
+                  navigator.serviceWorker.ready.then(registration => {
+                    registration.showNotification(title, options);
+                  }).catch(() => {
+                    new Notification(title, options); // fallback
+                  });
+                } else {
+                  new Notification(title, options);
+                }
 
-              setUnreadCount(prev => {
-                const next = prev + 1;
-                if (navigator.setAppBadge) navigator.setAppBadge(next).catch(console.error);
-                return next;
-              });
+                setUnreadCount(prev => {
+                  const next = prev + 1;
+                  if (navigator.setAppBadge) navigator.setAppBadge(next).catch(console.error);
+                  return next;
+                });
+              }
             }
           }
         }
@@ -812,7 +824,8 @@ function App() {
           date: shareDate,
           memo: finalMemo,
           completed: false,
-          team: shareFormTeam
+          team: shareFormTeam,
+          authorId: myClientId
         };
         if (finalLocation) newData.location = finalLocation;
         await setDoc(newDocRef, newData);
