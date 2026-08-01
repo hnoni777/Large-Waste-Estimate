@@ -68,18 +68,8 @@ function App() {
       return next;
     });
   };
-  // 앱 활성화(포커스) 및 푸시 알림 설정
+  // 앱 활성화(포커스) 시 뱃지 초기화
   useEffect(() => {
-    const setupNotifications = async () => {
-      try {
-        if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-          await Notification.requestPermission();
-        }
-      } catch (error) {
-        console.error('Notification setup failed:', error);
-      }
-    };
-    setupNotifications();
 
     const clearBadge = () => {
       if (navigator.clearAppBadge) {
