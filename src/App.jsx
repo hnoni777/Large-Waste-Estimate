@@ -685,7 +685,7 @@ function App() {
           });
           const data = await res.json();
           if (data.success) {
-            setSharePhotos(prev => prev.map(p => p.id === tempId ? { ...p, url: data.data.url, isUploading: false } : p));
+            setSharePhotos(prev => prev.map(p => p.id === tempId ? { ...p, url: data.data.url, thumbUrl: data.data.thumb?.url || data.data.url, isUploading: false } : p));
           } else {
             setSharePhotos(prev => prev.filter(p => p.id !== tempId));
           }
@@ -742,7 +742,7 @@ function App() {
       return;
     }
 
-    const finalUrls = sharePhotos.map(p => p.url);
+    const finalUrls = sharePhotos.map(p => ({ url: p.url, thumbUrl: p.thumbUrl || p.url }));
     
     let finalMemo = shareMemo.trim();
     if (shareFormTeam === 'office') {
@@ -1803,14 +1803,18 @@ function App() {
                       )}
 
                       <div className="share-photo-grid">
-                        {waste.photos && waste.photos.map((url, idx) => (
+                        {waste.photos && waste.photos.map((photo, idx) => {
+                          const isObj = typeof photo === 'object';
+                          const url = isObj ? photo.url : photo;
+                          const thumbUrl = isObj ? (photo.thumbUrl || url) : url;
+                          return (
                           <div key={idx} className="share-preview-item">
                             <img 
-                              src={url} 
+                              src={thumbUrl} 
                               alt="폐가구" 
                               loading="lazy"
                               decoding="async"
-                              onClick={() => openFullScreen(waste.photos, idx, waste.id)}
+                              onClick={() => openFullScreen(waste.photos.map(p => typeof p === 'object' ? p.url : p), idx, waste.id)}
                             />
                             <button 
                               className="share-preview-remove" 
@@ -2069,11 +2073,17 @@ function App() {
                 gap: '8px', 
                 marginBottom: '15px' 
               }}>
-                {selectedMapPin.photos.map((photo, idx) => (
+                {selectedMapPin.photos.map((photo, idx) => {
+                  const isObj = typeof photo === 'object';
+                  const url = isObj ? photo.url : photo;
+                  const thumbUrl = isObj ? (photo.thumbUrl || url) : url;
+                  return (
                   <img 
                     key={idx}
-                    src={photo} 
+                    src={thumbUrl} 
                     alt="미리보기" 
+                    loading="lazy"
+                    decoding="async"
                     style={{ 
                       width: '100%', 
                       height: selectedMapPin.photos.length === 1 ? '200px' : '140px', 
@@ -2082,9 +2092,10 @@ function App() {
                       borderRadius: '8px', 
                       cursor: 'pointer' 
                     }} 
-                    onClick={() => openFullScreen(selectedMapPin.photos, idx, selectedMapPin.id)} 
+                    onClick={() => openFullScreen(selectedMapPin.photos.map(p => typeof p === 'object' ? p.url : p), idx, selectedMapPin.id)} 
                   />
-                ))}
+                  );
+                })}
               </div>
             )}
             <div style={{ whiteSpace: 'pre-wrap', maxHeight: '150px', overflowY: 'auto', marginBottom: '15px', fontSize: '1rem', lineHeight: '1.5' }}>
