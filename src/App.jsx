@@ -541,8 +541,8 @@ function App() {
     });
   };
 
-  // 💡 사진 업로드 속도를 비약적으로 높여주는 하드웨어 가속 압축 함수
-  const compressImage = async (file, maxWidth = 800) => {
+  // 💡 사진 업로드 속도와 고화질의 균형을 맞춘 하드웨어 가속 압축 함수 (1280px, 품질 0.85)
+  const compressImage = async (file, maxWidth = 1280, quality = 0.85) => {
     if (window.createImageBitmap) {
       try {
         const bitmap = await createImageBitmap(file);
@@ -562,7 +562,7 @@ function App() {
           canvas.toBlob((blob) => {
             if (!blob) reject(new Error("Canvas is empty"));
             resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
-          }, 'image/jpeg', 0.7); 
+          }, 'image/jpeg', quality); 
         });
       } catch (e) {
         console.warn("createImageBitmap failed, falling back to FileReader", e);
@@ -590,7 +590,7 @@ function App() {
           canvas.toBlob((blob) => {
             if (!blob) reject(new Error("Canvas is empty"));
             resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
-          }, 'image/jpeg', 0.7); 
+          }, 'image/jpeg', quality); 
         };
         img.onerror = (err) => reject(err);
       };
@@ -603,7 +603,7 @@ function App() {
     if (!file) return;
 
     const uploadKey = `${pickupId}_${type}`;
-    const compressedFile = await compressImage(file, 600);
+    const compressedFile = await compressImage(file, 1280, 0.85);
     const localUrl = URL.createObjectURL(compressedFile);
     
     // 즉각적인 피드백을 위한 낙관적 UI 적용 (압축된 이미지로 렌더링 속도 향상)
@@ -665,8 +665,8 @@ function App() {
     e.target.value = ''; // Reset input
     
     for (const file of files) {
-      // 업로드 전 압축을 먼저 수행하여 미리보기 렌더링 속도를 획기적으로 높임
-      const compressedFile = await compressImage(file, 600);
+      // 업로드 전 1280px/85% 품질로 고화질 압축 수행 (용량 200~300KB로 매우 가볍지만 화질은 쨍쨍함)
+      const compressedFile = await compressImage(file, 1280, 0.85);
       const localUrl = URL.createObjectURL(compressedFile);
       const tempId = Date.now() + Math.random();
       
@@ -685,7 +685,9 @@ function App() {
           });
           const data = await res.json();
           if (data.success) {
-            setSharePhotos(prev => prev.map(p => p.id === tempId ? { ...p, url: data.data.url, thumbUrl: data.data.thumb?.url || data.data.url, isUploading: false } : p));
+            // ImgBB의 160px 흐린 썸네일 대신 선명한 medium 이미지나 display URL을 사용하여 깨끗한 화질 유지
+            const bestPreviewUrl = data.data.medium?.url || data.data.display_url || data.data.url;
+            setSharePhotos(prev => prev.map(p => p.id === tempId ? { ...p, url: data.data.url, thumbUrl: bestPreviewUrl, isUploading: false } : p));
           } else {
             setSharePhotos(prev => prev.filter(p => p.id !== tempId));
           }
