@@ -62,7 +62,7 @@ self.addEventListener('push', function(event) {
   );
 });
 
-// 알림 클릭 시 뱃지 초기화 및 앱 포커스
+// 알림 클릭 시 뱃지 및 알림창 알림 모두 닫기
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   
@@ -72,6 +72,12 @@ self.addEventListener('notificationclick', (event) => {
       if (navigator.clearAppBadge) {
         await navigator.clearAppBadge().catch(() => {});
       }
+
+      // 남아있는 모든 알림창 알림 닫기
+      try {
+        const notis = await self.registration.getNotifications();
+        notis.forEach(n => n.close());
+      } catch (e) {}
 
       const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
       for (const client of clientList) {
@@ -87,12 +93,20 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// 앱 내부에서 뱃지 리셋 요청 메시지를 보낼 때
+// 앱 내부에서 뱃지 리셋 요청 메시지를 보낼 때 (앱 아이콘으로 바로 실행했을 때도 알림 및 뱃지 즉시 닫기)
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'CLEAR_BADGE') {
-    setBadgeCount(0);
-    if (navigator.clearAppBadge) {
-      navigator.clearAppBadge().catch(() => {});
-    }
+    event.waitUntil(
+      (async () => {
+        await setBadgeCount(0);
+        if (navigator.clearAppBadge) {
+          navigator.clearAppBadge().catch(() => {});
+        }
+        try {
+          const notis = await self.registration.getNotifications();
+          notis.forEach(n => n.close());
+        } catch (e) {}
+      })()
+    );
   }
 });

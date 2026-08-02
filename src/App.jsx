@@ -50,6 +50,7 @@ const sendPushNotification = async (title, message) => {
       headings: { en: title, ko: title },
       contents: { en: message, ko: message },
       url: 'https://hnoni777.github.io/Large-Waste-Estimate/?tab=share',
+      web_push_topic: 'waste_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
       ios_badgeType: 'Increase',
       ios_badgeCount: 1,
       chrome_web_badge: 'https://hnoni777.github.io/Large-Waste-Estimate/waste_app_icon_192.png',
@@ -310,17 +311,47 @@ function App() {
 
     // 앱 실행 시 앱 아이콘 뱃지 초기화 및 서비스워커 동기화
     clearAllBadges();
+
+    // 사용자가 앱 아이콘을 눌러 백그라운드에서 다시 들어왔을 때도 즉시 알림창/뱃지 리셋
+    const handleAppFocus = () => {
+      clearAllBadges();
+    };
+
+    window.addEventListener('focus', handleAppFocus);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        clearAllBadges();
+      }
+    });
+
+    return () => {
+      window.removeEventListener('focus', handleAppFocus);
+    };
   }, []);
 
-  const clearAllBadges = () => {
+  const clearAllBadges = async () => {
     try {
+      // 1. 앱 아이콘 뱃지 숫자 즉시 제거
       if (navigator.clearAppBadge) {
-        navigator.clearAppBadge().catch(() => {});
+        await navigator.clearAppBadge().catch(() => {});
       }
+
+      // 2. 스마트폰 상단 알림창에 남아있는 모든 알림 닫기 (이게 닫혀야 폰 런처가 뱃지를 0으로 지움)
+      if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (const reg of regs) {
+          const notis = await reg.getNotifications();
+          notis.forEach(n => n.close());
+        }
+      }
+
+      // 3. 서비스 워커에 뱃지 카운터 0 초기화 전달
       if (navigator.serviceWorker && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_BADGE' });
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Clear badge error:', e);
+    }
   };
 
   // 파이어베이스 실시간 수거 상태 및 사진
