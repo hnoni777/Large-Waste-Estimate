@@ -301,11 +301,20 @@ function App() {
       }
     });
 
-    // 앱 실행 시 앱 아이콘 뱃지 초기화
-    if (navigator.clearAppBadge) {
-      navigator.clearAppBadge().catch(() => {});
-    }
+    // 앱 실행 시 앱 아이콘 뱃지 초기화 및 서비스워커 동기화
+    clearAllBadges();
   }, []);
+
+  const clearAllBadges = () => {
+    try {
+      if (navigator.clearAppBadge) {
+        navigator.clearAppBadge().catch(() => {});
+      }
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_BADGE' });
+      }
+    } catch (e) {}
+  };
 
   // 파이어베이스 실시간 수거 상태 및 사진
   const [pickupStatuses, setPickupStatuses] = useState({})
@@ -531,9 +540,7 @@ function App() {
 
   const handleTabChange = (tab) => {
     if (activeTab === tab) return;
-    if (navigator.clearAppBadge) {
-      navigator.clearAppBadge().catch(() => {});
-    }
+    clearAllBadges();
     window.history.pushState({ type: 'tab', tab: tab }, '');
     setActiveTab(tab);
   };
