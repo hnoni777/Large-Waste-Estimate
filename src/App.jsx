@@ -870,8 +870,7 @@ function App() {
         markAsViewed(newDocRef.id);
 
         // 🔔 원시그널 전체 사용자에게 푸시 알림 발송!
-        const teamLabel = shareFormTeam === 'office' ? '사무실' : `${shareFormTeam}호차`;
-        const notiTitle = `📢 [${teamLabel}] 새 폐가구 공유`;
+        const notiTitle = '📢 새 폐가구 공유';
         const notiMsg = finalMemo ? (finalMemo.length > 50 ? finalMemo.slice(0, 50) + '...' : finalMemo) : '새로운 폐가구 정보가 등록되었습니다.';
         sendPushNotification(notiTitle, notiMsg);
       }
