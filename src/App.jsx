@@ -49,7 +49,14 @@ const sendPushNotification = async (title, message) => {
       included_segments: ['Total Subscriptions'],
       headings: { en: title, ko: title },
       contents: { en: message, ko: message },
-      url: 'https://hnoni777.github.io/Large-Waste-Estimate/?tab=share'
+      url: 'https://hnoni777.github.io/Large-Waste-Estimate/?tab=share',
+      ios_badgeType: 'Increase',
+      ios_badgeCount: 1,
+      chrome_web_badge: 'https://hnoni777.github.io/Large-Waste-Estimate/waste_app_icon_192.png',
+      chrome_web_icon: 'https://hnoni777.github.io/Large-Waste-Estimate/waste_app_icon_192.png',
+      data: {
+        timestamp: Date.now()
+      }
     };
 
     await fetch('https://onesignal.com/api/v1/notifications', {
