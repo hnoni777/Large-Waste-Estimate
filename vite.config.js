@@ -31,7 +31,23 @@ export default defineConfig({
         ]
       },
       workbox: {
-        importScripts: ['custom-sw.js']
+        importScripts: ['custom-sw.js'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/(?:i\.)?ibb\.co\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'imgbb-images-cache',
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 24 * 7 // 7일간 보관
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          }
+        ]
       }
     })
   ],

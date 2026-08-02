@@ -899,6 +899,28 @@ function App() {
     }
   }, [map, shareViewMode, filteredSharedWastes]);
 
+  // ⚡ 지도 핀 및 목록에 표시될 사진들을 백그라운드에서 미리 다운로드(Preload)하여 핀 클릭 시 0초 즉시 팝업
+  useEffect(() => {
+    if (!filteredSharedWastes || filteredSharedWastes.length === 0) return;
+    const urlsToPreload = new Set();
+    filteredSharedWastes.forEach(waste => {
+      if (waste.photos && Array.isArray(waste.photos)) {
+        waste.photos.forEach(photo => {
+          if (!photo) return;
+          const url = typeof photo === 'object' ? photo.url : photo;
+          const thumbUrl = typeof photo === 'object' ? (photo.thumbUrl || photo.url) : photo;
+          if (thumbUrl) urlsToPreload.add(thumbUrl);
+          if (url) urlsToPreload.add(url);
+        });
+      }
+    });
+
+    urlsToPreload.forEach(src => {
+      const img = new Image();
+      img.src = src;
+    });
+  }, [filteredSharedWastes]);
+
   const items = useMemo(() => {
     return data.map((d, index) => ({
       id: `${d['품목']}_${d['규격']}_${index}`,
