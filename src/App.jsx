@@ -39,6 +39,32 @@ import { db } from './firebase'
 import { collection, doc, onSnapshot, setDoc, deleteDoc, getDocs } from 'firebase/firestore'
 import './index.css'
 
+const ONESIGNAL_APP_ID = '491139a8-881a-45cc-9a0b-9ee6c49aa1ce';
+const ONESIGNAL_REST_API_KEY = atob('b3NfdjJfYXBwX2plaXR0a2VpZGpjNHpncWx0M3Rtamd2Ynp6NGx3YWJmY3V0ZWpiNHhzeWo1ZmV0b25oaHJ0M2FmajdoY2F0dmE1czd5c2xuc3BreXZieWZ3ejQyanJiNnNkeDJxcmJqM2w0d2RqeHk=');
+
+const sendPushNotification = async (title, message) => {
+  try {
+    const payload = {
+      app_id: ONESIGNAL_APP_ID,
+      included_segments: ['Total Subscriptions'],
+      headings: { en: title, ko: title },
+      contents: { en: message, ko: message },
+      url: 'https://hnoni777.github.io/Large-Waste-Estimate/?tab=share'
+    };
+
+    await fetch('https://onesignal.com/api/v1/notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Authorization': `Key ${ONESIGNAL_REST_API_KEY}`
+      },
+      body: JSON.stringify(payload)
+    });
+  } catch (e) {
+    console.error('OneSignal Push Send Error:', e);
+  }
+};
+
 const getClientId = () => {
   let clientId = localStorage.getItem('waste_client_id');
   if (!clientId) {
@@ -232,6 +258,53 @@ function App() {
     });
 
     return () => unsub();
+  }, []);
+
+  // OneSignal 푸시 알림 초기화 및 권한 요청
+  useEffect(() => {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async function(OneSignal) {
+      try {
+        await OneSignal.init({
+          appId: ONESIGNAL_APP_ID,
+          serviceWorkerParam: { scope: '/Large-Waste-Estimate/' },
+          serviceWorkerPath: '/Large-Waste-Estimate/OneSignalSDKWorker.js',
+          allowLocalhostAsSecureOrigin: true,
+          notifyButton: {
+            enable: false,
+          },
+          slidedown: {
+            prompts: [
+              {
+                type: "push",
+                autoPrompt: true,
+                text: {
+                  actionMessage: "새로운 폐가구 공유 글 알림을 실시간으로 받으시겠습니까?",
+                  acceptButton: "알림 받기",
+                  cancelButton: "나중에"
+                },
+                delay: {
+                  pageViews: 1,
+                  timeDelay: 1
+                }
+              }
+            ]
+          }
+        });
+        
+        // 브라우저 기본 권한 요청도 시도
+        if (OneSignal.Notifications && OneSignal.Notifications.permission !== true) {
+          OneSignal.Notifications.requestPermission();
+        }
+      } catch (err) {
+        console.warn('OneSignal init error:', err);
+      }
+    });
+
+    // 앱 실행 시 앱 아이콘 뱃지 초기화
+    if (navigator.clearAppBadge) {
+      navigator.clearAppBadge().catch(() => {});
+    }
   }, []);
 
   // 파이어베이스 실시간 수거 상태 및 사진
@@ -458,6 +531,9 @@ function App() {
 
   const handleTabChange = (tab) => {
     if (activeTab === tab) return;
+    if (navigator.clearAppBadge) {
+      navigator.clearAppBadge().catch(() => {});
+    }
     window.history.pushState({ type: 'tab', tab: tab }, '');
     setActiveTab(tab);
   };
@@ -792,6 +868,12 @@ function App() {
         if (finalLocation) newData.location = finalLocation;
         await setDoc(newDocRef, newData);
         markAsViewed(newDocRef.id);
+
+        // 🔔 원시그널 전체 사용자에게 푸시 알림 발송!
+        const teamLabel = shareFormTeam === 'office' ? '사무실' : `${shareFormTeam}호차`;
+        const notiTitle = `📢 [${teamLabel}] 새 폐가구 공유`;
+        const notiMsg = finalMemo ? (finalMemo.length > 50 ? finalMemo.slice(0, 50) + '...' : finalMemo) : '새로운 폐가구 정보가 등록되었습니다.';
+        sendPushNotification(notiTitle, notiMsg);
       }
       setSharePhotos([]);
       setShareMemo('');
