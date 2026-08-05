@@ -876,14 +876,14 @@ function App() {
     try {
       let finalLocation = shareLocation;
       
-      // 위치 정보가 아직 없으면 제출 순간에 1초만 짧게 확인 (지연 방지)
+      // 위치 정보가 아직 없으면 제출 순간에 초정밀 GPS(고정밀) 재확인
       if (!finalLocation && navigator.geolocation) {
         try {
           finalLocation = await new Promise((resolve) => {
             navigator.geolocation.getCurrentPosition(
               (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
               (err) => resolve(null),
-              { enableHighAccuracy: false, timeout: 1000, maximumAge: 60000 }
+              { enableHighAccuracy: true, timeout: 3000, maximumAge: 0 }
             );
           });
         } catch (e) {
