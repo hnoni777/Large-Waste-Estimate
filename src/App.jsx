@@ -1894,6 +1894,7 @@ function App() {
                                     position: 'absolute',
                                     bottom: '24px',
                                     left: '50%',
+                                    transform: 'translateX(-50%)',
                                     width: '72px',
                                     height: '72px',
                                     borderRadius: '12px',
