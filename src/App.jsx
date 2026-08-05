@@ -1892,15 +1892,15 @@ function App() {
                                   className="map-pin-photo-bubble"
                                   style={{
                                     position: 'absolute',
-                                    bottom: '22px',
+                                    bottom: '24px',
                                     left: '50%',
-                                    width: '54px',
-                                    height: '54px',
-                                    borderRadius: '10px',
+                                    width: '72px',
+                                    height: '72px',
+                                    borderRadius: '12px',
                                     backgroundColor: '#ffffff',
-                                    padding: '2px',
-                                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                                    border: `2px solid ${waste.completed ? '#0066cc' : '#ff3333'}`,
+                                    padding: '2.5px',
+                                    boxShadow: '0 6px 16px rgba(0, 0, 0, 0.35)',
+                                    border: `2.5px solid ${waste.completed ? '#0066cc' : '#ff3333'}`,
                                     zIndex: 30,
                                     boxSizing: 'border-box'
                                   }}
@@ -1913,21 +1913,21 @@ function App() {
                                       width: '100%',
                                       height: '100%',
                                       objectFit: 'cover',
-                                      borderRadius: '6px',
+                                      borderRadius: '8px',
                                       display: 'block'
                                     }}
                                   />
                                   {waste.photos.length > 1 && (
                                     <span style={{
                                       position: 'absolute',
-                                      top: '4px',
-                                      right: '4px',
+                                      top: '5px',
+                                      right: '5px',
                                       backgroundColor: 'rgba(0, 0, 0, 0.75)',
                                       color: '#fff',
-                                      fontSize: '0.62rem',
+                                      fontSize: '0.68rem',
                                       fontWeight: 'bold',
-                                      padding: '1px 4px',
-                                      borderRadius: '4px',
+                                      padding: '2px 5px',
+                                      borderRadius: '5px',
                                       lineHeight: 1
                                     }}>
                                       +{waste.photos.length - 1}
@@ -1936,14 +1936,14 @@ function App() {
                                   {/* 아래쪽 꼬리표 삼각형 */}
                                   <div style={{
                                     position: 'absolute',
-                                    bottom: '-6px',
+                                    bottom: '-7px',
                                     left: '50%',
                                     transform: 'translateX(-50%)',
                                     width: 0,
                                     height: 0,
-                                    borderLeft: '5px solid transparent',
-                                    borderRight: '5px solid transparent',
-                                    borderTop: `6px solid ${waste.completed ? '#0066cc' : '#ff3333'}`
+                                    borderLeft: '6px solid transparent',
+                                    borderRight: '6px solid transparent',
+                                    borderTop: `7px solid ${waste.completed ? '#0066cc' : '#ff3333'}`
                                   }} />
                                 </div>
                               )}
