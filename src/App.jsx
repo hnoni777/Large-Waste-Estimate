@@ -419,6 +419,7 @@ function App() {
   const [shareLocation, setShareLocation] = useState(null); // { lat, lng }
   const [selectedMapPin, setSelectedMapPin] = useState(null); // clicked pin for popup
   const [map, setMap] = useState(null); // kakao map instance
+  const [currentMapLevel, setCurrentMapLevel] = useState(5); // tracking zoom level for photo preview
   const [shareDate, setShareDate] = useState(() => {
     const dt = new Date();
     return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
@@ -1850,42 +1851,132 @@ function App() {
                       center={{ lat: 37.478, lng: 126.884 }}
                       style={{ width: '100%', height: '100%' }}
                       level={5}
-                      onCreate={setMap}
+                      onCreate={(m) => {
+                        setMap(m);
+                        setCurrentMapLevel(m.getLevel());
+                      }}
+                      onZoomChanged={(m) => {
+                        setCurrentMapLevel(m.getLevel());
+                      }}
                     >
                       {filteredSharedWastes.map(waste => {
                         if (!waste.location) return null;
+                        const hasPhoto = waste.photos && waste.photos.length > 0;
+                        const firstPhoto = hasPhoto ? waste.photos[0] : null;
+                        const firstThumbUrl = firstPhoto ? (typeof firstPhoto === 'object' ? (firstPhoto.thumbUrl || firstPhoto.url) : firstPhoto) : null;
+                        const isSelected = selectedMapPin?.id === waste.id;
+                        const showPhotoPreview = currentMapLevel <= 3 && hasPhoto && firstThumbUrl;
+
                         return (
                           <CustomOverlayMap
                             key={`marker_${waste.id}`}
                             position={{ lat: waste.location.lat, lng: waste.location.lng }}
-                            zIndex={selectedMapPin?.id === waste.id ? 10 : 1}
+                            zIndex={isSelected ? 100 : (showPhotoPreview ? 25 : 1)}
                           >
-                            <div style={{ position: 'absolute', transform: 'translate(-50%, -50%)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <div 
+                              onClick={() => {
+                                setSelectedMapPin(waste);
+                                markAsViewed(waste.id);
+                              }}
+                              style={{ 
+                                position: 'relative', 
+                                width: '16px', 
+                                height: '16px',
+                                transform: 'translate(-50%, -50%)',
+                                cursor: 'pointer' 
+                              }}
+                            >
+                              {/* 📸 지도를 확대했을 때만 핀 머리 위로 뜨는 사진 썸네일 말풍선 */}
+                              {showPhotoPreview && (
+                                <div 
+                                  className="map-pin-photo-bubble"
+                                  style={{
+                                    position: 'absolute',
+                                    bottom: '22px',
+                                    left: '50%',
+                                    width: '54px',
+                                    height: '54px',
+                                    borderRadius: '10px',
+                                    backgroundColor: '#ffffff',
+                                    padding: '2px',
+                                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                                    border: `2px solid ${waste.completed ? '#0066cc' : '#ff3333'}`,
+                                    zIndex: 30,
+                                    boxSizing: 'border-box'
+                                  }}
+                                >
+                                  <img 
+                                    src={firstThumbUrl} 
+                                    alt="사진 미리보기"
+                                    loading="lazy"
+                                    style={{
+                                      width: '100%',
+                                      height: '100%',
+                                      objectFit: 'cover',
+                                      borderRadius: '6px',
+                                      display: 'block'
+                                    }}
+                                  />
+                                  {waste.photos.length > 1 && (
+                                    <span style={{
+                                      position: 'absolute',
+                                      top: '4px',
+                                      right: '4px',
+                                      backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                                      color: '#fff',
+                                      fontSize: '0.62rem',
+                                      fontWeight: 'bold',
+                                      padding: '1px 4px',
+                                      borderRadius: '4px',
+                                      lineHeight: 1
+                                    }}>
+                                      +{waste.photos.length - 1}
+                                    </span>
+                                  )}
+                                  {/* 아래쪽 꼬리표 삼각형 */}
+                                  <div style={{
+                                    position: 'absolute',
+                                    bottom: '-6px',
+                                    left: '50%',
+                                    transform: 'translateX(-50%)',
+                                    width: 0,
+                                    height: 0,
+                                    borderLeft: '5px solid transparent',
+                                    borderRight: '5px solid transparent',
+                                    borderTop: `6px solid ${waste.completed ? '#0066cc' : '#ff3333'}`
+                                  }} />
+                                </div>
+                              )}
+
+                              {/* 핀 포인트 원형 마커 (정확한 GPS 좌표 중심) */}
                               <div 
-                                onClick={() => {
-                                  setSelectedMapPin(waste);
-                                  markAsViewed(waste.id);
-                                }}
                                 className={!viewedWastes.includes(waste.id) ? 'blink-marker' : ''}
                                 style={{
-                                  width: '16px',
-                                  height: '16px',
+                                  width: '100%',
+                                  height: '100%',
                                   borderRadius: '50%',
                                   backgroundColor: waste.completed ? '#0066cc' : '#ff3333',
                                   border: '2px solid white',
                                   boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
-                                  cursor: 'pointer',
+                                  boxSizing: 'border-box',
                                   zIndex: 2,
+                                  transition: 'transform 0.15s ease',
+                                  transform: isSelected ? 'scale(1.3)' : 'scale(1)'
                                 }}
                               />
+
+                              {/* 텍스트 메모 라벨 (핀 아래) */}
                               {waste.memo && (
                                 <div style={{
-                                  marginTop: '2px',
+                                  position: 'absolute',
+                                  top: '18px',
+                                  left: '50%',
+                                  transform: 'translateX(-50%)',
                                   background: 'rgba(255, 255, 255, 0.95)',
-                                  padding: '0px 2px',
+                                  padding: '1px 4px',
                                   borderRadius: '4px',
                                   fontSize: '0.75rem',
-                                  lineHeight: '1.1',
+                                  lineHeight: '1.2',
                                   fontWeight: 'bold',
                                   color: '#333',
                                   whiteSpace: 'nowrap',
@@ -1894,7 +1985,8 @@ function App() {
                                   maxWidth: '120px',
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
-                                  pointerEvents: 'none'
+                                  pointerEvents: 'none',
+                                  zIndex: 10
                                 }}>
                                   {waste.memo}
                                 </div>
