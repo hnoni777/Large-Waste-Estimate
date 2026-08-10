@@ -1420,7 +1420,7 @@ function App() {
   return (
     <>
       <header className="app-header" style={activeTab === 'share' && shareViewMode === 'map' && !isShareWriting ? { padding: '10px 15px' } : {}}>
-        <h1 className="app-title">{activeTab === 'share' ? '폐가구 공유' : '폐가구처리 매니저'}</h1>
+        <h1 className="app-title">{activeTab === 'share' ? '폐기물 공유' : '폐가구처리 매니저'}</h1>
         {activeTab !== 'share' && (
           <div className="app-subtitle">
             {activeTab === 'search' && '🔍 품목검색'}
@@ -2392,7 +2392,7 @@ function App() {
           onClick={() => handleTabChange('share')}
         >
           <span className="nav-icon">🤝</span>
-          <span>폐가구공유</span>
+          <span>폐기물 공유</span>
         </button>
       </nav>
     </>
