@@ -2312,7 +2312,16 @@ function App() {
       {selectedMapPin && shareViewMode === 'map' && (
         <div className="modal-overlay" onClick={() => setSelectedMapPin(null)} style={{ zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="map-pin-modal" onClick={e => e.stopPropagation()} style={{ background: '#fff', padding: '20px', borderRadius: '12px', width: '90%', maxWidth: '350px', boxShadow: '0 10px 25px rgba(0,0,0,0.3)', position: 'relative' }}>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '15px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <button 
+                onClick={() => {
+                  setSelectedMapPin(null);
+                  editSharePost(selectedMapPin);
+                }} 
+                style={{ background: '#f8f9fa', border: '1px solid #ddd', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9rem', color: '#333' }}
+              >
+                ✏️ 수정
+              </button>
               <button onClick={() => setSelectedMapPin(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '1.5rem', padding: '0 5px', color: '#555' }}>✕</button>
             </div>
             {selectedMapPin.photos && selectedMapPin.photos.length > 0 && (
