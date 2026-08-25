@@ -632,6 +632,7 @@ function App() {
     }) : []);
     setShareMemo(waste.memo || '');
     setShareFormTeam(waste.team || '0258');
+    setShareLocation(waste.location || null);
     window.history.pushState({ type: 'modal', modal: 'shareWrite' }, '');
     setIsShareWriting(true);
   };
