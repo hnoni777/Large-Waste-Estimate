@@ -2326,10 +2326,8 @@ function App() {
                 </button>
                 <button 
                   onClick={() => {
-                    if (window.confirm("이 공유 게시물(사진)을 완전히 삭제하시겠습니까?")) {
-                      deleteSharedPost(selectedMapPin.id);
-                      setSelectedMapPin(null);
-                    }
+                    deleteSharedPost(selectedMapPin.id);
+                    setSelectedMapPin(null);
                   }} 
                   style={{ background: '#fff0f0', border: '1px solid #ffcdd2', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9rem', color: '#d32f2f' }}
                 >
