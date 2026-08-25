@@ -1900,9 +1900,9 @@ function App() {
                                     bottom: '24px',
                                     left: '50%',
                                     transform: 'translateX(-50%)',
-                                    width: '72px',
-                                    height: '72px',
-                                    borderRadius: '12px',
+                                    width: '64px',
+                                    height: '64px',
+                                    borderRadius: '10px',
                                     backgroundColor: '#ffffff',
                                     padding: '2.5px',
                                     boxShadow: '0 6px 16px rgba(0, 0, 0, 0.35)',
@@ -1919,21 +1919,21 @@ function App() {
                                       width: '100%',
                                       height: '100%',
                                       objectFit: 'cover',
-                                      borderRadius: '8px',
+                                      borderRadius: '6px',
                                       display: 'block'
                                     }}
                                   />
                                   {waste.photos.length > 1 && (
                                     <span style={{
                                       position: 'absolute',
-                                      top: '5px',
-                                      right: '5px',
+                                      top: '4px',
+                                      right: '4px',
                                       backgroundColor: 'rgba(0, 0, 0, 0.75)',
                                       color: '#fff',
-                                      fontSize: '0.68rem',
+                                      fontSize: '0.62rem',
                                       fontWeight: 'bold',
-                                      padding: '2px 5px',
-                                      borderRadius: '5px',
+                                      padding: '2px 4px',
+                                      borderRadius: '4px',
                                       lineHeight: 1
                                     }}>
                                       +{waste.photos.length - 1}
