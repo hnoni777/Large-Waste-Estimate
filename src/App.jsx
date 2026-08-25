@@ -2314,15 +2314,28 @@ function App() {
         <div className="modal-overlay" onClick={() => setSelectedMapPin(null)} style={{ zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="map-pin-modal" onClick={e => e.stopPropagation()} style={{ background: '#fff', padding: '20px', borderRadius: '12px', width: '90%', maxWidth: '350px', boxShadow: '0 10px 25px rgba(0,0,0,0.3)', position: 'relative' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <button 
-                onClick={() => {
-                  setSelectedMapPin(null);
-                  editSharePost(selectedMapPin);
-                }} 
-                style={{ background: '#f8f9fa', border: '1px solid #ddd', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9rem', color: '#333' }}
-              >
-                ✏️ 수정
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button 
+                  onClick={() => {
+                    setSelectedMapPin(null);
+                    editSharePost(selectedMapPin);
+                  }} 
+                  style={{ background: '#f8f9fa', border: '1px solid #ddd', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9rem', color: '#333' }}
+                >
+                  ✏️ 수정
+                </button>
+                <button 
+                  onClick={() => {
+                    if (window.confirm("이 공유 게시물(사진)을 완전히 삭제하시겠습니까?")) {
+                      deleteSharedPost(selectedMapPin.id);
+                      setSelectedMapPin(null);
+                    }
+                  }} 
+                  style={{ background: '#fff0f0', border: '1px solid #ffcdd2', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9rem', color: '#d32f2f' }}
+                >
+                  🗑️ 삭제
+                </button>
+              </div>
               <button onClick={() => setSelectedMapPin(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '1.5rem', padding: '0 5px', color: '#555' }}>✕</button>
             </div>
             {selectedMapPin.photos && selectedMapPin.photos.length > 0 && (
