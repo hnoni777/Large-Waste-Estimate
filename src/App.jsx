@@ -624,7 +624,12 @@ function App() {
   const editSharePost = (waste) => {
     setIsShareTextOnly(false);
     setEditingShareId(waste.id);
-    setSharePhotos(waste.photos ? waste.photos.map((url, i) => ({ id: `old_${i}`, url, isUploading: false })) : []);
+    setSharePhotos(waste.photos ? waste.photos.map((photo, i) => {
+      if (typeof photo === 'string') {
+        return { id: `old_${i}`, url: photo, thumbUrl: photo, isUploading: false };
+      }
+      return { id: `old_${i}`, url: photo.url, thumbUrl: photo.thumbUrl || photo.url, isUploading: false };
+    }) : []);
     setShareMemo(waste.memo || '');
     setShareFormTeam(waste.team || '0258');
     window.history.pushState({ type: 'modal', modal: 'shareWrite' }, '');
