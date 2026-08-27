@@ -104,12 +104,13 @@ function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose })
   }, [currentIndex]);
 
   const handleZoomIn = () => {
-    setScale((prev) => Math.min(4, Number((prev + 0.5).toFixed(1))));
+    setScale((prev) => Math.min(25, Number((prev < 3 ? prev + 0.5 : prev + 1.0).toFixed(1))));
   };
 
   const handleZoomOut = () => {
     setScale((prev) => {
-      const next = Math.max(1, Number((prev - 0.5).toFixed(1)));
+      const step = prev <= 3 ? 0.5 : 1.0;
+      const next = Math.max(1, Number((prev - step).toFixed(1)));
       if (next === 1) setPosition({ x: 0, y: 0 });
       return next;
     });
@@ -151,7 +152,7 @@ function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose })
         if (scale > 1) {
           handleResetZoom();
         } else {
-          setScale(2.5);
+          setScale(3.0);
           setPosition({ x: 0, y: 0 });
         }
         lastTapRef.current = 0;
@@ -177,7 +178,7 @@ function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose })
         e.touches[0].clientY - e.touches[1].clientY
       );
       const ratio = dist / pinchStartDistRef.current;
-      const newScale = Math.min(4, Math.max(1, Number((pinchStartScaleRef.current * ratio).toFixed(2))));
+      const newScale = Math.min(25, Math.max(1, Number((pinchStartScaleRef.current * ratio).toFixed(2))));
       setScale(newScale);
       if (newScale === 1) {
         setPosition({ x: 0, y: 0 });
@@ -186,12 +187,13 @@ function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose })
       const touch = e.touches[0];
       if (scale > 1) {
         if (e.cancelable) e.preventDefault();
-        const maxOffset = 350 * (scale - 1);
+        const maxOffsetX = (window.innerWidth * (scale - 0.5)) / 2;
+        const maxOffsetY = (window.innerHeight * (scale - 0.5)) / 2;
         const newX = touch.clientX - dragStartRef.current.x;
         const newY = touch.clientY - dragStartRef.current.y;
         setPosition({
-          x: Math.max(-maxOffset, Math.min(maxOffset, newX)),
-          y: Math.max(-maxOffset, Math.min(maxOffset, newY))
+          x: Math.max(-maxOffsetX, Math.min(maxOffsetX, newX)),
+          y: Math.max(-maxOffsetY, Math.min(maxOffsetY, newY))
         });
       } else {
         touchEndRef.current = touch.clientX;
@@ -231,12 +233,13 @@ function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose })
 
   const handleMouseMove = (e) => {
     if (!isDragging || scale <= 1) return;
-    const maxOffset = 400 * (scale - 1);
+    const maxOffsetX = (window.innerWidth * (scale - 0.5)) / 2;
+    const maxOffsetY = (window.innerHeight * (scale - 0.5)) / 2;
     const newX = e.clientX - dragStartRef.current.x;
     const newY = e.clientY - dragStartRef.current.y;
     setPosition({
-      x: Math.max(-maxOffset, Math.min(maxOffset, newX)),
-      y: Math.max(-maxOffset, Math.min(maxOffset, newY))
+      x: Math.max(-maxOffsetX, Math.min(maxOffsetX, newX)),
+      y: Math.max(-maxOffsetY, Math.min(maxOffsetY, newY))
     });
   };
 
@@ -350,7 +353,7 @@ function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose })
           <button 
             className="fullscreen-tool-btn" 
             onClick={handleZoomIn} 
-            disabled={scale >= 4}
+            disabled={scale >= 25}
             title="확대"
           >
             ➕
