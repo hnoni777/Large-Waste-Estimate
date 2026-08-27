@@ -1414,6 +1414,8 @@ body {
   gap: 8px;
   z-index: 10002;
   pointer-events: auto;
+  width: max-content;
+  max-width: 96vw;
 }
 
 .fullscreen-zoom-controls {
@@ -1426,6 +1428,8 @@ body {
   border-radius: 30px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(10px);
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .fullscreen-tool-btn {
@@ -1440,6 +1444,7 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  flex-shrink: 0;
   transition: all 0.15s ease;
 }
 .fullscreen-tool-btn:disabled {
@@ -1458,24 +1463,35 @@ body {
   font-size: 0.95rem;
   font-weight: 700;
   padding: 4px 8px;
-  min-width: 54px;
+  min-width: 58px;
   text-align: center;
   cursor: pointer;
   border-radius: 6px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .fullscreen-zoom-badge:hover {
   background: rgba(255, 255, 255, 0.1);
 }
 
 .fullscreen-reset-btn {
-  background: rgba(59, 130, 246, 0.85);
+  background: rgba(59, 130, 246, 0.9);
   color: white;
   border: none;
-  border-radius: 16px;
-  padding: 5px 12px;
-  font-size: 0.8rem;
+  border-radius: 18px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
   font-weight: bold;
   cursor: pointer;
+  white-space: nowrap;
+  word-break: keep-all;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 82px;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
   transition: all 0.15s ease;
 }
 .fullscreen-reset-btn:active {
@@ -1484,11 +1500,12 @@ body {
 }
 
 .fullscreen-hint {
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.8);
   font-size: 0.75rem;
   font-weight: 500;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
   pointer-events: none;
+  white-space: nowrap;
 }
 
 
