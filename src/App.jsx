@@ -94,6 +94,8 @@ function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose })
   const touchEndRef = useRef(null);
   const pinchStartDistRef = useRef(null);
   const pinchStartScaleRef = useRef(1);
+  const pinchStartPositionRef = useRef({ x: 0, y: 0 });
+  const pinchStartCenterRef = useRef({ x: 0, y: 0 });
   const dragStartRef = useRef({ x: 0, y: 0 });
   const lastTapRef = useRef(0);
 
@@ -104,15 +106,29 @@ function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose })
   }, [currentIndex]);
 
   const handleZoomIn = () => {
-    setScale((prev) => Math.min(25, Number((prev < 3 ? prev + 0.5 : prev + 1.0).toFixed(1))));
+    setScale((prevScale) => {
+      const step = prevScale < 3 ? 0.5 : 1.0;
+      return Math.min(25, Number((prevScale + step).toFixed(1)));
+    });
   };
 
   const handleZoomOut = () => {
-    setScale((prev) => {
-      const step = prev <= 3 ? 0.5 : 1.0;
-      const next = Math.max(1, Number((prev - step).toFixed(1)));
-      if (next === 1) setPosition({ x: 0, y: 0 });
-      return next;
+    setScale((prevScale) => {
+      const step = prevScale <= 3 ? 0.5 : 1.0;
+      const nextScale = Math.max(1, Number((prevScale - step).toFixed(1)));
+      if (nextScale <= 1) {
+        setPosition({ x: 0, y: 0 });
+      } else {
+        // 축소 시 이전 중심 비율을 유지하며 화면 중심 쪽으로 부드럽게 당겨옴
+        const factor = (nextScale - 1) / (prevScale - 1);
+        const maxOffsetX = Math.max(0, (window.innerWidth * (nextScale - 1)) / 2);
+        const maxOffsetY = Math.max(0, (window.innerHeight * (nextScale - 1)) / 2);
+        setPosition((prevPos) => ({
+          x: Math.max(-maxOffsetX, Math.min(maxOffsetX, prevPos.x * factor)),
+          y: Math.max(-maxOffsetY, Math.min(maxOffsetY, prevPos.y * factor))
+        }));
+      }
+      return nextScale;
     });
   };
 
@@ -136,12 +152,19 @@ function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose })
   const handleTouchStart = (e) => {
     if (e.touches.length === 2) {
       // 2개 손가락 터치: 핀치 줌 시작
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
       const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
+        touch1.clientX - touch2.clientX,
+        touch1.clientY - touch2.clientY
       );
       pinchStartDistRef.current = dist;
       pinchStartScaleRef.current = scale;
+      pinchStartPositionRef.current = { ...position };
+      pinchStartCenterRef.current = {
+        x: (touch1.clientX + touch2.clientX) / 2,
+        y: (touch1.clientY + touch2.clientY) / 2
+      };
       setIsDragging(false);
     } else if (e.touches.length === 1) {
       const touch = e.touches[0];
@@ -173,22 +196,49 @@ function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose })
   const handleTouchMove = (e) => {
     if (e.touches.length === 2 && pinchStartDistRef.current) {
       if (e.cancelable) e.preventDefault();
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
       const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
+        touch1.clientX - touch2.clientX,
+        touch1.clientY - touch2.clientY
       );
       const ratio = dist / pinchStartDistRef.current;
       const newScale = Math.min(25, Math.max(1, Number((pinchStartScaleRef.current * ratio).toFixed(2))));
       setScale(newScale);
-      if (newScale === 1) {
+
+      if (newScale <= 1) {
         setPosition({ x: 0, y: 0 });
+      } else {
+        const startScale = pinchStartScaleRef.current;
+        const scaleFactor = startScale > 0 ? newScale / startScale : 1;
+        
+        // 두 손가락의 현재 중심 위치
+        const currentCenterX = (touch1.clientX + touch2.clientX) / 2;
+        const currentCenterY = (touch1.clientY + touch2.clientY) / 2;
+        
+        // 화면 중심점 대비 핀치 초점 오프셋
+        const focalX = pinchStartCenterRef.current.x - window.innerWidth / 2;
+        const focalY = pinchStartCenterRef.current.y - window.innerHeight / 2;
+        
+        // 손가락 초점을 기준으로 중심을 맞추며 확대/축소
+        const rawX = pinchStartPositionRef.current.x * scaleFactor + (1 - scaleFactor) * focalX + (currentCenterX - pinchStartCenterRef.current.x);
+        const rawY = pinchStartPositionRef.current.y * scaleFactor + (1 - scaleFactor) * focalY + (currentCenterY - pinchStartCenterRef.current.y);
+        
+        // 축소 시 빈 여백이 생기지 않도록 배율에 맞춰 경계 내로 부드럽게 복귀
+        const maxOffsetX = Math.max(0, (window.innerWidth * (newScale - 1)) / 2);
+        const maxOffsetY = Math.max(0, (window.innerHeight * (newScale - 1)) / 2);
+        
+        setPosition({
+          x: Math.max(-maxOffsetX, Math.min(maxOffsetX, rawX)),
+          y: Math.max(-maxOffsetY, Math.min(maxOffsetY, rawY))
+        });
       }
     } else if (e.touches.length === 1 && isDragging) {
       const touch = e.touches[0];
       if (scale > 1) {
         if (e.cancelable) e.preventDefault();
-        const maxOffsetX = (window.innerWidth * (scale - 0.5)) / 2;
-        const maxOffsetY = (window.innerHeight * (scale - 0.5)) / 2;
+        const maxOffsetX = Math.max(0, (window.innerWidth * (scale - 1)) / 2);
+        const maxOffsetY = Math.max(0, (window.innerHeight * (scale - 1)) / 2);
         const newX = touch.clientX - dragStartRef.current.x;
         const newY = touch.clientY - dragStartRef.current.y;
         setPosition({
@@ -205,7 +255,7 @@ function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose })
     setIsDragging(false);
     pinchStartDistRef.current = null;
 
-    if (scale <= 1) {
+    if (scale <= 1.05) {
       setScale(1);
       setPosition({ x: 0, y: 0 });
 
@@ -217,6 +267,14 @@ function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose })
           handlePrev();
         }
       }
+    } else {
+      // 손을 뗐을 때 여백 방지 경계 내로 안전 복귀
+      const maxOffsetX = Math.max(0, (window.innerWidth * (scale - 1)) / 2);
+      const maxOffsetY = Math.max(0, (window.innerHeight * (scale - 1)) / 2);
+      setPosition((prev) => ({
+        x: Math.max(-maxOffsetX, Math.min(maxOffsetX, prev.x)),
+        y: Math.max(-maxOffsetY, Math.min(maxOffsetY, prev.y))
+      }));
     }
     touchStartRef.current = null;
     touchEndRef.current = null;
@@ -233,8 +291,8 @@ function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose })
 
   const handleMouseMove = (e) => {
     if (!isDragging || scale <= 1) return;
-    const maxOffsetX = (window.innerWidth * (scale - 0.5)) / 2;
-    const maxOffsetY = (window.innerHeight * (scale - 0.5)) / 2;
+    const maxOffsetX = Math.max(0, (window.innerWidth * (scale - 1)) / 2);
+    const maxOffsetY = Math.max(0, (window.innerHeight * (scale - 1)) / 2);
     const newX = e.clientX - dragStartRef.current.x;
     const newY = e.clientY - dragStartRef.current.y;
     setPosition({
@@ -248,11 +306,23 @@ function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose })
   };
 
   const handleWheel = (e) => {
-    if (e.deltaY < 0) {
-      handleZoomIn();
-    } else {
-      handleZoomOut();
-    }
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.3 : -0.3;
+    setScale((prevScale) => {
+      const nextScale = Math.min(25, Math.max(1, Number((prevScale + delta).toFixed(2))));
+      if (nextScale <= 1) {
+        setPosition({ x: 0, y: 0 });
+      } else {
+        const factor = prevScale > 1 ? (nextScale - 1) / (prevScale - 1) : 1;
+        const maxOffsetX = Math.max(0, (window.innerWidth * (nextScale - 1)) / 2);
+        const maxOffsetY = Math.max(0, (window.innerHeight * (nextScale - 1)) / 2);
+        setPosition((prevPos) => ({
+          x: Math.max(-maxOffsetX, Math.min(maxOffsetX, prevPos.x * factor)),
+          y: Math.max(-maxOffsetY, Math.min(maxOffsetY, prevPos.y * factor))
+        }));
+      }
+      return nextScale;
+    });
   };
 
   const currentImage = images[currentIndex];
