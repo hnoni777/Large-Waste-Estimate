@@ -325,6 +325,36 @@ function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose })
     });
   };
 
+  const handleSaveToDevice = async (e) => {
+    if (e) e.stopPropagation();
+    try {
+      const res = await fetch(currentImage);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+      link.download = `폐기물사진_${dateStr}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        if (link.parentNode) link.parentNode.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      }, 1000);
+    } catch (err) {
+      const link = document.createElement('a');
+      link.href = currentImage;
+      link.target = '_blank';
+      link.download = '폐기물사진.jpg';
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        if (link.parentNode) link.parentNode.removeChild(link);
+      }, 1000);
+    }
+  };
+
   const currentImage = images[currentIndex];
 
   return (
@@ -334,7 +364,7 @@ function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose })
         if (scale === 1) onClose();
       }}
     >
-      {/* 상단 닫기 및 인덱스 표시 바 */}
+      {/* 상단 닫기, 저장 및 인덱스 표시 바 */}
       <div className="fullscreen-top-bar" onClick={(e) => e.stopPropagation()}>
         {images.length > 1 ? (
           <div className="fullscreen-counter-pill">
@@ -342,13 +372,23 @@ function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose })
           </div>
         ) : <div />}
         
-        <button 
-          className="fullscreen-close-btn" 
-          onClick={onClose}
-          aria-label="닫기"
-        >
-          ✕ 닫기
-        </button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button 
+            className="fullscreen-save-btn" 
+            onClick={handleSaveToDevice}
+            title="기기 갤러리에 저장"
+            aria-label="저장"
+          >
+            💾 저장
+          </button>
+          <button 
+            className="fullscreen-close-btn" 
+            onClick={onClose}
+            aria-label="닫기"
+          >
+            ✕ 닫기
+          </button>
+        </div>
       </div>
 
       {/* 사진 뷰포트 영역 (제스처/확대/이동) */}
@@ -1062,9 +1102,37 @@ function App() {
     });
   };
 
+  // 💡 촬영/선택한 사진을 스마트폰 갤러리(다운로드 폴더)로 자동 저장
+  const autoSaveToGallery = (file, prefix = '폐기물') => {
+    try {
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+      const filename = `${prefix}_${dateStr}.jpg`;
+
+      const blobUrl = URL.createObjectURL(file);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        if (link.parentNode) {
+          link.parentNode.removeChild(link);
+        }
+        URL.revokeObjectURL(blobUrl);
+      }, 1000);
+    } catch (err) {
+      console.warn("Auto save to gallery error:", err);
+    }
+  };
+
   const handleImageUpload = async (e, pickupId, type) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    // 갤러리에 원본 사진 자동 저장
+    autoSaveToGallery(file, `폐기물_${type === 'before' ? '수거전' : '수거후'}_${pickupId}`);
 
     const uploadKey = `${pickupId}_${type}`;
     const compressedFile = await compressImage(file, 960, 0.75);
@@ -1129,6 +1197,9 @@ function App() {
     e.target.value = ''; // Reset input
     
     for (const file of files) {
+      // 갤러리에 원본 사진 자동 저장
+      autoSaveToGallery(file, '폐기물_공유');
+
       // 960px/75% 품질로 초고속 압축 수행 (용량 50~80KB로 대폭 경량화하여 0.5초 초고속 업로드)
       const compressedFile = await compressImage(file, 960, 0.75);
       const localUrl = URL.createObjectURL(compressedFile);
