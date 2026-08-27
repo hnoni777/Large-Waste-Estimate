@@ -84,6 +84,295 @@ const getClientId = () => {
 
 const myClientId = getClientId();
 
+function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose }) {
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+
+  const containerRef = useRef(null);
+  const touchStartRef = useRef(null);
+  const touchEndRef = useRef(null);
+  const pinchStartDistRef = useRef(null);
+  const pinchStartScaleRef = useRef(1);
+  const dragStartRef = useRef({ x: 0, y: 0 });
+  const lastTapRef = useRef(0);
+
+  // 이미지 전환 시 줌 및 위치 초기화
+  useEffect(() => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  }, [currentIndex]);
+
+  const handleZoomIn = () => {
+    setScale((prev) => Math.min(4, Number((prev + 0.5).toFixed(1))));
+  };
+
+  const handleZoomOut = () => {
+    setScale((prev) => {
+      const next = Math.max(1, Number((prev - 0.5).toFixed(1)));
+      if (next === 1) setPosition({ x: 0, y: 0 });
+      return next;
+    });
+  };
+
+  const handleResetZoom = () => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  const handlePrev = (e) => {
+    if (e) e.stopPropagation();
+    if (images.length <= 1) return;
+    onIndexChange(currentIndex > 0 ? currentIndex - 1 : images.length - 1);
+  };
+
+  const handleNext = (e) => {
+    if (e) e.stopPropagation();
+    if (images.length <= 1) return;
+    onIndexChange(currentIndex < images.length - 1 ? currentIndex + 1 : 0);
+  };
+
+  const handleTouchStart = (e) => {
+    if (e.touches.length === 2) {
+      // 2개 손가락 터치: 핀치 줌 시작
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      pinchStartDistRef.current = dist;
+      pinchStartScaleRef.current = scale;
+      setIsDragging(false);
+    } else if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      const now = Date.now();
+
+      // 더블 탭 시 확대 / 축소 토글
+      if (now - lastTapRef.current < 300) {
+        if (scale > 1) {
+          handleResetZoom();
+        } else {
+          setScale(2.5);
+          setPosition({ x: 0, y: 0 });
+        }
+        lastTapRef.current = 0;
+        return;
+      }
+      lastTapRef.current = now;
+
+      touchStartRef.current = touch.clientX;
+      touchEndRef.current = touch.clientX;
+      dragStartRef.current = {
+        x: touch.clientX - position.x,
+        y: touch.clientY - position.y
+      };
+      setIsDragging(true);
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (e.touches.length === 2 && pinchStartDistRef.current) {
+      if (e.cancelable) e.preventDefault();
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const ratio = dist / pinchStartDistRef.current;
+      const newScale = Math.min(4, Math.max(1, Number((pinchStartScaleRef.current * ratio).toFixed(2))));
+      setScale(newScale);
+      if (newScale === 1) {
+        setPosition({ x: 0, y: 0 });
+      }
+    } else if (e.touches.length === 1 && isDragging) {
+      const touch = e.touches[0];
+      if (scale > 1) {
+        if (e.cancelable) e.preventDefault();
+        const maxOffset = 350 * (scale - 1);
+        const newX = touch.clientX - dragStartRef.current.x;
+        const newY = touch.clientY - dragStartRef.current.y;
+        setPosition({
+          x: Math.max(-maxOffset, Math.min(maxOffset, newX)),
+          y: Math.max(-maxOffset, Math.min(maxOffset, newY))
+        });
+      } else {
+        touchEndRef.current = touch.clientX;
+      }
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    setIsDragging(false);
+    pinchStartDistRef.current = null;
+
+    if (scale <= 1) {
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+
+      if (touchStartRef.current !== null && touchEndRef.current !== null) {
+        const diff = touchStartRef.current - touchEndRef.current;
+        if (diff > 50) {
+          handleNext();
+        } else if (diff < -50) {
+          handlePrev();
+        }
+      }
+    }
+    touchStartRef.current = null;
+    touchEndRef.current = null;
+  };
+
+  const handleMouseDown = (e) => {
+    if (e.button !== 0) return;
+    dragStartRef.current = {
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    };
+    setIsDragging(true);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging || scale <= 1) return;
+    const maxOffset = 400 * (scale - 1);
+    const newX = e.clientX - dragStartRef.current.x;
+    const newY = e.clientY - dragStartRef.current.y;
+    setPosition({
+      x: Math.max(-maxOffset, Math.min(maxOffset, newX)),
+      y: Math.max(-maxOffset, Math.min(maxOffset, newY))
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleWheel = (e) => {
+    if (e.deltaY < 0) {
+      handleZoomIn();
+    } else {
+      handleZoomOut();
+    }
+  };
+
+  const currentImage = images[currentIndex];
+
+  return (
+    <div 
+      className="fullscreen-modal-overlay" 
+      onClick={() => {
+        if (scale === 1) onClose();
+      }}
+    >
+      {/* 상단 닫기 및 인덱스 표시 바 */}
+      <div className="fullscreen-top-bar" onClick={(e) => e.stopPropagation()}>
+        {images.length > 1 ? (
+          <div className="fullscreen-counter-pill">
+            {currentIndex + 1} / {images.length}
+          </div>
+        ) : <div />}
+        
+        <button 
+          className="fullscreen-close-btn" 
+          onClick={onClose}
+          aria-label="닫기"
+        >
+          ✕ 닫기
+        </button>
+      </div>
+
+      {/* 사진 뷰포트 영역 (제스처/확대/이동) */}
+      <div 
+        ref={containerRef}
+        className="fullscreen-image-viewport"
+        onClick={(e) => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onWheel={handleWheel}
+      >
+        <img 
+          src={currentImage} 
+          alt="크게 보기" 
+          loading="eager"
+          decoding="async"
+          draggable={false}
+          className="fullscreen-zoom-image"
+          style={{
+            transform: `translate3d(${position.x}px, ${position.y}px, 0) scale(${scale})`,
+            transition: isDragging ? 'none' : 'transform 0.2s cubic-bezier(0.25, 1, 0.5, 1)',
+            cursor: scale > 1 ? (isDragging ? 'grabbing' : 'grab') : 'zoom-in',
+            userSelect: 'none',
+            WebkitUserSelect: 'none'
+          }}
+        />
+      </div>
+
+      {/* 사진 넘김 좌우 화살표 */}
+      {images.length > 1 && (
+        <>
+          <button 
+            className="fullscreen-nav-btn prev" 
+            onClick={handlePrev}
+            aria-label="이전 사진"
+          >
+            ◀
+          </button>
+          <button 
+            className="fullscreen-nav-btn next" 
+            onClick={handleNext}
+            aria-label="다음 사진"
+          >
+            ▶
+          </button>
+        </>
+      )}
+
+      {/* 하단 확대/축소 툴바 */}
+      <div className="fullscreen-bottom-toolbar" onClick={(e) => e.stopPropagation()}>
+        <div className="fullscreen-zoom-controls">
+          <button 
+            className="fullscreen-tool-btn" 
+            onClick={handleZoomOut} 
+            disabled={scale <= 1}
+            title="축소"
+          >
+            ➖
+          </button>
+          <button 
+            className="fullscreen-zoom-badge" 
+            onClick={handleResetZoom}
+            title="클릭 시 100%로 초기화"
+          >
+            {Math.round(scale * 100)}%
+          </button>
+          <button 
+            className="fullscreen-tool-btn" 
+            onClick={handleZoomIn} 
+            disabled={scale >= 4}
+            title="확대"
+          >
+            ➕
+          </button>
+          {scale > 1 && (
+            <button 
+              className="fullscreen-reset-btn" 
+              onClick={handleResetZoom}
+              title="원본 크기로 복원"
+            >
+              🔄 초기화
+            </button>
+          )}
+        </div>
+        <div className="fullscreen-hint">
+          💡 두 손가락 핀치 / 더블 탭으로 확대 및 이동
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -359,32 +648,6 @@ function App() {
   const [uploadingImages, setUploadingImages] = useState({}) // { [id_type]: boolean }
   const [fullScreenData, setFullScreenData] = useState({ images: [], currentIndex: 0 })
   const [optimisticImages, setOptimisticImages] = useState({});
-  const [touchStart, setTouchStart] = useState(null);
-  const [touchEnd, setTouchEnd] = useState(null);
-
-  const onTouchStart = (e) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-  const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > 50;
-    const isRightSwipe = distance < -50;
-    if (isLeftSwipe && fullScreenData.images.length > 1) {
-      setFullScreenData(prev => ({
-        ...prev,
-        currentIndex: prev.currentIndex < prev.images.length - 1 ? prev.currentIndex + 1 : 0
-      }));
-    }
-    if (isRightSwipe && fullScreenData.images.length > 1) {
-      setFullScreenData(prev => ({
-        ...prev,
-        currentIndex: prev.currentIndex > 0 ? prev.currentIndex - 1 : prev.images.length - 1
-      }));
-    }
-  };
 
   const IMGBB_API_KEY = '26dd27a0bfb51ce28f2ff4d54c833979';
 
@@ -2255,58 +2518,14 @@ function App() {
         </div>
       )}
 
-      {/* 사진 크게 보기 모달 */}
+      {/* 사진 크게 보기 모달 (줌/이동/핀치줌/더블탭 지원) */}
       {fullScreenData.images && fullScreenData.images.length > 0 && (
-        <div className="modal-overlay" onClick={closeFullScreen} style={{ zIndex: 1100 }}>
-          <div 
-            className="fullscreen-image-container" 
-            onClick={(e) => e.stopPropagation()}
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-          >
-            <img 
-              src={fullScreenData.images[fullScreenData.currentIndex]} 
-              alt="크게 보기" 
-              loading="lazy"
-              decoding="async"
-              className="fullscreen-image"
-              onClick={(e) => e.stopPropagation()} 
-            />
-            {fullScreenData.images.length > 1 && (
-              <>
-                <button 
-                  className="nav-btn prev-btn" 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setFullScreenData(prev => ({
-                      ...prev,
-                      currentIndex: prev.currentIndex > 0 ? prev.currentIndex - 1 : prev.images.length - 1
-                    }));
-                  }}
-                >
-                  ◀
-                </button>
-                <button 
-                  className="nav-btn next-btn" 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setFullScreenData(prev => ({
-                      ...prev,
-                      currentIndex: prev.currentIndex < prev.images.length - 1 ? prev.currentIndex + 1 : 0
-                    }));
-                  }}
-                >
-                  ▶
-                </button>
-                <div className="fullscreen-counter">
-                  {fullScreenData.currentIndex + 1} / {fullScreenData.images.length}
-                </div>
-              </>
-            )}
-            <button className="close-fullscreen-btn" onClick={closeFullScreen}>✕ 닫기</button>
-          </div>
-        </div>
+        <FullScreenImageViewer
+          images={fullScreenData.images}
+          currentIndex={fullScreenData.currentIndex}
+          onIndexChange={(newIdx) => setFullScreenData(prev => ({ ...prev, currentIndex: newIdx }))}
+          onClose={closeFullScreen}
+        />
       )}
 
       {/* 마커 상세 팝업 모달 */}

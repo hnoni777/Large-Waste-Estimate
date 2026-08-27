@@ -1287,3 +1287,208 @@ body {
   transform: translateX(-50%) scale(0.92);
 }
 
+/* === FULLSCREEN IMAGE VIEWER MODAL === */
+.fullscreen-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: hidden;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.fullscreen-top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10002;
+  pointer-events: auto;
+}
+
+.fullscreen-counter-pill {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(4px);
+}
+
+.fullscreen-close-btn {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 0.95rem;
+  font-weight: bold;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+}
+.fullscreen-close-btn:active {
+  background: rgba(255, 255, 255, 0.4);
+  transform: scale(0.96);
+}
+
+.fullscreen-image-viewport {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+  touch-action: none;
+}
+
+.fullscreen-zoom-image {
+  max-width: 92vw;
+  max-height: 78vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+  will-change: transform;
+}
+
+.fullscreen-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10001;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+}
+.fullscreen-nav-btn:active {
+  background: rgba(255, 255, 255, 0.4);
+  transform: translateY(-50%) scale(0.92);
+}
+.fullscreen-nav-btn.prev {
+  left: 16px;
+}
+.fullscreen-nav-btn.next {
+  right: 16px;
+}
+
+.fullscreen-bottom-toolbar {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 10002;
+  pointer-events: auto;
+}
+
+.fullscreen-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(20, 20, 20, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 6px 14px;
+  border-radius: 30px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+}
+
+.fullscreen-tool-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.fullscreen-tool-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.fullscreen-tool-btn:not(:disabled):active {
+  background: rgba(255, 255, 255, 0.35);
+  transform: scale(0.92);
+}
+
+.fullscreen-zoom-badge {
+  background: transparent;
+  border: none;
+  color: #60a5fa;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  min-width: 54px;
+  text-align: center;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.fullscreen-zoom-badge:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.fullscreen-reset-btn {
+  background: rgba(59, 130, 246, 0.85);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.fullscreen-reset-btn:active {
+  transform: scale(0.95);
+  background: rgba(59, 130, 246, 1);
+}
+
+.fullscreen-hint {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+}
+
+
