@@ -325,36 +325,6 @@ function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose })
     });
   };
 
-  const handleSaveToDevice = async (e) => {
-    if (e) e.stopPropagation();
-    try {
-      const res = await fetch(currentImage);
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      const now = new Date();
-      const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
-      link.download = `폐기물사진_${dateStr}.jpg`;
-      document.body.appendChild(link);
-      link.click();
-      setTimeout(() => {
-        if (link.parentNode) link.parentNode.removeChild(link);
-        URL.revokeObjectURL(blobUrl);
-      }, 1000);
-    } catch (err) {
-      const link = document.createElement('a');
-      link.href = currentImage;
-      link.target = '_blank';
-      link.download = '폐기물사진.jpg';
-      document.body.appendChild(link);
-      link.click();
-      setTimeout(() => {
-        if (link.parentNode) link.parentNode.removeChild(link);
-      }, 1000);
-    }
-  };
-
   const currentImage = images[currentIndex];
 
   return (
@@ -364,7 +334,7 @@ function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose })
         if (scale === 1) onClose();
       }}
     >
-      {/* 상단 닫기, 저장 및 인덱스 표시 바 */}
+      {/* 상단 닫기 및 인덱스 표시 바 */}
       <div className="fullscreen-top-bar" onClick={(e) => e.stopPropagation()}>
         {images.length > 1 ? (
           <div className="fullscreen-counter-pill">
@@ -372,23 +342,13 @@ function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose })
           </div>
         ) : <div />}
         
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button 
-            className="fullscreen-save-btn" 
-            onClick={handleSaveToDevice}
-            title="기기 갤러리에 저장"
-            aria-label="저장"
-          >
-            💾 저장
-          </button>
-          <button 
-            className="fullscreen-close-btn" 
-            onClick={onClose}
-            aria-label="닫기"
-          >
-            ✕ 닫기
-          </button>
-        </div>
+        <button 
+          className="fullscreen-close-btn" 
+          onClick={onClose}
+          aria-label="닫기"
+        >
+          ✕ 닫기
+        </button>
       </div>
 
       {/* 사진 뷰포트 영역 (제스처/확대/이동) */}
