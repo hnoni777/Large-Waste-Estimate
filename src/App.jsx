@@ -2238,13 +2238,12 @@ function App() {
                         const firstPhoto = hasPhoto ? waste.photos[0] : null;
                         const firstThumbUrl = firstPhoto ? (typeof firstPhoto === 'object' ? (firstPhoto.thumbUrl || firstPhoto.url) : firstPhoto) : null;
                         const isSelected = selectedMapPin?.id === waste.id;
-                        const showPhotoPreview = currentMapLevel <= 3 && hasPhoto && firstThumbUrl;
 
                         return (
                           <CustomOverlayMap
                             key={`marker_${waste.id}`}
                             position={{ lat: waste.location.lat, lng: waste.location.lng }}
-                            zIndex={isSelected ? 100 : (showPhotoPreview ? 25 : 1)}
+                            zIndex={isSelected ? 100 : 1}
                           >
                             <div 
                               onClick={() => {
@@ -2259,69 +2258,6 @@ function App() {
                                 cursor: 'pointer' 
                               }}
                             >
-                              {/* 📸 지도를 확대했을 때만 핀 머리 위로 뜨는 사진 썸네일 말풍선 */}
-                              {showPhotoPreview && (
-                                <div 
-                                  className="map-pin-photo-bubble"
-                                  style={{
-                                    position: 'absolute',
-                                    bottom: '24px',
-                                    left: '50%',
-                                    transform: 'translateX(-50%)',
-                                    width: '64px',
-                                    height: '64px',
-                                    borderRadius: '10px',
-                                    backgroundColor: '#ffffff',
-                                    padding: '2.5px',
-                                    boxShadow: '0 6px 16px rgba(0, 0, 0, 0.35)',
-                                    border: `2.5px solid ${waste.completed ? '#0066cc' : '#ff3333'}`,
-                                    zIndex: 30,
-                                    boxSizing: 'border-box'
-                                  }}
-                                >
-                                  <img 
-                                    src={firstThumbUrl} 
-                                    alt="사진 미리보기"
-                                    loading="lazy"
-                                    style={{
-                                      width: '100%',
-                                      height: '100%',
-                                      objectFit: 'cover',
-                                      borderRadius: '6px',
-                                      display: 'block'
-                                    }}
-                                  />
-                                  {waste.photos.length > 1 && (
-                                    <span style={{
-                                      position: 'absolute',
-                                      top: '4px',
-                                      right: '4px',
-                                      backgroundColor: 'rgba(0, 0, 0, 0.75)',
-                                      color: '#fff',
-                                      fontSize: '0.62rem',
-                                      fontWeight: 'bold',
-                                      padding: '2px 4px',
-                                      borderRadius: '4px',
-                                      lineHeight: 1
-                                    }}>
-                                      +{waste.photos.length - 1}
-                                    </span>
-                                  )}
-                                  {/* 아래쪽 꼬리표 삼각형 */}
-                                  <div style={{
-                                    position: 'absolute',
-                                    bottom: '-7px',
-                                    left: '50%',
-                                    transform: 'translateX(-50%)',
-                                    width: 0,
-                                    height: 0,
-                                    borderLeft: '6px solid transparent',
-                                    borderRight: '6px solid transparent',
-                                    borderTop: `7px solid ${waste.completed ? '#0066cc' : '#ff3333'}`
-                                  }} />
-                                </div>
-                              )}
-
                               {/* 핀 포인트 원형 마커 (정확한 GPS 좌표 중심) */}
                               <div 
                                 className={!viewedWastes.includes(waste.id) ? 'blink-marker' : ''}
