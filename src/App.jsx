@@ -1363,10 +1363,6 @@ function App() {
         dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       }
       
-      if (shareViewMode === 'map') {
-        return dateStr === todayStr;
-      }
-      
       return shareSelectedDates.includes(dateStr);
     });
     
