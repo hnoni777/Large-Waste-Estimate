@@ -2191,17 +2191,25 @@ function App() {
 
                 {shareViewMode === 'map' ? (
                   <>
-                    <div style={{ display: 'flex', gap: '15px', justifyContent: 'flex-end', padding: '8px 15px', fontSize: '0.85rem', background: '#f8f9fa' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: '#555' }}>
-                        <input type="checkbox" checked={shareMapFilterUncompleted} onChange={(e) => setShareMapFilterUncompleted(e.target.checked)} style={{ transform: 'scale(0.85)', margin: 0 }} />
-                        <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ff3333' }}></span>
-                        진행중 보기
-                      </label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: '#555' }}>
-                        <input type="checkbox" checked={shareMapFilterCompleted} onChange={(e) => setShareMapFilterCompleted(e.target.checked)} style={{ transform: 'scale(0.85)', margin: 0 }} />
-                        <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#0066cc' }}></span>
-                        수거완료 보기
-                      </label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 15px', fontSize: '0.85rem', background: '#f8f9fa' }}>
+                      <button 
+                        onClick={() => openCalendar('share')}
+                        style={{ background: '#fff', border: '1px solid #ddd', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        📅 날짜 선택 <span style={{ color: '#0066cc', fontWeight: 'bold' }}>({shareSelectedDates.length})</span>
+                      </button>
+                      <div style={{ display: 'flex', gap: '15px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: '#555' }}>
+                          <input type="checkbox" checked={shareMapFilterUncompleted} onChange={(e) => setShareMapFilterUncompleted(e.target.checked)} style={{ transform: 'scale(0.85)', margin: 0 }} />
+                          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ff3333' }}></span>
+                          진행중 보기
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: '#555' }}>
+                          <input type="checkbox" checked={shareMapFilterCompleted} onChange={(e) => setShareMapFilterCompleted(e.target.checked)} style={{ transform: 'scale(0.85)', margin: 0 }} />
+                          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#0066cc' }}></span>
+                          수거완료 보기
+                        </label>
+                      </div>
                     </div>
 
                     <div className="share-map-container" style={{ position: 'relative', width: '100%', flex: 1, borderRadius: '0', overflow: 'hidden', borderTop: '1px solid #ddd' }}>
