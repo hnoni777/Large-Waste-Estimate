@@ -2221,30 +2221,73 @@ function App() {
 
                 {shareViewMode === 'map' ? (
                   <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 15px', fontSize: '0.85rem', background: '#f8f9fa' }}>
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '10px 15px', fontSize: '0.85rem', background: '#f8f9fa', borderBottom: '1px solid #ddd' }}>
+                      {/* 1행: 날짜 선택 & 전체보기 */}
+                      <div style={{ display: 'flex', gap: '10px' }}>
                         <button 
                           onClick={() => openCalendar('share')}
-                          style={{ background: '#fff', border: '1px solid #ddd', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                          style={{ flex: 1, background: '#fff', border: '1px solid #ddd', padding: '8px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', whiteSpace: 'nowrap', color: '#333' }}
                         >
                           📅 날짜 선택 <span style={{ color: '#0066cc', fontWeight: 'bold' }}>({shareSelectedDates.length})</span>
                         </button>
                         <button 
                           onClick={fitMapToBounds}
-                          style={{ background: '#fff', border: '1px solid #ddd', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', color: '#333' }}
+                          style={{ flex: 1, background: '#fff', border: '1px solid #ddd', padding: '8px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#333', whiteSpace: 'nowrap' }}
                           title="모든 핀이 한눈에 보이도록 지도 맞추기"
                         >
                           🎯 전체보기
                         </button>
                       </div>
-                      <div style={{ display: 'flex', gap: '15px' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: '#555' }}>
-                          <input type="checkbox" checked={shareMapFilterUncompleted} onChange={(e) => setShareMapFilterUncompleted(e.target.checked)} style={{ transform: 'scale(0.85)', margin: 0 }} />
+
+                      {/* 2행: 진행중 보기 & 수거완료 보기 */}
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <label style={{ 
+                          flex: 1, 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          gap: '6px', 
+                          cursor: 'pointer', 
+                          background: shareMapFilterUncompleted ? '#fff5f5' : '#fff', 
+                          border: `1px solid ${shareMapFilterUncompleted ? '#ffcdd2' : '#ddd'}`, 
+                          padding: '7px 10px', 
+                          borderRadius: '6px', 
+                          fontSize: '0.85rem', 
+                          color: '#333', 
+                          whiteSpace: 'nowrap',
+                          fontWeight: shareMapFilterUncompleted ? 'bold' : 'normal'
+                        }}>
+                          <input 
+                            type="checkbox" 
+                            checked={shareMapFilterUncompleted} 
+                            onChange={(e) => setShareMapFilterUncompleted(e.target.checked)} 
+                            style={{ margin: 0 }} 
+                          />
                           <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ff3333' }}></span>
                           진행중 보기
                         </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: '#555' }}>
-                          <input type="checkbox" checked={shareMapFilterCompleted} onChange={(e) => setShareMapFilterCompleted(e.target.checked)} style={{ transform: 'scale(0.85)', margin: 0 }} />
+                        <label style={{ 
+                          flex: 1, 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          gap: '6px', 
+                          cursor: 'pointer', 
+                          background: shareMapFilterCompleted ? '#f0f7ff' : '#fff', 
+                          border: `1px solid ${shareMapFilterCompleted ? '#bbdefb' : '#ddd'}`, 
+                          padding: '7px 10px', 
+                          borderRadius: '6px', 
+                          fontSize: '0.85rem', 
+                          color: '#333', 
+                          whiteSpace: 'nowrap',
+                          fontWeight: shareMapFilterCompleted ? 'bold' : 'normal'
+                        }}>
+                          <input 
+                            type="checkbox" 
+                            checked={shareMapFilterCompleted} 
+                            onChange={(e) => setShareMapFilterCompleted(e.target.checked)} 
+                            style={{ margin: 0 }} 
+                          />
                           <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#0066cc' }}></span>
                           수거완료 보기
                         </label>
