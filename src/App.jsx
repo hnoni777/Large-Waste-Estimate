@@ -39,6 +39,8 @@ import { db } from './firebase'
 import { collection, doc, onSnapshot, setDoc, deleteDoc, getDocs } from 'firebase/firestore'
 import './index.css'
 
+const DEFAULT_MAP_CENTER = { lat: 37.478, lng: 126.884 };
+
 const ONESIGNAL_APP_ID = '491139a8-881a-45cc-9a0b-9ee6c49aa1ce';
 const ONESIGNAL_REST_API_KEY = atob('b3NfdjJfYXBwX2plaXR0a2VpZGpjNHpncWx0M3Rtamd2Ynp6NGx3YWJmY3V0ZWpiNHhzeWo1ZmV0b25oaHJ0M2FmajdoY2F0dmE1czd5c2xuc3BreXZieWZ3ejQyanJiNnNkeDJxcmJqM2w0d2RqeHk=');
 
@@ -1374,26 +1376,58 @@ function App() {
     return dateFiltered;
   }, [sharedWastes, shareSelectedDates, shareTeamTab, shareViewMode, shareMapFilterUncompleted, shareMapFilterCompleted]);
 
+  const lastFittedKeyRef = useRef('');
+  const prevMapRef = useRef(null);
+
+  // 🎯 모든 핀이 보이도록 지도를 맞추는 함수 (필요 시 수동 호출)
+  const fitMapToBounds = () => {
+    if (!map) return;
+    const bounds = new window.kakao.maps.LatLngBounds();
+    let hasMarker = false;
+    filteredSharedWastes.forEach(waste => {
+      if (waste.location && waste.location.lat && waste.location.lng) {
+        bounds.extend(new window.kakao.maps.LatLng(waste.location.lat, waste.location.lng));
+        hasMarker = true;
+      }
+    });
+
+    if (hasMarker) {
+      map.setBounds(bounds);
+    } else {
+      map.setCenter(new window.kakao.maps.LatLng(37.4680, 126.8720));
+      map.setLevel(6);
+    }
+  };
+
   useEffect(() => {
     if (map && shareViewMode === 'map') {
-      const bounds = new window.kakao.maps.LatLngBounds();
-      let hasMarker = false;
-      filteredSharedWastes.forEach(waste => {
-        if (waste.location && waste.location.lat && waste.location.lng) {
-          bounds.extend(new window.kakao.maps.LatLng(waste.location.lat, waste.location.lng));
-          hasMarker = true;
+      const currentKey = `${shareViewMode}_${shareTeamTab}_${shareSelectedDates.slice().sort().join(',')}`;
+      const isNewContext = prevMapRef.current !== map || lastFittedKeyRef.current !== currentKey;
+
+      if (isNewContext) {
+        const bounds = new window.kakao.maps.LatLngBounds();
+        let hasMarker = false;
+        filteredSharedWastes.forEach(waste => {
+          if (waste.location && waste.location.lat && waste.location.lng) {
+            bounds.extend(new window.kakao.maps.LatLng(waste.location.lat, waste.location.lng));
+            hasMarker = true;
+          }
+        });
+
+        if (hasMarker) {
+          map.setBounds(bounds);
+          prevMapRef.current = map;
+          lastFittedKeyRef.current = currentKey;
+        } else if (sharedWastes.length > 0) {
+          // 데이터가 로드되었으나 마커가 없는 경우 기본 중심점 설정
+          map.setCenter(new window.kakao.maps.LatLng(37.4680, 126.8720));
+          map.setLevel(6);
+          prevMapRef.current = map;
+          lastFittedKeyRef.current = currentKey;
         }
-      });
-      
-      if (hasMarker) {
-        map.setBounds(bounds);
-      } else {
-        // 하안1동, 하안2동, 철산4동 중심점 부근
-        map.setCenter(new window.kakao.maps.LatLng(37.4680, 126.8720));
-        map.setLevel(6); // 5보다 조금 더 줌아웃 (하안동 전체가 다 보이도록)
       }
     }
-  }, [map, shareViewMode, filteredSharedWastes]);
+  }, [map, shareViewMode, shareTeamTab, shareSelectedDates, filteredSharedWastes, sharedWastes]);
 
   // ⚡ 지도 핀 및 목록에 표시될 사진들을 백그라운드에서 미리 다운로드(Preload)하여 핀 클릭 시 0초 즉시 팝업
   useEffect(() => {
@@ -2188,12 +2222,21 @@ function App() {
                 {shareViewMode === 'map' ? (
                   <>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 15px', fontSize: '0.85rem', background: '#f8f9fa' }}>
-                      <button 
-                        onClick={() => openCalendar('share')}
-                        style={{ background: '#fff', border: '1px solid #ddd', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}
-                      >
-                        📅 날짜 선택 <span style={{ color: '#0066cc', fontWeight: 'bold' }}>({shareSelectedDates.length})</span>
-                      </button>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <button 
+                          onClick={() => openCalendar('share')}
+                          style={{ background: '#fff', border: '1px solid #ddd', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          📅 날짜 선택 <span style={{ color: '#0066cc', fontWeight: 'bold' }}>({shareSelectedDates.length})</span>
+                        </button>
+                        <button 
+                          onClick={fitMapToBounds}
+                          style={{ background: '#fff', border: '1px solid #ddd', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', color: '#333' }}
+                          title="모든 핀이 한눈에 보이도록 지도 맞추기"
+                        >
+                          🎯 전체보기
+                        </button>
+                      </div>
                       <div style={{ display: 'flex', gap: '15px' }}>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: '#555' }}>
                           <input type="checkbox" checked={shareMapFilterUncompleted} onChange={(e) => setShareMapFilterUncompleted(e.target.checked)} style={{ transform: 'scale(0.85)', margin: 0 }} />
@@ -2225,7 +2268,7 @@ function App() {
                       </div>
 
                     <Map
-                      center={{ lat: 37.478, lng: 126.884 }}
+                      center={DEFAULT_MAP_CENTER}
                       style={{ width: '100%', height: '100%' }}
                       level={5}
                       onCreate={(m) => {
