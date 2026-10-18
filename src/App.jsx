@@ -788,7 +788,7 @@ function App() {
   useEffect(() => {
     const isTabChanged = prevShareTeamRef.current !== shareTeamTab;
     prevShareTeamRef.current = shareTeamTab;
-    const defaultDays = shareTeamTab === 'office' ? 5 : 2;
+    const defaultDays = 1; // 기본은 당일(오늘 1일)만 선택되도록 설정
 
     setShareSelectedDates(prev => {
       const isValid = prev.length > 0 && prev.every(d => shareAvailableDates.includes(d));
@@ -1363,10 +1363,6 @@ function App() {
       if (!dateStr && waste.createdAt) {
         const d = new Date(waste.createdAt);
         dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      }
-
-      if (shareViewMode === 'map') {
-        return dateStr === todayStr;
       }
 
       return shareSelectedDates.includes(dateStr);
@@ -2226,13 +2222,14 @@ function App() {
                 {shareViewMode === 'map' ? (
                   <>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '10px 15px', fontSize: '0.85rem', background: '#f8f9fa', borderBottom: '1px solid #ddd' }}>
-                      {/* 1행: 당일 핀 안내 & 전체공유핀보기 */}
+                      {/* 1행: 날짜 선택 & 전체공유핀보기 */}
                       <div style={{ display: 'flex', gap: '10px' }}>
-                        <div 
-                          style={{ flex: 1, background: '#f0f7ff', border: '1px solid #bbdefb', padding: '8px 10px', borderRadius: '6px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', whiteSpace: 'nowrap', color: '#0066cc', fontWeight: 'bold' }}
+                        <button 
+                          onClick={() => openCalendar('share')}
+                          style={{ flex: 1, background: '#fff', border: '1px solid #ddd', padding: '8px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', whiteSpace: 'nowrap', color: '#333' }}
                         >
-                          📅 당일 핀 표시
-                        </div>
+                          📅 날짜 선택 <span style={{ color: '#0066cc', fontWeight: 'bold' }}>({shareSelectedDates.length})</span>
+                        </button>
                         <button 
                           onClick={fitMapToBounds}
                           style={{ flex: 1, background: '#fff', border: '1px solid #ddd', padding: '8px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.82rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#333', whiteSpace: 'nowrap' }}
