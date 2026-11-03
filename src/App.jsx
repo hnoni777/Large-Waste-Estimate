@@ -3225,11 +3225,17 @@ function App() {
           {/* 1단 [상단]: 찍은 사진 (동적 분할 flex: 1) */}
           <div className="loc-fullscreen-photo-box">
             {locPhoto ? (
-              <img
-                src={locPhoto}
-                alt="현장 사진"
-                className="loc-fullscreen-img"
-              />
+              <>
+                <div
+                  className="loc-fullscreen-blur-bg"
+                  style={{ backgroundImage: `url(${locPhoto})` }}
+                />
+                <img
+                  src={locPhoto}
+                  alt="현장 사진"
+                  className="loc-fullscreen-img"
+                />
+              </>
             ) : (
               <div className="loc-fullscreen-no-photo">등록된 사진 없음</div>
             )}
