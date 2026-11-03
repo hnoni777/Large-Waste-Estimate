@@ -1670,7 +1670,7 @@ function App() {
   };
 
   // 💡 사진 업로드 속도 극대화 압축 함수 (700px, 품질 0.58 -> 20~30KB 초경량으로 무선 전송 0.1초대 가속)
-  const compressImage = async (file, maxWidth = 650, quality = 0.55) => {
+  const compressImage = async (file, maxWidth = 1200, quality = 0.75) => {
     // 🚀 스마트폰 네이티브 GPU 디코딩 리사이징 (low 품질은 bilinear GPU 가속으로 0.05초대 즉각 처리)
     if (window.createImageBitmap) {
       try {
@@ -1768,7 +1768,7 @@ function App() {
     if (!file) return;
 
     const uploadKey = `${pickupId}_${type}`;
-    const compressedFile = await compressImage(file, 700, 0.58);
+    const compressedFile = await compressImage(file, 1200, 0.75);
     const localUrl = URL.createObjectURL(compressedFile);
     
     // 즉각적인 피드백을 위한 낙관적 UI 적용 (압축된 이미지로 렌더링 속도 향상)
@@ -1829,7 +1829,7 @@ function App() {
       // 백그라운드 비동기 압축 & Firebase Storage 업로드
       (async () => {
         try {
-          const compressedFile = await compressImage(file, 650, 0.55);
+          const compressedFile = await compressImage(file, 1200, 0.75);
           const filename = `shared_wastes/${Date.now()}_${Math.random().toString(36).substring(2, 9)}.jpg`;
           const storageRef = ref(storage, filename);
           const snapshot = await uploadBytes(storageRef, compressedFile, { contentType: 'image/jpeg' });
