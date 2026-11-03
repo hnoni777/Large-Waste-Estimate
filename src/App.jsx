@@ -1104,9 +1104,6 @@ function App() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // 갤러리에 원본 사진 자동 저장
-    autoSaveToGallery(file, `폐기물_${type === 'before' ? '수거전' : '수거후'}_${pickupId}`);
-
     const uploadKey = `${pickupId}_${type}`;
     const compressedFile = await compressImage(file, 700, 0.58);
     const localUrl = URL.createObjectURL(compressedFile);
@@ -1160,9 +1157,6 @@ function App() {
     e.target.value = ''; // Reset input
     
     for (const file of files) {
-      // 갤러리에 원본 사진 자동 저장 (비동기)
-      autoSaveToGallery(file, '폐기물_공유');
-
       // 700px/58% 품질로 초고속 압축 수행 (용량 20~30KB로 초경량화하여 0.1초대 초고속 업로드)
       const compressedFile = await compressImage(file, 700, 0.58);
       const localUrl = URL.createObjectURL(compressedFile);
