@@ -622,6 +622,81 @@ function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose })
   );
 }
 
+
+// === 순수 바이너리 JPEG EXIF GPS 파서 (브라우저 라이브러리 실패 시 안정적인 fallback) ===
+function extractGpsFromJpegBuffer(buffer) {
+  try {
+    const view = new DataView(buffer);
+    if (view.byteLength < 4 || view.getUint16(0, false) !== 0xFFD8) return null;
+    let offset = 2;
+    const length = view.byteLength;
+    while (offset < length - 4) {
+      const marker = view.getUint16(offset, false);
+      offset += 2;
+      if (marker === 0xFFE1) {
+        const app1Len = view.getUint16(offset, false);
+        offset += 2;
+        if (view.getUint32(offset, false) === 0x45786966 && view.getUint16(offset + 4, false) === 0x0000) {
+          const tiffStart = offset + 6;
+          const isLittle = view.getUint16(tiffStart, false) === 0x4949;
+          const ifd0Offset = view.getUint32(tiffStart + 4, isLittle);
+          let ifd0 = tiffStart + ifd0Offset;
+          const numEntries = view.getUint16(ifd0, isLittle);
+          ifd0 += 2;
+          let gpsInfoOffset = null;
+          for (let i = 0; i < numEntries; i++) {
+            const tag = view.getUint16(ifd0 + i * 12, isLittle);
+            if (tag === 0x8825) {
+              gpsInfoOffset = view.getUint32(ifd0 + i * 12 + 8, isLittle);
+              break;
+            }
+          }
+          if (gpsInfoOffset != null) {
+            const gpsIfd = tiffStart + gpsInfoOffset;
+            const gpsEntries = view.getUint16(gpsIfd, isLittle);
+            let latRef = 'N', lngRef = 'E';
+            let latVal = null, lngVal = null;
+            const readRational = (ptr) => {
+              const num = view.getUint32(ptr, isLittle);
+              const den = view.getUint32(ptr + 4, isLittle) || 1;
+              return num / den;
+            };
+            const readCoord = (ptr) => {
+              const deg = readRational(ptr);
+              const min = readRational(ptr + 8);
+              const sec = readRational(ptr + 16);
+              return deg + min / 60 + sec / 3600;
+            };
+            for (let i = 0; i < gpsEntries; i++) {
+              const eTag = view.getUint16(gpsIfd + 2 + i * 12, isLittle);
+              const eValOffset = view.getUint32(gpsIfd + 2 + i * 12 + 8, isLittle);
+              if (eTag === 1) latRef = String.fromCharCode(view.getUint8(gpsIfd + 2 + i * 12 + 8));
+              else if (eTag === 2) latVal = readCoord(tiffStart + eValOffset);
+              else if (eTag === 3) lngRef = String.fromCharCode(view.getUint8(gpsIfd + 2 + i * 12 + 8));
+              else if (eTag === 4) lngVal = readCoord(tiffStart + eValOffset);
+            }
+            if (latVal !== null && lngVal !== null) {
+              if (latRef === 'S') latVal = -latVal;
+              if (lngRef === 'W') lngVal = -lngVal;
+              return { lat: latVal, lng: lngVal };
+            }
+          }
+        }
+        offset += app1Len - 2;
+      } else if ((marker & 0xFF00) === 0xFF00) {
+        if (marker === 0xFFDA) break;
+        const segLen = view.getUint16(offset, false);
+        offset += segLen;
+      } else {
+        break;
+      }
+    }
+  } catch (e) {
+    console.warn('Fallback JPEG GPS error:', e);
+  }
+  return null;
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -670,6 +745,54 @@ function App() {
   const [isLocExporting, setIsLocExporting] = useState(false);
   const [locToast, setLocToast] = useState('');
   const [locMap, setLocMap] = useState(null);
+  const [locFullscreenMap, setLocFullscreenMap] = useState(null);
+  const [isLocSearchModalOpen, setIsLocSearchModalOpen] = useState(false);
+  const [locSearchKeyword, setLocSearchKeyword] = useState('');
+  const [locSearchResults, setLocSearchResults] = useState([]);
+
+  const handleSearchLocAddress = (query) => {
+    if (!query || !query.trim()) return;
+    if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services) {
+      showLocToast('지도 서비스를 사용할 수 없습니다.');
+      return;
+    }
+    const geocoder = new window.kakao.maps.services.Geocoder();
+    geocoder.addressSearch(query.trim(), (result, status) => {
+      if (status === window.kakao.maps.services.Status.OK && result && result.length > 0) {
+        setLocSearchResults(result);
+      } else {
+        const ps = new window.kakao.maps.services.Places();
+        ps.keywordSearch(query.trim(), (places, pStatus) => {
+          if (pStatus === window.kakao.maps.services.Status.OK && places && places.length > 0) {
+            setLocSearchResults(places);
+          } else {
+            showLocToast('검색 결과가 없습니다. 도로명이나 지번을 정확히 입력해주세요.');
+            setLocSearchResults([]);
+          }
+        });
+      }
+    });
+  };
+
+  const handleSelectLocSearchResult = (item) => {
+    const lat = parseFloat(item.y);
+    const lng = parseFloat(item.x);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      setLocCoords({ lat, lng, accuracy: 0 });
+      setIsLocLocating(true);
+      fetchAddressForLocation(lat, lng, 0);
+      setIsLocSearchModalOpen(false);
+      setLocSearchResults([]);
+      setLocSearchKeyword('');
+      showLocToast('📍 선택한 주소로 위치가 변경되었습니다.');
+      if (locFullscreenMap) {
+        setTimeout(() => {
+          locFullscreenMap.relayout();
+          locFullscreenMap.setCenter(new window.kakao.maps.LatLng(lat, lng));
+        }, 100);
+      }
+    }
+  };
   const locToastTimeoutRef = useRef(null);
 
   const showLocToast = (msg) => {
@@ -750,38 +873,75 @@ function App() {
       }
     }
   }, [activeTab]);
+  useEffect(() => {
+    if (isLocationResultView && locFullscreenMap && locCoords) {
+      setTimeout(() => {
+        locFullscreenMap.relayout();
+        locFullscreenMap.setCenter(new window.kakao.maps.LatLng(locCoords.lat, locCoords.lng));
+      }, 150);
+    }
+  }, [isLocationResultView, locFullscreenMap, locCoords?.lat, locCoords?.lng]);
+
 
   const handleLocPhotoCapture = async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
 
-    // 기본 촬영 일시
     const now = new Date();
     let timeStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
     setLocPhotoBlob(file);
 
-    // 사진의 EXIF 메타데이터에서 GPS 및 촬영 일시 추출
     let exifGps = null;
     try {
-      const parsed = await exifr.parse(file, ['latitude', 'longitude', 'DateTimeOriginal']).catch(() => null);
-      if (parsed && typeof parsed.latitude === 'number' && typeof parsed.longitude === 'number') {
-        exifGps = { lat: parsed.latitude, lng: parsed.longitude };
-      } else {
-        const gpsOnly = await exifr.gps(file).catch(() => null);
-        if (gpsOnly && typeof gpsOnly.latitude === 'number' && typeof gpsOnly.longitude === 'number') {
-          exifGps = { lat: gpsOnly.latitude, lng: gpsOnly.longitude };
+      const arrayBuffer = await file.arrayBuffer();
+
+      // (A) exifr 전체 파싱 (전체 버퍼에서 모든 GPS 및 날짜 태그 탐색)
+      const data = await exifr.parse(arrayBuffer, {
+        tiff: true,
+        xmp: true,
+        gps: true,
+        wholeFile: true
+      }).catch(() => null);
+
+      if (data) {
+        if (typeof data.latitude === 'number' && typeof data.longitude === 'number') {
+          exifGps = { lat: data.latitude, lng: data.longitude };
+        } else if (data.GPSLatitude && data.GPSLongitude) {
+          const parseDms = (val, ref) => {
+            if (typeof val === 'number') return (ref === 'S' || ref === 'W') ? -val : val;
+            if (Array.isArray(val) && val.length >= 3) {
+              let dec = Number(val[0]) + Number(val[1]) / 60 + Number(val[2]) / 3600;
+              if (ref === 'S' || ref === 'W') dec = -dec;
+              return dec;
+            }
+            return null;
+          };
+          const lat = parseDms(data.GPSLatitude, data.GPSLatitudeRef);
+          const lng = parseDms(data.GPSLongitude, data.GPSLongitudeRef);
+          if (lat !== null && lng !== null) {
+            exifGps = { lat, lng };
+          }
+        }
+
+        const dateVal = data.DateTimeOriginal || data.CreateDate || data.ModifyDate;
+        if (dateVal) {
+          const d = new Date(dateVal);
+          if (!isNaN(d.getTime())) {
+            timeStr = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+          }
         }
       }
 
-      if (parsed && parsed.DateTimeOriginal) {
-        const d = new Date(parsed.DateTimeOriginal);
-        if (!isNaN(d.getTime())) {
-          timeStr = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+      // (B) 순수 바이너리 JPEG EXIF 파서 fallback
+      if (!exifGps) {
+        const directGps = extractGpsFromJpegBuffer(arrayBuffer);
+        if (directGps) {
+          exifGps = directGps;
         }
       }
     } catch (err) {
-      console.warn('EXIF parsing failed:', err);
+      console.warn('EXIF analysis error:', err);
     }
 
     setLocTimestamp(timeStr);
@@ -792,16 +952,20 @@ function App() {
       setIsLocationResultView(true);
       window.history.pushState({ type: 'modal', modal: 'locationResult' }, '');
 
-      if (exifGps) {
-        // 사진에 저장된 실제 위치 적용
+      if (exifGps && typeof exifGps.lat === 'number' && typeof exifGps.lng === 'number') {
         setLocCoords({ lat: exifGps.lat, lng: exifGps.lng, accuracy: 0 });
         setIsLocLocating(true);
         fetchAddressForLocation(exifGps.lat, exifGps.lng, 0);
         showLocToast('📷 사진에 저장된 촬영 위치로 지도가 이동되었습니다.');
+        if (locFullscreenMap) {
+          setTimeout(() => {
+            locFullscreenMap.relayout();
+            locFullscreenMap.setCenter(new window.kakao.maps.LatLng(exifGps.lat, exifGps.lng));
+          }, 150);
+        }
       } else {
-        // 사진에 GPS가 없는 경우 현재 스마트폰 위치 사용
         refreshLocation(true);
-        showLocToast('사진에 위치 정보가 없어 현재 스마트폰 위치로 설정되었습니다.');
+        showLocToast('사진에 위치 정보가 없어 현재 스마트폰 위치로 설정되었습니다. (지도 터치 또는 검색으로 변경 가능)');
       }
     };
     reader.readAsDataURL(file);
@@ -3189,6 +3353,15 @@ function App() {
               center={locCoords ? { lat: locCoords.lat, lng: locCoords.lng } : DEFAULT_MAP_CENTER}
               style={{ width: '100%', height: '100%' }}
               level={3}
+              onCreate={(m) => {
+                setLocFullscreenMap(m);
+                setTimeout(() => {
+                  m.relayout();
+                  if (locCoords) {
+                    m.setCenter(new window.kakao.maps.LatLng(locCoords.lat, locCoords.lng));
+                  }
+                }, 100);
+              }}
               onClick={(_target, mouseEvent) => {
                 const lat = mouseEvent.latLng.getLat();
                 const lng = mouseEvent.latLng.getLng();
@@ -3198,24 +3371,22 @@ function App() {
                 showLocToast('📍 선택한 위치로 핀과 주소가 변경되었습니다.');
               }}
             >
-              {locCoords && (
-                <MapMarker
-                  position={{ lat: locCoords.lat, lng: locCoords.lng }}
-                  draggable={true}
-                  onDragEnd={(marker) => {
-                    const lat = marker.getPosition().getLat();
-                    const lng = marker.getPosition().getLng();
-                    setLocCoords({ lat, lng, accuracy: 0 });
-                    setIsLocLocating(true);
-                    fetchAddressForLocation(lat, lng, 0);
-                    showLocToast('📍 핀 위치로 주소가 변경되었습니다.');
-                  }}
-                  image={{
-                    src: 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png',
-                    size: { width: 34, height: 38 }
-                  }}
-                />
-              )}
+              <MapMarker
+                position={locCoords ? { lat: locCoords.lat, lng: locCoords.lng } : DEFAULT_MAP_CENTER}
+                draggable={true}
+                onDragEnd={(marker) => {
+                  const lat = marker.getPosition().getLat();
+                  const lng = marker.getPosition().getLng();
+                  setLocCoords({ lat, lng, accuracy: 0 });
+                  setIsLocLocating(true);
+                  fetchAddressForLocation(lat, lng, 0);
+                  showLocToast('📍 핀 위치로 주소가 변경되었습니다.');
+                }}
+                image={{
+                  src: 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png',
+                  size: { width: 34, height: 38 }
+                }}
+              />
             </Map>
           </div>
 
@@ -3224,7 +3395,55 @@ function App() {
             <div className="loc-fs-single-address">
               {locAddress.roadAddress || locAddress.jibunAddress || (isLocLocating ? '위치 확인 중...' : '주소를 확인하고 있습니다...')}
             </div>
+            <button
+              className="loc-fs-search-icon-btn"
+              onClick={() => setIsLocSearchModalOpen(true)}
+              title="주소 직접 검색"
+            >
+              🔍 주소 검색
+            </button>
           </div>
+
+          {/* 주소 직접 검색 모달 */}
+          {isLocSearchModalOpen && (
+            <div className="loc-search-modal-overlay" onClick={() => setIsLocSearchModalOpen(false)}>
+              <div className="loc-search-modal-card" onClick={(e) => e.stopPropagation()}>
+                <div className="loc-search-modal-header">
+                  <span className="loc-search-modal-title">📍 주소 검색 및 위치 지정</span>
+                  <button className="loc-search-modal-close" onClick={() => setIsLocSearchModalOpen(false)}>✕</button>
+                </div>
+                <div className="loc-search-modal-input-row">
+                  <input
+                    type="text"
+                    className="loc-search-input"
+                    placeholder="도로명, 지번, 또는 건물명 입력 (예: 철산로 20)"
+                    value={locSearchKeyword}
+                    onChange={(e) => setLocSearchKeyword(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSearchLocAddress(locSearchKeyword);
+                    }}
+                    autoFocus
+                  />
+                  <button
+                    className="loc-search-submit-btn"
+                    onClick={() => handleSearchLocAddress(locSearchKeyword)}
+                  >
+                    검색
+                  </button>
+                </div>
+                {locSearchResults.length > 0 && (
+                  <ul className="loc-search-results-list">
+                    {locSearchResults.map((item, idx) => (
+                      <li key={idx} className="loc-search-result-item" onClick={() => handleSelectLocSearchResult(item)}>
+                        <div className="loc-sr-place">{item.place_name || item.address_name}</div>
+                        <div className="loc-sr-addr">{item.road_address_name || item.address_name}</div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
