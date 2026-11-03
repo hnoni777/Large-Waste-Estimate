@@ -112,6 +112,141 @@ function drawFittedText(ctx, text, x, y, maxWidth, initialFontSize, fontWeight =
   ctx.fillText(text, x, y);
 }
 
+
+async function drawMapTilesToCanvas(ctx, lat, lng, mapX, mapY, mapW, mapH, zoom = 16) {
+  // 1. Draw outer shadow and rounded container
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+  ctx.shadowBlur = 14;
+  ctx.shadowOffsetY = 4;
+  ctx.fillStyle = '#ffffff';
+  drawRoundRect(ctx, mapX - 4, mapY - 4, mapW + 8, mapH + 8, 16);
+  ctx.fill();
+  ctx.restore();
+
+  // 2. Clip inside map area
+  ctx.save();
+  drawRoundRect(ctx, mapX, mapY, mapW, mapH, 14);
+  ctx.clip();
+
+  // Background color while tiles render
+  ctx.fillStyle = '#e2e8f0';
+  ctx.fillRect(mapX, mapY, mapW, mapH);
+
+  // 3. Tile coordinate calculations
+  const n = 2 ** zoom;
+  const worldX = ((lng + 180) / 360) * n * 256;
+  const latRad = (lat * Math.PI) / 180;
+  const worldY = ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n * 256;
+
+  const minWorldX = worldX - mapW / 2;
+  const minWorldY = worldY - mapH / 2;
+
+  const startTileX = Math.floor(minWorldX / 256);
+  const endTileX = Math.floor((minWorldX + mapW) / 256);
+  const startTileY = Math.floor(minWorldY / 256);
+  const endTileY = Math.floor((minWorldY + mapH) / 256);
+
+  const tilePromises = [];
+
+  for (let tx = startTileX; tx <= endTileX; tx++) {
+    for (let ty = startTileY; ty <= endTileY; ty++) {
+      const drawX = mapX + (tx * 256 - minWorldX);
+      const drawY = mapY + (ty * 256 - minWorldY);
+      const sub = ['a', 'b', 'c'][(Math.abs(tx) + Math.abs(ty)) % 3];
+      const url = `https://${sub}.basemaps.cartocdn.com/rastertiles/voyager/${zoom}/${tx}/${ty}.png`;
+
+      const p = new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve({ img, drawX, drawY });
+        img.onerror = () => {
+          const fallback = new Image();
+          fallback.crossOrigin = 'anonymous';
+          fallback.onload = () => resolve({ img: fallback, drawX, drawY });
+          fallback.onerror = () => resolve(null);
+          fallback.src = `https://tile.openstreetmap.org/${zoom}/${tx}/${ty}.png`;
+        };
+        img.src = url;
+      });
+      tilePromises.push(p);
+    }
+  }
+
+  try {
+    const loadedTiles = await Promise.all(tilePromises);
+    loadedTiles.forEach((tile) => {
+      if (tile && tile.img) {
+        ctx.drawImage(tile.img, Math.round(tile.drawX), Math.round(tile.drawY), 256, 256);
+      }
+    });
+  } catch (err) {
+    console.warn('Map tile rendering error:', err);
+  }
+
+  // 4. Draw Center Pin Marker
+  const pinX = mapX + mapW / 2;
+  const pinY = mapY + mapH / 2;
+
+  // Ground pulse ring
+  ctx.beginPath();
+  ctx.arc(pinX, pinY, 22, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(239, 68, 68, 0.22)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(239, 68, 68, 0.7)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // Pin point on ground
+  ctx.beginPath();
+  ctx.arc(pinX, pinY, 5, 0, Math.PI * 2);
+  ctx.fillStyle = '#991b1b';
+  ctx.fill();
+
+  // Red teardrop pin
+  const headY = pinY - 38;
+  const radius = 17;
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+  ctx.shadowBlur = 10;
+  ctx.shadowOffsetY = 6;
+  ctx.beginPath();
+  ctx.arc(pinX, headY, radius, Math.PI * 0.78, Math.PI * 0.22, false);
+  ctx.lineTo(pinX, pinY - 2);
+  ctx.closePath();
+  ctx.fillStyle = '#ef4444';
+  ctx.fill();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.restore();
+
+  // Inner white circle
+  ctx.beginPath();
+  ctx.arc(pinX, headY, 6.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+
+  // 5. Floating Badge
+  const badgeText = '📍 촬영 현장 위치';
+  ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  const tw = ctx.measureText(badgeText).width;
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.82)';
+  drawRoundRect(ctx, mapX + 16, mapY + 16, tw + 28, 40, 8);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(badgeText, mapX + 30, mapY + 44);
+
+  // Border around map
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 2;
+  drawRoundRect(ctx, mapX, mapY, mapW, mapH, 14);
+  ctx.stroke();
+
+  ctx.restore(); // Restore clip
+}
+
 function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose }) {
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -642,22 +777,23 @@ function App() {
       });
       if (imgObj) {
         const aspect = imgObj.naturalHeight / imgObj.naturalWidth;
-        imgDrawHeight = Math.min(1000, Math.round(imgDrawWidth * aspect));
+        imgDrawHeight = Math.min(620, Math.round(imgDrawWidth * aspect));
       }
     }
 
     const headerHeight = 150;
-    const photoSectionHeight = imgObj ? (imgDrawHeight + 40) : 0;
-    const addressBoxHeight = 360;
+    const photoSectionHeight = imgObj ? (imgDrawHeight + 35) : 0;
+    const mapSectionHeight = 440;
+    const addressBoxHeight = 310;
     const footerHeight = 70;
-    const totalHeight = headerHeight + photoSectionHeight + addressBoxHeight + footerHeight;
+    const totalHeight = headerHeight + photoSectionHeight + mapSectionHeight + addressBoxHeight + footerHeight;
 
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = totalHeight;
     const ctx = canvas.getContext('2d');
 
-    // 1. 배경
+    // 1. 전체 배경
     ctx.fillStyle = '#f8fafc';
     ctx.fillRect(0, 0, width, totalHeight);
 
@@ -678,22 +814,22 @@ function App() {
 
     let currentY = headerHeight + 30;
 
-    // 3. 사진 섹션
+    // 3. [상단] 현장 사진 섹션
     if (imgObj) {
       const imgX = (width - imgDrawWidth) / 2;
       const imgY = currentY;
 
       ctx.save();
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
-      ctx.shadowBlur = 18;
-      ctx.shadowOffsetY = 6;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.12)';
+      ctx.shadowBlur = 16;
+      ctx.shadowOffsetY = 4;
       ctx.fillStyle = '#ffffff';
-      drawRoundRect(ctx, imgX - 6, imgY - 6, imgDrawWidth + 12, imgDrawHeight + 12, 16);
+      drawRoundRect(ctx, imgX - 4, imgY - 4, imgDrawWidth + 8, imgDrawHeight + 8, 16);
       ctx.fill();
       ctx.restore();
 
       ctx.save();
-      drawRoundRect(ctx, imgX, imgY, imgDrawWidth, imgDrawHeight, 12);
+      drawRoundRect(ctx, imgX, imgY, imgDrawWidth, imgDrawHeight, 14);
       ctx.clip();
       ctx.drawImage(imgObj, imgX, imgY, imgDrawWidth, imgDrawHeight);
       ctx.restore();
@@ -707,59 +843,69 @@ function App() {
       ctx.font = '600 20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
       ctx.fillText(locTimestamp ? locTimestamp.slice(11) : '', imgX + imgDrawWidth - badgeW + 14, imgY + imgDrawHeight - 22);
 
-      currentY += imgDrawHeight + 35;
+      currentY += imgDrawHeight + 30;
     }
 
-    // 4. 주소 카드 박스
+    // 4. [중단] 위치 지도 섹션 (실제 지도 + 마커 핀)
+    const mapX = (width - 920) / 2;
+    const mapW = 920;
+    const mapH = 400;
+    const targetLat = locCoords ? locCoords.lat : DEFAULT_MAP_CENTER.lat;
+    const targetLng = locCoords ? locCoords.lng : DEFAULT_MAP_CENTER.lng;
+
+    await drawMapTilesToCanvas(ctx, targetLat, targetLng, mapX, currentY, mapW, mapH, 16);
+    currentY += mapH + 30;
+
+    // 5. [하단] 상세 주소 카드 박스
     const cardX = 40;
     const cardW = width - 80;
-    const cardH = addressBoxHeight - 30;
+    const cardH = addressBoxHeight - 35;
 
     ctx.save();
     ctx.shadowColor = 'rgba(0, 0, 0, 0.08)';
     ctx.shadowBlur = 14;
     ctx.shadowOffsetY = 4;
     ctx.fillStyle = '#ffffff';
-    drawRoundRect(ctx, cardX, currentY, cardW, cardH, 18);
+    drawRoundRect(ctx, cardX, currentY, cardW, cardH, 16);
     ctx.fill();
     ctx.restore();
 
     ctx.strokeStyle = '#e2e8f0';
     ctx.lineWidth = 2;
-    drawRoundRect(ctx, cardX, currentY, cardW, cardH, 18);
+    drawRoundRect(ctx, cardX, currentY, cardW, cardH, 16);
     ctx.stroke();
 
     // 도로명 주소 행
     ctx.fillStyle = '#2563eb';
-    ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText('🏢 도로명 주소', cardX + 30, currentY + 52);
+    ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('🏢 도로명 주소', cardX + 30, currentY + 48);
 
     const roadText = locAddress.roadAddress || (locAddress.jibunAddress ? '(도로명 주소 확인 필요)' : '위치 측정 대기 중...');
-    drawFittedText(ctx, roadText, cardX + 30, currentY + 102, cardW - 60, 36, 'bold', '#0f172a');
+    drawFittedText(ctx, roadText, cardX + 30, currentY + 95, cardW - 60, 34, 'bold', '#0f172a');
 
     ctx.strokeStyle = '#f1f5f9';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(cardX + 30, currentY + 130);
-    ctx.lineTo(cardX + cardW - 30, currentY + 130);
+    ctx.moveTo(cardX + 30, currentY + 120);
+    ctx.lineTo(cardX + cardW - 30, currentY + 120);
     ctx.stroke();
 
     // 지번 주소 행
     ctx.fillStyle = '#64748b';
-    ctx.font = '600 26px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillText('🏡 지번 주소', cardX + 30, currentY + 172);
+    ctx.font = '600 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('🏡 지번 주소', cardX + 30, currentY + 160);
 
     const jibunText = locAddress.jibunAddress || '-';
-    drawFittedText(ctx, jibunText, cardX + 30, currentY + 218, cardW - 60, 32, '500', '#334155');
+    drawFittedText(ctx, jibunText, cardX + 30, currentY + 200, cardW - 60, 30, '500', '#334155');
 
     // GPS 좌표 행
     const gpsText = locCoords 
       ? `🌐 GPS: 위도 ${locCoords.lat.toFixed(6)}, 경도 ${locCoords.lng.toFixed(6)} (오차 ±${locCoords.accuracy || 10}m)`
       : '🌐 GPS 좌표 확인 중...';
-    drawFittedText(ctx, gpsText, cardX + 30, currentY + 278, cardW - 60, 24, '500', '#0284c7');
+    drawFittedText(ctx, gpsText, cardX + 30, currentY + 248, cardW - 60, 22, '500', '#0284c7');
 
-    // 5. 하단 워터마크
-    currentY += cardH + 40;
+    // 6. 하단 워터마크
+    currentY += cardH + 35;
     ctx.fillStyle = '#94a3b8';
     ctx.font = '500 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
     ctx.textAlign = 'center';
@@ -2509,7 +2655,7 @@ function App() {
                 <span className="loc-btn-text">
                   {isLocExporting ? '카드 생성 중...' : '카드 스샷 저장'}
                 </span>
-                <span className="loc-btn-desc">갤러리에 인증 카드 이미지 다운로드</span>
+                <span className="loc-btn-desc">사진 + 지도 + 주소 한 화면 카드 저장</span>
               </button>
 
               <button
@@ -2518,7 +2664,7 @@ function App() {
               >
                 <span className="loc-btn-icon">🚀</span>
                 <span className="loc-btn-text">카카오톡 / 모바일 공유</span>
-                <span className="loc-btn-desc">사진+주소+지도링크 전송</span>
+                <span className="loc-btn-desc">사진 + 지도 + 주소 카드 전송</span>
               </button>
             </div>
           </div>
