@@ -883,90 +883,22 @@ function App() {
   }, [isLocationResultView, locFullscreenMap, locCoords?.lat, locCoords?.lng]);
 
 
-  const handleLocPhotoCapture = async (e) => {
+  const handleLocPhotoCapture = (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
 
     const now = new Date();
-    let timeStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    const timeStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    setLocTimestamp(timeStr);
 
     setLocPhotoBlob(file);
-
-    let exifGps = null;
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-
-      // (A) exifr 전체 파싱 (전체 버퍼에서 모든 GPS 및 날짜 태그 탐색)
-      const data = await exifr.parse(arrayBuffer, {
-        tiff: true,
-        xmp: true,
-        gps: true,
-        wholeFile: true
-      }).catch(() => null);
-
-      if (data) {
-        if (typeof data.latitude === 'number' && typeof data.longitude === 'number') {
-          exifGps = { lat: data.latitude, lng: data.longitude };
-        } else if (data.GPSLatitude && data.GPSLongitude) {
-          const parseDms = (val, ref) => {
-            if (typeof val === 'number') return (ref === 'S' || ref === 'W') ? -val : val;
-            if (Array.isArray(val) && val.length >= 3) {
-              let dec = Number(val[0]) + Number(val[1]) / 60 + Number(val[2]) / 3600;
-              if (ref === 'S' || ref === 'W') dec = -dec;
-              return dec;
-            }
-            return null;
-          };
-          const lat = parseDms(data.GPSLatitude, data.GPSLatitudeRef);
-          const lng = parseDms(data.GPSLongitude, data.GPSLongitudeRef);
-          if (lat !== null && lng !== null) {
-            exifGps = { lat, lng };
-          }
-        }
-
-        const dateVal = data.DateTimeOriginal || data.CreateDate || data.ModifyDate;
-        if (dateVal) {
-          const d = new Date(dateVal);
-          if (!isNaN(d.getTime())) {
-            timeStr = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
-          }
-        }
-      }
-
-      // (B) 순수 바이너리 JPEG EXIF 파서 fallback
-      if (!exifGps) {
-        const directGps = extractGpsFromJpegBuffer(arrayBuffer);
-        if (directGps) {
-          exifGps = directGps;
-        }
-      }
-    } catch (err) {
-      console.warn('EXIF analysis error:', err);
-    }
-
-    setLocTimestamp(timeStr);
 
     const reader = new FileReader();
     reader.onload = (event) => {
       setLocPhoto(event.target.result);
       setIsLocationResultView(true);
       window.history.pushState({ type: 'modal', modal: 'locationResult' }, '');
-
-      if (exifGps && typeof exifGps.lat === 'number' && typeof exifGps.lng === 'number') {
-        setLocCoords({ lat: exifGps.lat, lng: exifGps.lng, accuracy: 0 });
-        setIsLocLocating(true);
-        fetchAddressForLocation(exifGps.lat, exifGps.lng, 0);
-        showLocToast('📷 사진에 저장된 촬영 위치로 지도가 이동되었습니다.');
-        if (locFullscreenMap) {
-          setTimeout(() => {
-            locFullscreenMap.relayout();
-            locFullscreenMap.setCenter(new window.kakao.maps.LatLng(exifGps.lat, exifGps.lng));
-          }, 150);
-        }
-      } else {
-        refreshLocation(true);
-        showLocToast('사진에 위치 정보가 없어 현재 스마트폰 위치로 설정되었습니다. (지도 터치 또는 검색으로 변경 가능)');
-      }
+      refreshLocation(true);
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -2677,10 +2609,10 @@ function App() {
             )}
 
             {locPhoto ? (
-              /* 사진 등록 후: 사진 미리보기 + 한 화면 보기 버튼 */
+              /* 사진 등록 후: 사진 미리보기 + 한 화면 보기 + 다시 촬영 */
               <div className="loc-landing-card has-photo">
                 <div className="loc-card-header" style={{ width: '100%', marginBottom: '14px' }}>
-                  <span className="loc-card-title">📷 촬영된 사진</span>
+                  <span className="loc-card-title">📷 촬영된 현장 사진</span>
                   <button className="loc-delete-photo-btn" onClick={handleClearLocPhoto}>
                     ✕ 사진 삭제
                   </button>
@@ -2709,27 +2641,16 @@ function App() {
                   📱 한 화면 보기 (사진 + 지도 + 주소)
                 </button>
 
-                <div className="loc-landing-btn-row" style={{ marginTop: '10px' }}>
-                  <label className="loc-landing-btn secondary">
-                    📷 다시 촬영
-                    <input
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      onChange={handleLocPhotoCapture}
-                      style={{ display: 'none' }}
-                    />
-                  </label>
-                  <label className="loc-landing-btn secondary">
-                    🖼️ 앨범에서 변경
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLocPhotoCapture}
-                      style={{ display: 'none' }}
-                    />
-                  </label>
-                </div>
+                <label className="loc-landing-btn secondary" style={{ marginTop: '10px' }}>
+                  📷 다시 촬영하기
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleLocPhotoCapture}
+                    style={{ display: 'none' }}
+                  />
+                </label>
 
                 {(locAddress.roadAddress || locAddress.jibunAddress) && (
                   <div className="loc-landing-gps-pill">
@@ -2738,15 +2659,15 @@ function App() {
                 )}
               </div>
             ) : (
-              /* 처음 화면: 지도 없이 깔끔한 바탕화면과 사진촬영/선택 버튼 */
+              /* 처음 화면: 깔끔한 바탕화면과 사진촬영 버튼만 배치 */
               <div className="loc-landing-card">
                 <div className="loc-landing-icon-wrap">
                   📸
                 </div>
                 <h2 className="loc-landing-title">현장 사진 촬영</h2>
                 <p className="loc-landing-desc">
-                  카메라로 촬영하거나 앨범에서 사진을 선택하면<br />
-                  지도 및 주소와 결합된 한 화면으로 바로 연결됩니다.
+                  카메라로 현장 사진을 촬영하면<br />
+                  실시간 위치 지도 및 주소가 결합된 한 화면으로 바로 연결됩니다.
                 </p>
 
                 <div className="loc-landing-btn-group">
@@ -2760,19 +2681,10 @@ function App() {
                       style={{ display: 'none' }}
                     />
                   </label>
-                  <label className="loc-landing-btn secondary">
-                    🖼️ 앨범에서 선택
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLocPhotoCapture}
-                      style={{ display: 'none' }}
-                    />
-                  </label>
                 </div>
 
                 <div className="loc-landing-gps-pill">
-                  📍 {locAddress.roadAddress || locAddress.jibunAddress || (isLocLocating ? '위치 확인 중...' : 'GPS 위치 확인 완료')}
+                  📍 {locAddress.roadAddress || locAddress.jibunAddress || (isLocLocating ? '위치 확인 중...' : 'GPS 실시간 연동 준비 완료')}
                 </div>
               </div>
             )}
@@ -3395,55 +3307,7 @@ function App() {
             <div className="loc-fs-single-address">
               {locAddress.roadAddress || locAddress.jibunAddress || (isLocLocating ? '위치 확인 중...' : '주소를 확인하고 있습니다...')}
             </div>
-            <button
-              className="loc-fs-search-icon-btn"
-              onClick={() => setIsLocSearchModalOpen(true)}
-              title="주소 직접 검색"
-            >
-              🔍 주소 검색
-            </button>
           </div>
-
-          {/* 주소 직접 검색 모달 */}
-          {isLocSearchModalOpen && (
-            <div className="loc-search-modal-overlay" onClick={() => setIsLocSearchModalOpen(false)}>
-              <div className="loc-search-modal-card" onClick={(e) => e.stopPropagation()}>
-                <div className="loc-search-modal-header">
-                  <span className="loc-search-modal-title">📍 주소 검색 및 위치 지정</span>
-                  <button className="loc-search-modal-close" onClick={() => setIsLocSearchModalOpen(false)}>✕</button>
-                </div>
-                <div className="loc-search-modal-input-row">
-                  <input
-                    type="text"
-                    className="loc-search-input"
-                    placeholder="도로명, 지번, 또는 건물명 입력 (예: 철산로 20)"
-                    value={locSearchKeyword}
-                    onChange={(e) => setLocSearchKeyword(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleSearchLocAddress(locSearchKeyword);
-                    }}
-                    autoFocus
-                  />
-                  <button
-                    className="loc-search-submit-btn"
-                    onClick={() => handleSearchLocAddress(locSearchKeyword)}
-                  >
-                    검색
-                  </button>
-                </div>
-                {locSearchResults.length > 0 && (
-                  <ul className="loc-search-results-list">
-                    {locSearchResults.map((item, idx) => (
-                      <li key={idx} className="loc-search-result-item" onClick={() => handleSelectLocSearchResult(item)}>
-                        <div className="loc-sr-place">{item.place_name || item.address_name}</div>
-                        <div className="loc-sr-addr">{item.road_address_name || item.address_name}</div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       )}
 

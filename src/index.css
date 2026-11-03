@@ -1915,24 +1915,23 @@ body {
 .loc-fullscreen-address-box {
   flex-shrink: 0;
   background: #ffffff;
-  padding: 12px 14px 14px 14px;
+  padding: 14px 18px 16px 18px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: center;
+  text-align: center;
   box-shadow: 0 -3px 12px rgba(0, 0, 0, 0.08);
   z-index: 10;
 }
 
 .loc-fs-single-address {
-  flex: 1;
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: #0f172a;
   line-height: 1.35;
   word-break: keep-all;
   letter-spacing: -0.3px;
-  text-align: left;
+  text-align: center;
 }
 
 .loc-fs-search-icon-btn {
