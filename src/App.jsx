@@ -2474,77 +2474,42 @@ function App() {
               </div>
             )}
 
-            {/* 1. 현장 사진 영역 */}
-            <div className="loc-card-box">
-              <div className="loc-card-header">
-                <span className="loc-card-title">📷 현장 사진</span>
-                {locPhoto && (
+            {locPhoto ? (
+              /* 사진 등록 후: 사진 미리보기 + 한 화면 보기 버튼 */
+              <div className="loc-landing-card has-photo">
+                <div className="loc-card-header" style={{ width: '100%', marginBottom: '14px' }}>
+                  <span className="loc-card-title">📷 촬영된 사진</span>
                   <button className="loc-delete-photo-btn" onClick={handleClearLocPhoto}>
                     ✕ 사진 삭제
                   </button>
-                )}
-              </div>
+                </div>
 
-              {locPhoto ? (
                 <div className="loc-photo-preview-wrap">
                   <img
                     src={locPhoto}
-                    alt="현장 사진 미리보기"
+                    alt="촬영된 현장 사진"
                     className="loc-photo-img"
                     onClick={() => {
                       setIsLocationResultView(true);
                       window.history.pushState({ type: 'modal', modal: 'locationResult' }, '');
                     }}
                   />
-                  <div className="loc-photo-badge">
-                    ⏰ {locTimestamp || '촬영 완료'}
-                  </div>
                 </div>
-              ) : (
-                <div className="loc-photo-placeholder">
-                  <div className="loc-placeholder-icon">📸</div>
-                  <div className="loc-placeholder-text">
-                    현장 사진을 촬영하거나 앨범에서 선택해주세요
-                  </div>
-                  <div className="loc-photo-btn-group">
-                    <label className="loc-capture-btn camera">
-                      📷 카메라 촬영
-                      <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={handleLocPhotoCapture}
-                        style={{ display: 'none' }}
-                      />
-                    </label>
-                    <label className="loc-capture-btn gallery">
-                      🖼️ 앨범 선택
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleLocPhotoCapture}
-                        style={{ display: 'none' }}
-                      />
-                    </label>
-                  </div>
-                </div>
-              )}
 
-              {locPhoto && (
-                <>
-                  <button
-                    className="loc-open-result-btn"
-                    style={{ marginTop: '12px' }}
-                    onClick={() => {
-                      setIsLocationResultView(true);
-                      window.history.pushState({ type: 'modal', modal: 'locationResult' }, '');
-                    }}
-                  >
-                    📱 한 화면 보기 (사진+지도+주소)
-                  </button>
-                  <div className="loc-photo-btn-group" style={{ marginTop: '10px' }}>
-                  <label className="loc-capture-btn-sm">
-                    🔄 다시 촬영
+                <button
+                  className="loc-landing-btn primary"
+                  style={{ marginTop: '16px' }}
+                  onClick={() => {
+                    setIsLocationResultView(true);
+                    window.history.pushState({ type: 'modal', modal: 'locationResult' }, '');
+                  }}
+                >
+                  📱 한 화면 보기 (사진 + 지도 + 주소)
+                </button>
+
+                <div className="loc-landing-btn-row" style={{ marginTop: '10px' }}>
+                  <label className="loc-landing-btn secondary">
+                    📷 다시 촬영
                     <input
                       type="file"
                       accept="image/*"
@@ -2553,7 +2518,7 @@ function App() {
                       style={{ display: 'none' }}
                     />
                   </label>
-                  <label className="loc-capture-btn-sm">
+                  <label className="loc-landing-btn secondary">
                     🖼️ 앨범에서 변경
                     <input
                       type="file"
@@ -2563,144 +2528,52 @@ function App() {
                     />
                   </label>
                 </div>
-                </>
-              )}
-            </div>
 
-            {/* 2. 지도 영역 */}
-            <div className="loc-card-box">
-              <div className="loc-card-header">
-                <span className="loc-card-title">🗺️ 현재 위치 지도</span>
-                <button
-                  className="loc-refresh-btn"
-                  onClick={() => refreshLocation(true)}
-                  disabled={isLocLocating}
-                >
-                  {isLocLocating ? '📍 측정 중...' : '🔄 위치 갱신'}
-                </button>
-              </div>
-
-              <div className="loc-map-wrapper">
-                <Map
-                  center={locCoords ? { lat: locCoords.lat, lng: locCoords.lng } : DEFAULT_MAP_CENTER}
-                  style={{ width: '100%', height: '260px', borderRadius: '10px' }}
-                  level={3}
-                  onCreate={(m) => setLocMap(m)}
-                >
-                  {locCoords && (
-                    <MapMarker
-                      position={{ lat: locCoords.lat, lng: locCoords.lng }}
-                      image={{
-                        src: 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png',
-                        size: { width: 34, height: 38 }
-                      }}
-                    />
-                  )}
-                </Map>
-                {locCoords?.accuracy && (
-                  <div className="loc-accuracy-tag">
-                    오차범위 ±{locCoords.accuracy}m
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* 3. 상세 주소 카드 */}
-            <div className="loc-card-box loc-address-card">
-              <div className="loc-card-header">
-                <span className="loc-card-title">📍 상세 주소 정보</span>
-                {locAddress.fullAddress && (
-                  <button
-                    className="loc-copy-btn"
-                    onClick={() => handleCopyAddress(locAddress.fullAddress)}
-                  >
-                    📋 주소 복사
-                  </button>
-                )}
-              </div>
-
-              <div className="loc-address-content">
-                <div className="loc-addr-row road">
-                  <div className="loc-addr-label">🏢 도로명 주소</div>
-                  <div className="loc-addr-value">
-                    {locAddress.roadAddress || (isLocLocating ? '위치 확인 중...' : '(도로명 주소 없음)')}
-                  </div>
-                </div>
-
-                <div className="loc-addr-row jibun">
-                  <div className="loc-addr-label">🏡 지번 주소</div>
-                  <div className="loc-addr-value">
-                    {locAddress.jibunAddress || (isLocLocating ? '위치 확인 중...' : '(지번 주소 없음)')}
-                  </div>
-                </div>
-
-                {locCoords && (
-                  <div className="loc-addr-row gps">
-                    <div className="loc-addr-label">🌐 GPS 좌표</div>
-                    <div className="loc-addr-value-sm">
-                      위도: {locCoords.lat.toFixed(6)} / 경도: {locCoords.lng.toFixed(6)}
-                    </div>
-                  </div>
-                )}
-
-                <div className="loc-addr-row time">
-                  <div className="loc-addr-label">⏰ 측정 일시</div>
-                  <div className="loc-addr-value-sm">
-                    {locTimestamp || '측정 전'}
-                  </div>
-                </div>
-              </div>
-
-              {/* 외부 지도 바로가기 버튼 */}
-              <div className="loc-external-map-links">
-                {locCoords && (
-                  <a
-                    href={`https://map.kakao.com/link/map/현장위치,${locCoords.lat},${locCoords.lng}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="loc-ext-link kakao"
-                  >
-                    🟡 카카오맵 길찾기
-                  </a>
-                )}
                 {(locAddress.roadAddress || locAddress.jibunAddress) && (
-                  <a
-                    href={`https://map.naver.com/v5/search/${encodeURIComponent(locAddress.roadAddress || locAddress.jibunAddress)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="loc-ext-link naver"
-                  >
-                    🟢 네이버 지도 길찾기
-                  </a>
+                  <div className="loc-landing-gps-pill">
+                    📍 {locAddress.roadAddress || locAddress.jibunAddress}
+                  </div>
                 )}
               </div>
-            </div>
+            ) : (
+              /* 처음 화면: 지도 없이 깔끔한 바탕화면과 사진촬영/선택 버튼 */
+              <div className="loc-landing-card">
+                <div className="loc-landing-icon-wrap">
+                  📸
+                </div>
+                <h2 className="loc-landing-title">현장 사진 촬영</h2>
+                <p className="loc-landing-desc">
+                  카메라로 촬영하거나 앨범에서 사진을 선택하면<br />
+                  지도 및 주소와 결합된 한 화면으로 바로 연결됩니다.
+                </p>
 
-            {/* 4. 핵심 액션 버튼 (스샷 저장 & 공유하기) */}
-            <div className="loc-main-actions">
-              {locPhoto && (
-                <button
-                  className="loc-action-btn screenshot"
-                  onClick={() => {
-                    setIsLocationResultView(true);
-                    window.history.pushState({ type: 'modal', modal: 'locationResult' }, '');
-                  }}
-                >
-                  <span className="loc-btn-icon">📱</span>
-                  <span className="loc-btn-text">한 화면 보기 (사진+지도+주소)</span>
-                  <span className="loc-btn-desc">스마트폰 화면 맞춤 캡처용 뷰 열기</span>
-                </button>
-              )}
+                <div className="loc-landing-btn-group">
+                  <label className="loc-landing-btn primary">
+                    📷 사진 촬영하기
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleLocPhotoCapture}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                  <label className="loc-landing-btn secondary">
+                    🖼️ 앨범에서 선택
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLocPhotoCapture}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                </div>
 
-              <button
-                className="loc-action-btn share"
-                onClick={handleShareLocation}
-              >
-                <span className="loc-btn-icon">🚀</span>
-                <span className="loc-btn-text">카카오톡 / 모바일 공유</span>
-                <span className="loc-btn-desc">사진 + 지도 + 주소 카드 전송</span>
-              </button>
-            </div>
+                <div className="loc-landing-gps-pill">
+                  📍 {locAddress.roadAddress || locAddress.jibunAddress || (isLocLocating ? '위치 확인 중...' : 'GPS 위치 확인 완료')}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -3259,24 +3132,6 @@ function App() {
       {/* === DEDICATED FULL-SCREEN RESULT VIEW (스마트폰 한 화면 맞춤 뷰) === */}
       {isLocationResultView && (
         <div className="loc-fullscreen-container">
-          {/* 상단 네비게이션 바 */}
-          <div className="loc-fullscreen-header">
-            <button
-              className="loc-back-btn"
-              onClick={() => {
-                if (window.history.state?.modal === 'locationResult') {
-                  window.history.back();
-                } else {
-                  setIsLocationResultView(false);
-                }
-              }}
-            >
-              ← 다시 촬영
-            </button>
-            <div className="loc-header-title">📍 현장 인증 화면</div>
-            <div className="loc-header-time">{locTimestamp}</div>
-          </div>
-
           {/* 1단 [상단]: 찍은 사진 (동적 분할 flex: 1) */}
           <div className="loc-fullscreen-photo-box">
             {locPhoto ? (
@@ -3309,26 +3164,11 @@ function App() {
             </Map>
           </div>
 
-          {/* 3단 [하단]: 상세 주소 */}
+          {/* 3단 [하단]: 주소만 단일 표시 (도로명 우선, 없으면 지번) */}
           <div className="loc-fullscreen-address-box">
-            <div className="loc-fs-addr-road">
-              <span className="loc-fs-badge">도로명</span>
-              <span className="loc-fs-road-text">
-                {locAddress.roadAddress || (isLocLocating ? '위치 확인 중...' : '(도로명 주소 확인 필요)')}
-              </span>
+            <div className="loc-fs-single-address">
+              {locAddress.roadAddress || locAddress.jibunAddress || (isLocLocating ? '위치 확인 중...' : '주소를 확인하고 있습니다...')}
             </div>
-            <div className="loc-fs-addr-jibun">
-              <span className="loc-fs-badge jibun">지번</span>
-              <span className="loc-fs-jibun-text">
-                {locAddress.jibunAddress || '-'}
-              </span>
-            </div>
-            {locCoords && (
-              <div className="loc-fs-coords">
-                📍 위도 {locCoords.lat.toFixed(6)}, 경도 {locCoords.lng.toFixed(6)}
-                {locCoords.accuracy ? ` (오차 ±${locCoords.accuracy}m)` : ''}
-              </div>
-            )}
           </div>
         </div>
       )}
