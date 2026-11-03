@@ -35,8 +35,9 @@ const getAptName = (address) => {
   }
   return null;
 };
-import { db } from './firebase'
+import { db, storage } from './firebase'
 import { collection, doc, onSnapshot, setDoc, deleteDoc, getDocs } from 'firebase/firestore'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import './index.css'
 
 const DEFAULT_MAP_CENTER = { lat: 37.478, lng: 126.884 };
@@ -724,8 +725,6 @@ function App() {
   const [fullScreenData, setFullScreenData] = useState({ images: [], currentIndex: 0 })
   const [optimisticImages, setOptimisticImages] = useState({});
 
-  const IMGBB_API_KEY = '26dd27a0bfb51ce28f2ff4d54c833979';
-
   useEffect(() => {
     // pickups 컬렉션 실시간 구독
     const unsubscribe = onSnapshot(collection(db, 'pickups'), (snapshot) => {
@@ -1105,26 +1104,16 @@ function App() {
     setUploadingImages(prev => ({ ...prev, [uploadKey]: true }));
 
     try {
-      const formData = new FormData();
-      formData.append('image', compressedFile);
-      
-      const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-        method: 'POST',
-        body: formData
-      });
-      const data = await res.json();
-      
-      if (data.success) {
-        const imageUrl = data.data.url;
-        await setDoc(doc(db, 'pickups', pickupId), {
-          [type + 'Image']: imageUrl
-        }, { merge: true });
-      } else {
-        alert("이미지 업로드에 실패했습니다.");
-      }
+      const storageRef = ref(storage, `pickups/${pickupId}_${type}_${Date.now()}.jpg`);
+      const snapshot = await uploadBytes(storageRef, compressedFile, { contentType: 'image/jpeg' });
+      const imageUrl = await getDownloadURL(snapshot.ref);
+
+      await setDoc(doc(db, 'pickups', pickupId), {
+        [type + 'Image']: imageUrl
+      }, { merge: true });
     } catch (err) {
       console.error("Upload error", err);
-      alert("이미지 업로드 중 오류가 발생했습니다.");
+      alert("이미지 업로드 중 오류가 발생했습니다: " + (err.message || "Storage 권한 또는 네트워크 오류"));
     } finally {
       setUploadingImages(prev => ({ ...prev, [uploadKey]: false }));
       // 백그라운드 업로드가 끝났으므로 실제 Firestore URL 렌더링으로 넘김
@@ -1170,26 +1159,18 @@ function App() {
       // 즉시 UI 반영 (Optimistic UI) - 용량이 작아진 압축 파일로 미리보기를 띄움
       setSharePhotos(prev => [...prev, { id: tempId, url: localUrl, isUploading: true }]);
       
-      // 백그라운드 비동기 업로드 (await 없이 실행)
+      // 백그라운드 비동기 업로드 (Firebase Storage)
       (async () => {
         try {
-          const formData = new FormData();
-          formData.append('image', compressedFile);
+          const filename = `shared_wastes/${Date.now()}_${Math.random().toString(36).substring(2, 9)}.jpg`;
+          const storageRef = ref(storage, filename);
+          const snapshot = await uploadBytes(storageRef, compressedFile, { contentType: 'image/jpeg' });
+          const downloadUrl = await getDownloadURL(snapshot.ref);
           
-          const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-            method: 'POST',
-            body: formData
-          });
-          const data = await res.json();
-          if (data.success) {
-            // ImgBB의 선명한 medium 이미지나 display URL을 사용하여 깨끗한 화질 유지
-            const bestPreviewUrl = data.data.medium?.url || data.data.display_url || data.data.url;
-            setSharePhotos(prev => prev.map(p => p.id === tempId ? { ...p, url: data.data.url, thumbUrl: bestPreviewUrl, isUploading: false } : p));
-          } else {
-            setSharePhotos(prev => prev.filter(p => p.id !== tempId));
-          }
+          setSharePhotos(prev => prev.map(p => p.id === tempId ? { ...p, url: downloadUrl, thumbUrl: downloadUrl, isUploading: false } : p));
         } catch (err) {
           console.error("Share photo upload error", err);
+          alert("사진 업로드 중 오류가 발생했습니다: " + (err.message || "Storage 권한 또는 네트워크 오류"));
           // 실패 시 임시 이미지 제거
           setSharePhotos(prev => prev.filter(p => p.id !== tempId));
         }
