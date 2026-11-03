@@ -660,6 +660,7 @@ function App() {
 
   // === 현재위치공유 (locationShare) 상태 및 핸들러 ===
   const [locPhoto, setLocPhoto] = useState(null); // 미리보기용 DataURL
+  const [isLocationResultView, setIsLocationResultView] = useState(false); // 별도 한화면 맞춤 결과 뷰
   const [locPhotoBlob, setLocPhotoBlob] = useState(null); // 공유/저장용 Blob
   const [locCoords, setLocCoords] = useState(null); // { lat, lng, accuracy }
   const [locAddress, setLocAddress] = useState({ roadAddress: '', jibunAddress: '', fullAddress: '' });
@@ -761,7 +762,8 @@ function App() {
     const reader = new FileReader();
     reader.onload = (event) => {
       setLocPhoto(event.target.result);
-      showLocToast('📸 사진이 등록되었습니다. 현재 위치를 확인합니다.');
+      setIsLocationResultView(true);
+      window.history.pushState({ type: 'modal', modal: 'locationResult' }, '');
       refreshLocation(true);
     };
     reader.readAsDataURL(file);
@@ -771,6 +773,7 @@ function App() {
   const handleClearLocPhoto = () => {
     setLocPhoto(null);
     setLocPhotoBlob(null);
+    setIsLocationResultView(false);
     showLocToast('사진이 제거되었습니다.');
   };
 
@@ -1441,6 +1444,8 @@ function App() {
       const state = e.state;
       if (fullScreenData.images.length > 0) {
         setFullScreenData({ images: [], currentIndex: 0 });
+      } else if (isLocationResultView) {
+        setIsLocationResultView(false);
       } else if (isCalendarOpen) {
         setIsCalendarOpen(false);
       } else if (isShareWriting) {
@@ -1453,7 +1458,7 @@ function App() {
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [fullScreenData, isCalendarOpen, isShareWriting]);
+  }, [fullScreenData, isLocationResultView, isCalendarOpen, isShareWriting]);
 
   const handleTabChange = (tab) => {
     if (activeTab === tab) return;
@@ -2486,7 +2491,10 @@ function App() {
                     src={locPhoto}
                     alt="현장 사진 미리보기"
                     className="loc-photo-img"
-                    onClick={() => openFullScreen([locPhoto], 0)}
+                    onClick={() => {
+                      setIsLocationResultView(true);
+                      window.history.pushState({ type: 'modal', modal: 'locationResult' }, '');
+                    }}
                   />
                   <div className="loc-photo-badge">
                     ⏰ {locTimestamp || '촬영 완료'}
@@ -2523,7 +2531,18 @@ function App() {
               )}
 
               {locPhoto && (
-                <div className="loc-photo-btn-group" style={{ marginTop: '12px' }}>
+                <>
+                  <button
+                    className="loc-open-result-btn"
+                    style={{ marginTop: '12px' }}
+                    onClick={() => {
+                      setIsLocationResultView(true);
+                      window.history.pushState({ type: 'modal', modal: 'locationResult' }, '');
+                    }}
+                  >
+                    📱 한 화면 보기 (사진+지도+주소)
+                  </button>
+                  <div className="loc-photo-btn-group" style={{ marginTop: '10px' }}>
                   <label className="loc-capture-btn-sm">
                     🔄 다시 촬영
                     <input
@@ -2544,6 +2563,7 @@ function App() {
                     />
                   </label>
                 </div>
+                </>
               )}
             </div>
 
@@ -2658,17 +2678,19 @@ function App() {
 
             {/* 4. 핵심 액션 버튼 (스샷 저장 & 공유하기) */}
             <div className="loc-main-actions">
-              <button
-                className="loc-action-btn screenshot"
-                onClick={handleDownloadCard}
-                disabled={isLocExporting}
-              >
-                <span className="loc-btn-icon">📸</span>
-                <span className="loc-btn-text">
-                  {isLocExporting ? '카드 생성 중...' : '카드 스샷 저장'}
-                </span>
-                <span className="loc-btn-desc">사진 + 지도 + 주소 한 화면 카드 저장</span>
-              </button>
+              {locPhoto && (
+                <button
+                  className="loc-action-btn screenshot"
+                  onClick={() => {
+                    setIsLocationResultView(true);
+                    window.history.pushState({ type: 'modal', modal: 'locationResult' }, '');
+                  }}
+                >
+                  <span className="loc-btn-icon">📱</span>
+                  <span className="loc-btn-text">한 화면 보기 (사진+지도+주소)</span>
+                  <span className="loc-btn-desc">스마트폰 화면 맞춤 캡처용 뷰 열기</span>
+                </button>
+              )}
 
               <button
                 className="loc-action-btn share"
@@ -3230,6 +3252,83 @@ function App() {
             >
               {selectedMapPin.completed ? '✅ 수거 완료됨 (클릭 시 취소)' : '⬜ 수거 완료 처리'}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* === DEDICATED FULL-SCREEN RESULT VIEW (스마트폰 한 화면 맞춤 뷰) === */}
+      {isLocationResultView && (
+        <div className="loc-fullscreen-container">
+          {/* 상단 네비게이션 바 */}
+          <div className="loc-fullscreen-header">
+            <button
+              className="loc-back-btn"
+              onClick={() => {
+                if (window.history.state?.modal === 'locationResult') {
+                  window.history.back();
+                } else {
+                  setIsLocationResultView(false);
+                }
+              }}
+            >
+              ← 다시 촬영
+            </button>
+            <div className="loc-header-title">📍 현장 인증 화면</div>
+            <div className="loc-header-time">{locTimestamp}</div>
+          </div>
+
+          {/* 1단 [상단]: 찍은 사진 (동적 분할 flex: 1) */}
+          <div className="loc-fullscreen-photo-box">
+            {locPhoto ? (
+              <img
+                src={locPhoto}
+                alt="현장 사진"
+                className="loc-fullscreen-img"
+              />
+            ) : (
+              <div className="loc-fullscreen-no-photo">등록된 사진 없음</div>
+            )}
+          </div>
+
+          {/* 2단 [중단]: 카카오맵 (동적 분할 flex: 1) */}
+          <div className="loc-fullscreen-map-box">
+            <Map
+              center={locCoords ? { lat: locCoords.lat, lng: locCoords.lng } : DEFAULT_MAP_CENTER}
+              style={{ width: '100%', height: '100%' }}
+              level={3}
+            >
+              {locCoords && (
+                <MapMarker
+                  position={{ lat: locCoords.lat, lng: locCoords.lng }}
+                  image={{
+                    src: 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png',
+                    size: { width: 34, height: 38 }
+                  }}
+                />
+              )}
+            </Map>
+          </div>
+
+          {/* 3단 [하단]: 상세 주소 */}
+          <div className="loc-fullscreen-address-box">
+            <div className="loc-fs-addr-road">
+              <span className="loc-fs-badge">도로명</span>
+              <span className="loc-fs-road-text">
+                {locAddress.roadAddress || (isLocLocating ? '위치 확인 중...' : '(도로명 주소 확인 필요)')}
+              </span>
+            </div>
+            <div className="loc-fs-addr-jibun">
+              <span className="loc-fs-badge jibun">지번</span>
+              <span className="loc-fs-jibun-text">
+                {locAddress.jibunAddress || '-'}
+              </span>
+            </div>
+            {locCoords && (
+              <div className="loc-fs-coords">
+                📍 위도 {locCoords.lat.toFixed(6)}, 경도 {locCoords.lng.toFixed(6)}
+                {locCoords.accuracy ? ` (오차 ±${locCoords.accuracy}m)` : ''}
+              </div>
+            )}
           </div>
         </div>
       )}
