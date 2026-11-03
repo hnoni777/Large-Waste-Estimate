@@ -87,6 +87,31 @@ const getClientId = () => {
 
 const myClientId = getClientId();
 
+function drawRoundRect(ctx, x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
+
+function drawFittedText(ctx, text, x, y, maxWidth, initialFontSize, fontWeight = 'bold', color = '#0f172a') {
+  let size = initialFontSize;
+  ctx.font = `${fontWeight} ${size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+  while (ctx.measureText(text).width > maxWidth && size > 16) {
+    size -= 2;
+    ctx.font = `${fontWeight} ${size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+  }
+  ctx.fillStyle = color;
+  ctx.fillText(text, x, y);
+}
+
 function FullScreenImageViewer({ images, currentIndex, onIndexChange, onClose }) {
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -485,6 +510,364 @@ function App() {
       }
     };
   }, []);
+
+  // === 현재위치공유 (locationShare) 상태 및 핸들러 ===
+  const [locPhoto, setLocPhoto] = useState(null); // 미리보기용 DataURL
+  const [locPhotoBlob, setLocPhotoBlob] = useState(null); // 공유/저장용 Blob
+  const [locCoords, setLocCoords] = useState(null); // { lat, lng, accuracy }
+  const [locAddress, setLocAddress] = useState({ roadAddress: '', jibunAddress: '', fullAddress: '' });
+  const [locTimestamp, setLocTimestamp] = useState('');
+  const [isLocLocating, setIsLocLocating] = useState(false);
+  const [isLocExporting, setIsLocExporting] = useState(false);
+  const [locToast, setLocToast] = useState('');
+  const [locMap, setLocMap] = useState(null);
+  const locToastTimeoutRef = useRef(null);
+
+  const showLocToast = (msg) => {
+    setLocToast(msg);
+    if (locToastTimeoutRef.current) clearTimeout(locToastTimeoutRef.current);
+    locToastTimeoutRef.current = setTimeout(() => {
+      setLocToast('');
+    }, 2800);
+  };
+
+  const fetchAddressForLocation = (lat, lng, accuracy) => {
+    if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services) {
+      setIsLocLocating(false);
+      return;
+    }
+    const geocoder = new window.kakao.maps.services.Geocoder();
+    geocoder.coord2Address(lng, lat, (result, status) => {
+      setIsLocLocating(false);
+      if (status === window.kakao.maps.services.Status.OK && result && result[0]) {
+        const item = result[0];
+        const roadAddr = item.road_address ? item.road_address.address_name : '';
+        const buildingName = item.road_address?.building_name ? ` (${item.road_address.building_name})` : '';
+        const jibunAddr = item.address ? item.address.address_name : '';
+        const finalRoad = roadAddr ? `${roadAddr}${buildingName}` : '';
+        
+        setLocAddress({
+          roadAddress: finalRoad,
+          jibunAddress: jibunAddr,
+          fullAddress: finalRoad || jibunAddr
+        });
+        showLocToast('📍 위치 및 주소를 확인했습니다.');
+      } else {
+        setLocAddress({
+          roadAddress: '',
+          jibunAddress: '주소를 찾을 수 없는 위치입니다.',
+          fullAddress: '주소를 찾을 수 없는 위치입니다.'
+        });
+        showLocToast('주소 변환에 실패했습니다.');
+      }
+    });
+  };
+
+  const refreshLocation = (force = false) => {
+    if (!navigator.geolocation) {
+      showLocToast('GPS를 지원하지 않는 브라우저입니다.');
+      return;
+    }
+    setIsLocLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const accuracy = Math.round(pos.coords.accuracy);
+        setLocCoords({ lat, lng, accuracy });
+        fetchAddressForLocation(lat, lng, accuracy);
+        if (locMap) {
+          locMap.panTo(new window.kakao.maps.LatLng(lat, lng));
+        }
+      },
+      (err) => {
+        console.warn('GPS Error in locationShare:', err);
+        setIsLocLocating(false);
+        showLocToast('위치를 가져올 수 없습니다. GPS 권한을 확인해주세요.');
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: force ? 0 : 30000 }
+    );
+  };
+
+  useEffect(() => {
+    if (activeTab === 'locationShare') {
+      if (!locCoords) {
+        refreshLocation(true);
+      }
+      if (!locTimestamp) {
+        const now = new Date();
+        const timeStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+        setLocTimestamp(timeStr);
+      }
+    }
+  }, [activeTab]);
+
+  const handleLocPhotoCapture = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    setLocTimestamp(timeStr);
+
+    setLocPhotoBlob(file);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setLocPhoto(event.target.result);
+      showLocToast('📸 사진이 등록되었습니다. 현재 위치를 확인합니다.');
+      refreshLocation(true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleClearLocPhoto = () => {
+    setLocPhoto(null);
+    setLocPhotoBlob(null);
+    showLocToast('사진이 제거되었습니다.');
+  };
+
+  const generateLocationCardCanvas = async () => {
+    const width = 1000;
+    let imgObj = null;
+    let imgDrawWidth = 920;
+    let imgDrawHeight = 0;
+
+    if (locPhoto) {
+      imgObj = await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = locPhoto;
+      });
+      if (imgObj) {
+        const aspect = imgObj.naturalHeight / imgObj.naturalWidth;
+        imgDrawHeight = Math.min(1000, Math.round(imgDrawWidth * aspect));
+      }
+    }
+
+    const headerHeight = 150;
+    const photoSectionHeight = imgObj ? (imgDrawHeight + 40) : 0;
+    const addressBoxHeight = 360;
+    const footerHeight = 70;
+    const totalHeight = headerHeight + photoSectionHeight + addressBoxHeight + footerHeight;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = totalHeight;
+    const ctx = canvas.getContext('2d');
+
+    // 1. 배경
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(0, 0, width, totalHeight);
+
+    // 2. 상단 헤더 배너
+    const grad = ctx.createLinearGradient(0, 0, width, 0);
+    grad.addColorStop(0, '#1e3a8a');
+    grad.addColorStop(1, '#2563eb');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, headerHeight);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 44px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('📍 현장 위치 및 사진 인증', 40, 70);
+
+    ctx.fillStyle = '#93c5fd';
+    ctx.font = '500 28px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText(`촬영 및 측정: ${locTimestamp || new Date().toLocaleString('ko-KR')}`, 40, 115);
+
+    let currentY = headerHeight + 30;
+
+    // 3. 사진 섹션
+    if (imgObj) {
+      const imgX = (width - imgDrawWidth) / 2;
+      const imgY = currentY;
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetY = 6;
+      ctx.fillStyle = '#ffffff';
+      drawRoundRect(ctx, imgX - 6, imgY - 6, imgDrawWidth + 12, imgDrawHeight + 12, 16);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      drawRoundRect(ctx, imgX, imgY, imgDrawWidth, imgDrawHeight, 12);
+      ctx.clip();
+      ctx.drawImage(imgObj, imgX, imgY, imgDrawWidth, imgDrawHeight);
+      ctx.restore();
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+      const badgeW = 260;
+      const badgeH = 40;
+      drawRoundRect(ctx, imgX + imgDrawWidth - badgeW - 16, imgY + imgDrawHeight - badgeH - 16, badgeW, badgeH, 8);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '600 20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText(locTimestamp ? locTimestamp.slice(11) : '', imgX + imgDrawWidth - badgeW + 14, imgY + imgDrawHeight - 22);
+
+      currentY += imgDrawHeight + 35;
+    }
+
+    // 4. 주소 카드 박스
+    const cardX = 40;
+    const cardW = width - 80;
+    const cardH = addressBoxHeight - 30;
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.08)';
+    ctx.shadowBlur = 14;
+    ctx.shadowOffsetY = 4;
+    ctx.fillStyle = '#ffffff';
+    drawRoundRect(ctx, cardX, currentY, cardW, cardH, 18);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 2;
+    drawRoundRect(ctx, cardX, currentY, cardW, cardH, 18);
+    ctx.stroke();
+
+    // 도로명 주소 행
+    ctx.fillStyle = '#2563eb';
+    ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('🏢 도로명 주소', cardX + 30, currentY + 52);
+
+    const roadText = locAddress.roadAddress || (locAddress.jibunAddress ? '(도로명 주소 확인 필요)' : '위치 측정 대기 중...');
+    drawFittedText(ctx, roadText, cardX + 30, currentY + 102, cardW - 60, 36, 'bold', '#0f172a');
+
+    ctx.strokeStyle = '#f1f5f9';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cardX + 30, currentY + 130);
+    ctx.lineTo(cardX + cardW - 30, currentY + 130);
+    ctx.stroke();
+
+    // 지번 주소 행
+    ctx.fillStyle = '#64748b';
+    ctx.font = '600 26px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('🏡 지번 주소', cardX + 30, currentY + 172);
+
+    const jibunText = locAddress.jibunAddress || '-';
+    drawFittedText(ctx, jibunText, cardX + 30, currentY + 218, cardW - 60, 32, '500', '#334155');
+
+    // GPS 좌표 행
+    const gpsText = locCoords 
+      ? `🌐 GPS: 위도 ${locCoords.lat.toFixed(6)}, 경도 ${locCoords.lng.toFixed(6)} (오차 ±${locCoords.accuracy || 10}m)`
+      : '🌐 GPS 좌표 확인 중...';
+    drawFittedText(ctx, gpsText, cardX + 30, currentY + 278, cardW - 60, 24, '500', '#0284c7');
+
+    // 5. 하단 워터마크
+    currentY += cardH + 40;
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '500 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('대형폐기물 현장 지원 시스템 • 위치 공유 인증 카드', width / 2, currentY);
+
+    return canvas;
+  };
+
+  const handleDownloadCard = async () => {
+    setIsLocExporting(true);
+    try {
+      const canvas = await generateLocationCardCanvas();
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          showLocToast('카드 이미지 생성에 실패했습니다.');
+          setIsLocExporting(false);
+          return;
+        }
+        const now = new Date();
+        const dateTag = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+        const filename = `현장위치공유_${dateTag}.jpg`;
+
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+
+        showLocToast('📸 카드 이미지가 저장되었습니다!');
+        setIsLocExporting(false);
+      }, 'image/jpeg', 0.92);
+    } catch (e) {
+      console.error('Failed to create card image:', e);
+      showLocToast('카드 저장 중 오류가 발생했습니다.');
+      setIsLocExporting(false);
+    }
+  };
+
+  const handleShareLocation = async () => {
+    const road = locAddress.roadAddress;
+    const jibun = locAddress.jibunAddress;
+    const addr = road || jibun || '현재 위치';
+    
+    const kakaoMapUrl = locCoords ? `https://map.kakao.com/link/map/현장위치,${locCoords.lat},${locCoords.lng}` : '';
+    const naverMapUrl = addr && addr !== '현재 위치'
+      ? `https://map.naver.com/v5/search/${encodeURIComponent(addr)}`
+      : (locCoords ? `https://map.naver.com/v5/search/${locCoords.lat},${locCoords.lng}` : '');
+
+    const shareTitle = `[현장 위치 공유] ${addr}`;
+    const shareText = `[현장 위치 공유]\n` +
+      (road ? `🏢 도로명: ${road}\n` : '') +
+      (jibun ? `🏡 지번: ${jibun}\n` : '') +
+      (locCoords ? `📍 GPS: ${locCoords.lat.toFixed(6)}, ${locCoords.lng.toFixed(6)}\n` : '') +
+      `⏰ 시각: ${locTimestamp || new Date().toLocaleString('ko-KR')}\n` +
+      (kakaoMapUrl ? `🗺️ 카카오맵: ${kakaoMapUrl}\n` : '') +
+      (naverMapUrl ? `🗺️ 네이버지도: ${naverMapUrl}` : '');
+
+    // 1. 카드 이미지 파일 생성 후 Web Share API 시도
+    try {
+      const canvas = await generateLocationCardCanvas();
+      const cardBlob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.92));
+      if (cardBlob) {
+        const file = new File([cardBlob], `위치공유_${Date.now()}.jpg`, { type: 'image/jpeg' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: shareTitle,
+            text: shareText,
+            files: [file]
+          });
+          showLocToast('공유가 완료되었습니다.');
+          return;
+        }
+      }
+    } catch (err) {
+      console.log('File share failed or canceled, trying text fallback:', err);
+    }
+
+    // 2. 텍스트 Web Share API 시도
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText
+        });
+        showLocToast('공유가 완료되었습니다.');
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        console.warn('Text share failed:', err);
+      }
+    }
+
+    // 3. 클립보드 복사 폴백
+    try {
+      await navigator.clipboard.writeText(shareText);
+      showLocToast('📋 위치 및 지도 링크가 복사되었습니다!');
+    } catch (e) {
+      showLocToast('공유를 지원하지 않는 브라우저입니다.');
+    }
+  };
+
+  const handleCopyAddress = (text) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    showLocToast('📋 주소가 복사되었습니다.');
+  };
 
   // 배출현황 관련 상태
   const [allParsedData, setAllParsedData] = useState([])
@@ -1810,12 +2193,13 @@ function App() {
   return (
     <>
       <header className="app-header" style={activeTab === 'share' && shareViewMode === 'map' && !isShareWriting ? { padding: '10px 15px' } : {}}>
-        <h1 className="app-title">{activeTab === 'share' ? '폐기물 공유' : '폐가구처리 매니저'}</h1>
+        <h1 className="app-title">{activeTab === 'share' ? '폐기물 공유' : activeTab === 'locationShare' ? '현재위치 공유' : '폐가구처리 매니저'}</h1>
         {activeTab !== 'share' && (
           <div className="app-subtitle">
             {activeTab === 'search' && '🔍 품목검색'}
             {activeTab === 'cart' && '🧾 견적 총비용'}
             {activeTab === 'status' && '📋 접수현황 관리'}
+            {activeTab === 'locationShare' && '📍 현장 사진 및 위치 공유'}
           </div>
         )}
       </header>
@@ -1918,255 +2302,224 @@ function App() {
           </div>
         )}
 
-        {/* === STATUS TAB (폐가구접수현황) === */}
-        {activeTab === 'status' && (
-          <div className="tab-status">
-            <div className="source-tabs" style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-              <button 
-                className={`source-tab-btn ${activeSourceTab === '지구하다' ? 'active' : ''}`}
-                onClick={() => setActiveSourceTab('지구하다')}
-                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #ccc', backgroundColor: activeSourceTab === '지구하다' ? '#3b82f6' : '#fff', color: activeSourceTab === '지구하다' ? '#fff' : '#333', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', transition: 'all 0.2s' }}
-              >
-                🌍 지구하다 (신규)
-              </button>
-              <button 
-                className={`source-tab-btn ${activeSourceTab === '여기로' ? 'active' : ''}`}
-                onClick={() => setActiveSourceTab('여기로')}
-                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #ccc', backgroundColor: activeSourceTab === '여기로' ? '#3b82f6' : '#fff', color: activeSourceTab === '여기로' ? '#fff' : '#333', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', transition: 'all 0.2s' }}
-              >
-                📍 여기로 (기존)
-              </button>
-            </div>
+        {/* === LOCATION SHARE TAB (현재위치공유) === */}
+        {activeTab === 'locationShare' && (
+          <div className="tab-location-share">
+            {locToast && (
+              <div className="loc-toast-banner">
+                {locToast}
+              </div>
+            )}
 
-            {activeSourceTab === '지구하다' && (
-              <div className="upload-wrapper" style={{ padding: '0.5rem 1rem', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '10px', borderRadius: '8px', border: '1px dashed #3b82f6', marginBottom: '15px' }}>
-              <input 
-                id="excel-upload"
-                type="file" 
-                accept="application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xls,.xlsx" 
-                onChange={handleFileUpload}
-                style={{ display: 'none' }} 
-              />
-              <label htmlFor="excel-upload" className="upload-btn" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', margin: 0, whiteSpace: 'nowrap', borderRadius: '6px' }}>
-                엑셀자료 서버전송
-              </label>
-              <div style={{ textAlign: 'right', flex: 1, overflow: 'hidden' }}>
-                {fileName && (
-                  <>
-                    <p className="file-name" style={{ margin: 0, color: 'var(--primary-color)', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {fileName}
-                    </p>
-                    {updatedAt && (
-                      <p style={{ margin: 0, fontSize: '0.7rem', color: '#666' }}>
-                        {new Date(updatedAt).toLocaleString()}
-                      </p>
-                    )}
-                  </>
+            {/* 1. 현장 사진 영역 */}
+            <div className="loc-card-box">
+              <div className="loc-card-header">
+                <span className="loc-card-title">📷 현장 사진</span>
+                {locPhoto && (
+                  <button className="loc-delete-photo-btn" onClick={handleClearLocPhoto}>
+                    ✕ 사진 삭제
+                  </button>
                 )}
               </div>
-            </div>
-            )}
 
-            {/* 접수현황 내 검색창 및 정렬 */}
-            <div className="status-search-container" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div className="status-search-wrapper">
-                <span className="status-search-icon">🔍</span>
-                <input
-                  type="text"
-                  placeholder="이름, 아파트명, 배출번호, 연락처, 주소 검색..."
-                  value={statusSearchTerm}
-                  onChange={(e) => setStatusSearchTerm(e.target.value)}
-                  className="status-search-input"
-                />
-                {statusSearchTerm && (
-                  <button className="status-search-clear" onClick={() => setStatusSearchTerm('')}>✕</button>
-                )}
-              </div>
-              <div className="status-sort-wrapper" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '4px' }}>
-                <select 
-                  value={statusSort} 
-                  onChange={(e) => setStatusSort(e.target.value)}
-                  style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '0.9rem', backgroundColor: '#fff', cursor: 'pointer' }}
-                >
-                  <option value="excelOrder">📝 엑셀 원본 순서</option>
-                  <option value="dateDesc">📅 최근 날짜순</option>
-                  <option value="dateAsc">📅 오래된 날짜순</option>
-                </select>
-              </div>
-            </div>
-
-            {/* 검색 중일 때 헤더 (목록으로 돌아가기) */}
-            {statusSearchTerm && (
-              <div className="search-results-header">
-                <p className="search-results-title">
-                  검색 결과 (총 {statusDataByDate.reduce((acc, cur) => acc + cur.groups.length, 0)}건)
-                </p>
-                <button className="back-to-list-btn" onClick={() => setStatusSearchTerm('')}>
-                  ← 목록으로 돌아가기
-                </button>
-              </div>
-            )}
-
-            {/* 날짜 선택 버튼 */}
-            {combinedAvailableDates.length > 0 && !statusSearchTerm && (
-              <div className="date-select-wrapper">
-                <button 
-                  className="date-select-btn"
-                  onClick={openCalendar}
-                >
-                  📅 날짜 선택하기 <span className="date-count">({selectedDates.length}일 선택됨)</span>
-                </button>
-              </div>
-            )}
-
-            <div className="list-container">
-              {allParsedData.length > 0 && statusDataByDate.length === 0 ? (
-                <div className="empty-state">
-                  {statusSearchTerm ? (
-                    <>검색 결과가 없습니다.</>
-                  ) : (
-                    <>
-                      선택된 날짜에 배출 신청 건이 없습니다.<br/>
-                      (위의 날짜 선택하기 버튼을 눌러주세요)
-                    </>
-                  )}
-                </div>
-              ) : statusDataByDate.length === 0 ? (
-                <div className="empty-state">
-                  오늘 날짜의 배출 신청 건이 없습니다.<br/>
-                  (엑셀 파일을 업로드해 주세요)
+              {locPhoto ? (
+                <div className="loc-photo-preview-wrap">
+                  <img
+                    src={locPhoto}
+                    alt="현장 사진 미리보기"
+                    className="loc-photo-img"
+                    onClick={() => openFullScreen([locPhoto], 0)}
+                  />
+                  <div className="loc-photo-badge">
+                    ⏰ {locTimestamp || '촬영 완료'}
+                  </div>
                 </div>
               ) : (
-                statusDataByDate.map((dateObj) => (
-                  <div key={dateObj.date} className="date-group-section">
-                    <h3 className="date-group-header">📅 {dateObj.date} 접수건</h3>
-                    
-                    <div style={{ display: 'flex', gap: '15px', padding: '10px 16px', background: '#fff', borderBottom: '1px solid #eee' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: statusFilter === 'completed' ? 'bold' : 'normal', color: statusFilter === 'completed' ? '#0066cc' : '#333' }}>
-                        <input 
-                          type="checkbox" 
-                          checked={statusFilter === 'completed'} 
-                          onChange={(e) => setStatusFilter(e.target.checked ? 'completed' : 'all')} 
-                        />
-                        수거완료만 보기
-                      </label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: statusFilter === 'uncompleted' ? 'bold' : 'normal', color: statusFilter === 'uncompleted' ? '#0066cc' : '#333' }}>
-                        <input 
-                          type="checkbox" 
-                          checked={statusFilter === 'uncompleted'} 
-                          onChange={(e) => setStatusFilter(e.target.checked ? 'uncompleted' : 'all')} 
-                        />
-                        진행중만 보기
-                      </label>
-                    </div>
-
-                    {dateObj.groups.map((group) => {
-                      const statusData = pickupStatuses[group.id] || {};
-                      const isCompleted = statusData.completed;
-
-                      return (
-                      <div key={group.id} className={`status-card ${isCompleted ? 'completed' : ''}`}>
-                        <div className="status-header">
-                          <div 
-                            className="status-badge" 
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => handleCopyId(group.id)}
-                            title="클릭하여 복사"
-                          >
-                            배출번호: {group.id}
-                          </div>
-                          <a href={`tel:${group.phone}`} className="status-contact">📞 {group.phone}</a>
-                        </div>
-                        <div className="status-name-address">
-                          <div className="status-dates" style={{ display: 'flex', gap: '8px', marginBottom: '8px', fontSize: '0.85rem', alignItems: 'center' }}>
-                            <span className={`status-source-badge ${group.source === '지구하다' ? 'source-earth' : 'source-here'}`}>
-                              {group.source === '지구하다' ? '지구하다' : '여기로'}
-                            </span>
-                            {group.applyDate && <span className="status-date-badge apply-date" style={{ background: '#e3f2fd', color: '#1976d2', padding: '4px 8px', borderRadius: '4px' }}>신청일: {group.applyDate}</span>}
-                            {group.pickupDate && <span className="status-date-badge pickup-date" style={{ background: '#e8f5e9', color: '#388e3c', padding: '4px 8px', borderRadius: '4px' }}>배출일: {group.pickupDate}</span>}
-                          </div>
-                          <div className="status-name">👤 {group.name}</div>
-                          <div className="status-address-row">
-                            <div className="status-address">
-                              <div>
-                                📍 {group.address} {group.detailAddress ? `${group.detailAddress} ` : ''}{group.dong && !group.address.includes(group.dong) ? `(${group.dong})` : ''}
-                                {getAptName(group.address) && (
-                                  <span style={{ color: '#0066cc', fontWeight: 'bold', marginLeft: '6px' }}>
-                                    ({getAptName(group.address)})
-                                  </span>
-                                )}
-                              </div>
-                              {group.memo && <div className="status-memo" style={{ marginTop: '4px', color: '#d32f2f', fontSize: '0.9em', fontWeight: 'bold' }}>메모: {group.memo}</div>}
-                            </div>
-                            <a 
-                              href={`https://map.naver.com/v5/search/${encodeURIComponent(group.address)}`} 
-                              target="_blank" 
-                              rel="noreferrer" 
-                              className="map-link-btn"
-                            >
-                              🗺️ 지도
-                            </a>
-                          </div>
-                        </div>
-                        <div className="status-items">
-                          {group.items.map((item, idx) => (
-                            <div key={idx} className="status-item-row">
-                              <span className="s-item-name">{item.item}</span>
-                              <span className="s-item-spec">{item.spec}</span>
-                              <span className="s-item-qty">x{item.qty}</span>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* 사진 업로드 영역 */}
-                        <div className="photo-actions">
-                          <div className="photo-upload-box">
-                            {(optimisticImages[`${group.id}_before`] || statusData.beforeImage) ? (
-                              <div className="uploaded-photo-wrapper" onClick={() => openFullScreen([optimisticImages[`${group.id}_before`] || statusData.beforeImage], 0)}>
-                                <img src={optimisticImages[`${group.id}_before`] || statusData.beforeImage} alt="수거 전" className={`photo-thumb ${uploadingImages[`${group.id}_before`] ? 'uploading-blur' : ''}`} loading="lazy" decoding="async" />
-                                <div className="photo-label">📷 수거 전</div>
-                                {uploadingImages[`${group.id}_before`] && <div className="photo-upload-spinner">⏳</div>}
-                                {!uploadingImages[`${group.id}_before`] && <button className="photo-delete-btn" onClick={(e) => deleteImage(e, group.id, 'before')}>✕</button>}
-                              </div>
-                            ) : (
-                              <>
-                                <input type="file" id={`before_${group.id}`} accept="image/*" capture="environment" style={{display:'none'}} onChange={(e) => handleImageUpload(e, group.id, 'before')} />
-                                <label htmlFor={`before_${group.id}`} className="photo-upload-btn">📷 수거 전 등록</label>
-                              </>
-                            )}
-                          </div>
-                          
-                          <div className="photo-upload-box">
-                            {(optimisticImages[`${group.id}_after`] || statusData.afterImage) ? (
-                              <div className="uploaded-photo-wrapper" onClick={() => openFullScreen([optimisticImages[`${group.id}_after`] || statusData.afterImage], 0)}>
-                                <img src={optimisticImages[`${group.id}_after`] || statusData.afterImage} alt="수거 후" className={`photo-thumb ${uploadingImages[`${group.id}_after`] ? 'uploading-blur' : ''}`} loading="lazy" decoding="async" />
-                                <div className="photo-label">📸 수거 후</div>
-                                {uploadingImages[`${group.id}_after`] && <div className="photo-upload-spinner">⏳</div>}
-                                {!uploadingImages[`${group.id}_after`] && <button className="photo-delete-btn" onClick={(e) => deleteImage(e, group.id, 'after')}>✕</button>}
-                              </div>
-                            ) : (
-                              <>
-                                <input type="file" id={`after_${group.id}`} accept="image/*" capture="environment" style={{display:'none'}} onChange={(e) => handleImageUpload(e, group.id, 'after')} />
-                                <label htmlFor={`after_${group.id}`} className="photo-upload-btn">📸 수거 후 등록</label>
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="status-actions">
-                          <button 
-                            className={`complete-btn ${isCompleted ? 'is-completed' : ''}`}
-                            onClick={() => toggleComplete(group.id, isCompleted)}
-                          >
-                            {isCompleted ? '✅ 수거 완료됨 (클릭 시 취소)' : '⬜ 수거 완료 처리'}
-                          </button>
-                        </div>
-                      </div>
-                      )
-                    })}
+                <div className="loc-photo-placeholder">
+                  <div className="loc-placeholder-icon">📸</div>
+                  <div className="loc-placeholder-text">
+                    현장 사진을 촬영하거나 앨범에서 선택해주세요
                   </div>
-                ))
+                  <div className="loc-photo-btn-group">
+                    <label className="loc-capture-btn camera">
+                      📷 카메라 촬영
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleLocPhotoCapture}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                    <label className="loc-capture-btn gallery">
+                      🖼️ 앨범 선택
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLocPhotoCapture}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                  </div>
+                </div>
               )}
+
+              {locPhoto && (
+                <div className="loc-photo-btn-group" style={{ marginTop: '12px' }}>
+                  <label className="loc-capture-btn-sm">
+                    🔄 다시 촬영
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleLocPhotoCapture}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                  <label className="loc-capture-btn-sm">
+                    🖼️ 앨범에서 변경
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLocPhotoCapture}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
+
+            {/* 2. 지도 영역 */}
+            <div className="loc-card-box">
+              <div className="loc-card-header">
+                <span className="loc-card-title">🗺️ 현재 위치 지도</span>
+                <button
+                  className="loc-refresh-btn"
+                  onClick={() => refreshLocation(true)}
+                  disabled={isLocLocating}
+                >
+                  {isLocLocating ? '📍 측정 중...' : '🔄 위치 갱신'}
+                </button>
+              </div>
+
+              <div className="loc-map-wrapper">
+                <Map
+                  center={locCoords ? { lat: locCoords.lat, lng: locCoords.lng } : DEFAULT_MAP_CENTER}
+                  style={{ width: '100%', height: '260px', borderRadius: '10px' }}
+                  level={3}
+                  onCreate={(m) => setLocMap(m)}
+                >
+                  {locCoords && (
+                    <MapMarker
+                      position={{ lat: locCoords.lat, lng: locCoords.lng }}
+                      image={{
+                        src: 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png',
+                        size: { width: 34, height: 38 }
+                      }}
+                    />
+                  )}
+                </Map>
+                {locCoords?.accuracy && (
+                  <div className="loc-accuracy-tag">
+                    오차범위 ±{locCoords.accuracy}m
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 3. 상세 주소 카드 */}
+            <div className="loc-card-box loc-address-card">
+              <div className="loc-card-header">
+                <span className="loc-card-title">📍 상세 주소 정보</span>
+                {locAddress.fullAddress && (
+                  <button
+                    className="loc-copy-btn"
+                    onClick={() => handleCopyAddress(locAddress.fullAddress)}
+                  >
+                    📋 주소 복사
+                  </button>
+                )}
+              </div>
+
+              <div className="loc-address-content">
+                <div className="loc-addr-row road">
+                  <div className="loc-addr-label">🏢 도로명 주소</div>
+                  <div className="loc-addr-value">
+                    {locAddress.roadAddress || (isLocLocating ? '위치 확인 중...' : '(도로명 주소 없음)')}
+                  </div>
+                </div>
+
+                <div className="loc-addr-row jibun">
+                  <div className="loc-addr-label">🏡 지번 주소</div>
+                  <div className="loc-addr-value">
+                    {locAddress.jibunAddress || (isLocLocating ? '위치 확인 중...' : '(지번 주소 없음)')}
+                  </div>
+                </div>
+
+                {locCoords && (
+                  <div className="loc-addr-row gps">
+                    <div className="loc-addr-label">🌐 GPS 좌표</div>
+                    <div className="loc-addr-value-sm">
+                      위도: {locCoords.lat.toFixed(6)} / 경도: {locCoords.lng.toFixed(6)}
+                    </div>
+                  </div>
+                )}
+
+                <div className="loc-addr-row time">
+                  <div className="loc-addr-label">⏰ 측정 일시</div>
+                  <div className="loc-addr-value-sm">
+                    {locTimestamp || '측정 전'}
+                  </div>
+                </div>
+              </div>
+
+              {/* 외부 지도 바로가기 버튼 */}
+              <div className="loc-external-map-links">
+                {locCoords && (
+                  <a
+                    href={`https://map.kakao.com/link/map/현장위치,${locCoords.lat},${locCoords.lng}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="loc-ext-link kakao"
+                  >
+                    🟡 카카오맵 길찾기
+                  </a>
+                )}
+                {(locAddress.roadAddress || locAddress.jibunAddress) && (
+                  <a
+                    href={`https://map.naver.com/v5/search/${encodeURIComponent(locAddress.roadAddress || locAddress.jibunAddress)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="loc-ext-link naver"
+                  >
+                    🟢 네이버 지도 길찾기
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* 4. 핵심 액션 버튼 (스샷 저장 & 공유하기) */}
+            <div className="loc-main-actions">
+              <button
+                className="loc-action-btn screenshot"
+                onClick={handleDownloadCard}
+                disabled={isLocExporting}
+              >
+                <span className="loc-btn-icon">📸</span>
+                <span className="loc-btn-text">
+                  {isLocExporting ? '카드 생성 중...' : '카드 스샷 저장'}
+                </span>
+                <span className="loc-btn-desc">갤러리에 인증 카드 이미지 다운로드</span>
+              </button>
+
+              <button
+                className="loc-action-btn share"
+                onClick={handleShareLocation}
+              >
+                <span className="loc-btn-icon">🚀</span>
+                <span className="loc-btn-text">카카오톡 / 모바일 공유</span>
+                <span className="loc-btn-desc">사진+주소+지도링크 전송</span>
+              </button>
             </div>
           </div>
         )}
@@ -2743,11 +3096,11 @@ function App() {
           )}
         </button>
         <button 
-          className={`nav-item ${activeTab === 'status' ? 'active' : ''}`}
-          onClick={() => handleTabChange('status')}
+          className={`nav-item ${activeTab === 'locationShare' ? 'active' : ''}`}
+          onClick={() => handleTabChange('locationShare')}
         >
-          <span className="nav-icon">📋</span>
-          <span>접수현황</span>
+          <span className="nav-icon">📍</span>
+          <span>현재위치공유</span>
         </button>
         <button 
           className={`nav-item ${activeTab === 'share' ? 'active' : ''}`}

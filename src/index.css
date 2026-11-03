@@ -1508,4 +1508,354 @@ body {
   white-space: nowrap;
 }
 
+/* === LOCATION SHARE TAB (현재위치공유) === */
+.tab-location-share {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px 14px 100px 14px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.loc-toast-banner {
+  background: #1e293b;
+  color: #f8fafc;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.loc-card-box {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.loc-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.loc-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.loc-delete-photo-btn {
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.loc-delete-photo-btn:active {
+  background: #fca5a5;
+}
+
+.loc-photo-placeholder {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 28px 16px;
+  text-align: center;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.loc-placeholder-icon {
+  font-size: 2.8rem;
+}
+
+.loc-placeholder-text {
+  font-size: 0.95rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.loc-photo-preview-wrap {
+  position: relative;
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.loc-photo-img {
+  width: 100%;
+  max-height: 380px;
+  object-fit: contain;
+  display: block;
+  cursor: pointer;
+}
+
+.loc-photo-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+}
+
+.loc-photo-btn-group {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.loc-capture-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: transform 0.1s, opacity 0.15s;
+}
+
+.loc-capture-btn:active {
+  transform: scale(0.98);
+}
+
+.loc-capture-btn.camera {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+}
+
+.loc-capture-btn.gallery {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.loc-capture-btn-sm {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  text-align: center;
+  cursor: pointer;
+}
+
+.loc-refresh-btn {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.loc-refresh-btn:hover {
+  background: #dbeafe;
+}
+
+.loc-map-wrapper {
+  position: relative;
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+}
+
+.loc-accuracy-tag {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0369a1;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+.loc-copy-btn {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.loc-copy-btn:hover {
+  background: #e2e8f0;
+}
+
+.loc-address-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+}
+
+.loc-addr-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.loc-addr-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.loc-addr-row.road .loc-addr-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #1e3a8a;
+  word-break: keep-all;
+  line-height: 1.4;
+}
+
+.loc-addr-row.jibun .loc-addr-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.loc-addr-value-sm {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.loc-external-map-links {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.loc-ext-link {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s;
+}
+
+.loc-ext-link.kakao {
+  background: #fee500;
+  color: #191919;
+}
+
+.loc-ext-link.naver {
+  background: #03c75a;
+  color: #ffffff;
+}
+
+.loc-ext-link:active {
+  opacity: 0.85;
+}
+
+.loc-main-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.loc-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 20px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.15s;
+  text-align: center;
+  user-select: none;
+}
+
+.loc-action-btn:active {
+  transform: scale(0.98);
+}
+
+.loc-action-btn.screenshot {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+}
+
+.loc-action-btn.share {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+}
+
+.loc-action-btn .loc-btn-icon {
+  font-size: 1.6rem;
+  margin-bottom: 2px;
+}
+
+.loc-action-btn .loc-btn-text {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+
+.loc-action-btn .loc-btn-desc {
+  font-size: 0.8rem;
+  font-weight: 500;
+  opacity: 0.9;
+  margin-top: 2px;
+}
+
+
 
