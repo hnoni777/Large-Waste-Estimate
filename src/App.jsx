@@ -1507,13 +1507,7 @@ function App() {
       setSharedWastes(wastes);
 
       if (hasVeryRecentPost && recentDates.size > 0) {
-        setShareSelectedDates(prev => {
-          const newDates = Array.from(recentDates).filter(d => !prev.includes(d));
-          if (newDates.length > 0) {
-            return [...newDates, ...prev];
-          }
-          return prev;
-        });
+        setShareSelectedDates(prev => (prev && prev.length > 0 ? prev : [Array.from(recentDates)[0]]));
       }
     });
     return () => unsubscribeShare();
@@ -1543,21 +1537,10 @@ function App() {
       wastes.sort((a, b) => b.createdAt - a.createdAt);
       setSharedWastes(wastes);
 
-      // 강제 새로고침 시 날짜 선택을 현재 날짜 기준으로 업데이트 (앱 켜둔 상태 유지 시 누락 방지)
-      const defaultDates = [];
-      for (let i = 0; i < 2; i++) {
-        const dt = new Date();
-        dt.setDate(dt.getDate() - i);
-        defaultDates.push(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`);
-      }
-      
-      setShareSelectedDates(prev => {
-        const missing = defaultDates.filter(d => !prev.includes(d));
-        if (missing.length > 0) {
-          return Array.from(new Set([...defaultDates, ...prev]));
-        }
-        return prev;
-      });
+      // 새로고침 시 기존 선택 날짜가 있으면 그대로 유지, 비어있을 때만 오늘 1일 설정
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      setShareSelectedDates(prev => (prev && prev.length > 0 ? prev : [todayStr]));
 
       if (!silent) {
         alert('목록이 최신 상태로 갱신되었습니다.');
@@ -1966,13 +1949,8 @@ function App() {
       setShareMemo('');
       setEditingShareId(null);
       
-      // 방금 올린 글이 목록에 보이도록, 해당 날짜가 필터에 없으면 강제 추가
-      setShareSelectedDates(prev => {
-        if (!prev.includes(shareDate)) {
-          return [shareDate, ...prev];
-        }
-        return prev;
-      });
+      // 방금 올린 글의 날짜(오늘 1일)만 선택되도록 1일로 단일 설정
+      setShareSelectedDates([shareDate]);
 
       window.history.back();
     } catch (e) {
