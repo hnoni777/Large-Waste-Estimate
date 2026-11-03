@@ -727,27 +727,623 @@ function App() {
       navigator.serviceWorker.addEventListener('message', handleMessage);
     }
 
-    // 앱 시작 시 백그라운드에서 현재 위치 사전 워밍업 (초고속 캐시 위치 준비)
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          const accuracy = Math.round(pos.coords.accuracy);
-          try {
-            sessionStorage.setItem('last_loc_coords', JSON.stringify({ lat, lng, accuracy }));
-          } catch {}
-        },
-        () => {},
-        { enableHighAccuracy: false, timeout: 2500, maximumAge: 300000 }
-      );
-    }
-
     return () => {
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.removeEventListener('message', handleMessage);
       }
     };
+  }, []);
+
+  // === 현재위치공유 (locationShare) 상태 및 고속 핸들러 ===
+  const [locPhoto, setLocPhoto] = useState(null); // 미리보기용 DataURL
+  const [isLocationResultView, setIsLocationResultView] = useState(false); // 별도 한화면 맞춤 결과 뷰
+  const [locPhotoBlob, setLocPhotoBlob] = useState(null); // 공유/저장용 Blob
+  const [locCoords, setLocCoords] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('last_loc_coords');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  }); // { lat, lng, accuracy }
+  const [locAddress, setLocAddress] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('last_loc_address');
+      return saved ? JSON.parse(saved) : { roadAddress: '', jibunAddress: '', fullAddress: '' };
+    } catch {
+      return { roadAddress: '', jibunAddress: '', fullAddress: '' };
+    }
+  });
+  const [locTimestamp, setLocTimestamp] = useState('');
+  const [isLocLocating, setIsLocLocating] = useState(false);
+  const [isLocExporting, setIsLocExporting] = useState(false);
+  const [locToast, setLocToast] = useState('');
+  const [locMap, setLocMap] = useState(null);
+  const [locFullscreenMap, setLocFullscreenMap] = useState(null);
+  const [isLocSearchModalOpen, setIsLocSearchModalOpen] = useState(false);
+  const [locSearchKeyword, setLocSearchKeyword] = useState('');
+  const [locSearchResults, setLocSearchResults] = useState([]);
+
+  const saveLocCoords = (coords) => {
+    setLocCoords(coords);
+    if (coords) {
+      try { sessionStorage.setItem('last_loc_coords', JSON.stringify(coords)); } catch {}
+    }
+  };
+
+  const saveLocAddress = (addr) => {
+    setLocAddress(addr);
+    if (addr) {
+      try { sessionStorage.setItem('last_loc_address', JSON.stringify(addr)); } catch {}
+    }
+  };
+
+  const handleSearchLocAddress = (query) => {
+    if (!query || !query.trim()) return;
+    if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services) {
+      showLocToast('지도 서비스를 사용할 수 없습니다.');
+      return;
+    }
+    const geocoder = new window.kakao.maps.services.Geocoder();
+    geocoder.addressSearch(query.trim(), (result, status) => {
+      if (status === window.kakao.maps.services.Status.OK && result && result.length > 0) {
+        setLocSearchResults(result);
+      } else {
+        const ps = new window.kakao.maps.services.Places();
+        ps.keywordSearch(query.trim(), (places, pStatus) => {
+          if (pStatus === window.kakao.maps.services.Status.OK && places && places.length > 0) {
+            setLocSearchResults(places);
+          } else {
+            showLocToast('검색 결과가 없습니다. 도로명이나 지번을 정확히 입력해주세요.');
+            setLocSearchResults([]);
+          }
+        });
+      }
+    });
+  };
+
+  const handleSelectLocSearchResult = (item) => {
+    const lat = parseFloat(item.y);
+    const lng = parseFloat(item.x);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      saveLocCoords({ lat, lng, accuracy: 0 });
+      setIsLocLocating(true);
+      fetchAddressForLocation(lat, lng, 0);
+      setIsLocSearchModalOpen(false);
+      setLocSearchResults([]);
+      setLocSearchKeyword('');
+      showLocToast('📍 선택한 주소로 위치가 변경되었습니다.');
+      if (locFullscreenMap) {
+        setTimeout(() => {
+          locFullscreenMap.relayout();
+          locFullscreenMap.setCenter(new window.kakao.maps.LatLng(lat, lng));
+        }, 100);
+      }
+    }
+  };
+  const locToastTimeoutRef = useRef(null);
+
+  const showLocToast = (msg) => {
+    setLocToast(msg);
+    if (locToastTimeoutRef.current) clearTimeout(locToastTimeoutRef.current);
+    locToastTimeoutRef.current = setTimeout(() => {
+      setLocToast('');
+    }, 2800);
+  };
+
+  const fetchAddressForLocation = (lat, lng, accuracy) => {
+    if (!window.kakao || !window.kakao.maps || !window.kakao.maps.services) {
+      setIsLocLocating(false);
+      return;
+    }
+    const geocoder = new window.kakao.maps.services.Geocoder();
+    geocoder.coord2Address(lng, lat, (result, status) => {
+      setIsLocLocating(false);
+      if (status === window.kakao.maps.services.Status.OK && result && result[0]) {
+        const item = result[0];
+        const roadAddr = item.road_address ? item.road_address.address_name : '';
+        const buildingName = item.road_address?.building_name ? ` (${item.road_address.building_name})` : '';
+        const jibunAddr = item.address ? item.address.address_name : '';
+        const finalRoad = roadAddr ? `${roadAddr}${buildingName}` : '';
+        
+        saveLocAddress({
+          roadAddress: finalRoad,
+          jibunAddress: jibunAddr,
+          fullAddress: finalRoad || jibunAddr
+        });
+        showLocToast('📍 위치 및 주소를 확인했습니다.');
+      } else {
+        saveLocAddress({
+          roadAddress: '',
+          jibunAddress: '주소를 찾을 수 없는 위치입니다.',
+          fullAddress: '주소를 찾을 수 없는 위치입니다.'
+        });
+        showLocToast('주소 변환에 실패했습니다.');
+      }
+    });
+  };
+
+  // 초고속 2단계 위치 획득 (1단계: 네트워크/캐시 0.1~0.3초 -> 2단계: 백그라운드 GPS 정밀보정)
+  const refreshLocation = (force = false) => {
+    if (!navigator.geolocation) {
+      showLocToast('GPS를 지원하지 않는 브라우저입니다.');
+      return;
+    }
+
+    if (!locCoords) {
+      setIsLocLocating(true);
+    }
+
+    // 1단계: 초고속 네트워크/캐시 위치 (0.1~0.3초)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const accuracy = Math.round(pos.coords.accuracy);
+        saveLocCoords({ lat, lng, accuracy });
+        fetchAddressForLocation(lat, lng, accuracy);
+        if (locMap) locMap.panTo(new window.kakao.maps.LatLng(lat, lng));
+        if (locFullscreenMap) locFullscreenMap.panTo(new window.kakao.maps.LatLng(lat, lng));
+
+        // 2단계: 백그라운드 고정밀 GPS 수신
+        navigator.geolocation.getCurrentPosition(
+          (highPos) => {
+            const hLat = highPos.coords.latitude;
+            const hLng = highPos.coords.longitude;
+            const hAccuracy = Math.round(highPos.coords.accuracy);
+            saveLocCoords({ lat: hLat, lng: hLng, accuracy: hAccuracy });
+            fetchAddressForLocation(hLat, hLng, hAccuracy);
+            if (locMap) locMap.panTo(new window.kakao.maps.LatLng(hLat, hLng));
+            if (locFullscreenMap) locFullscreenMap.panTo(new window.kakao.maps.LatLng(hLat, hLng));
+          },
+          () => {},
+          { enableHighAccuracy: true, timeout: 6000, maximumAge: 10000 }
+        );
+      },
+      (err) => {
+        // 1단계 실패 시 2단계 고정밀 직접 재시도
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            const accuracy = Math.round(pos.coords.accuracy);
+            saveLocCoords({ lat, lng, accuracy });
+            fetchAddressForLocation(lat, lng, accuracy);
+            if (locMap) locMap.panTo(new window.kakao.maps.LatLng(lat, lng));
+            if (locFullscreenMap) locFullscreenMap.panTo(new window.kakao.maps.LatLng(lat, lng));
+          },
+          (err2) => {
+            console.warn('GPS Error in locationShare:', err2);
+            setIsLocLocating(false);
+            if (!locCoords) {
+              showLocToast('위치를 가져올 수 없습니다. GPS 권한을 확인해주세요.');
+            }
+          },
+          { enableHighAccuracy: true, timeout: 6000, maximumAge: 30000 }
+        );
+      },
+      { enableHighAccuracy: false, timeout: 2500, maximumAge: force ? 10000 : 60000 }
+    );
+  };
+
+  useEffect(() => {
+    let watchId = null;
+    if (activeTab === 'locationShare') {
+      if (!locCoords) {
+        refreshLocation(false);
+      } else if (!locAddress.roadAddress && !locAddress.jibunAddress) {
+        fetchAddressForLocation(locCoords.lat, locCoords.lng, locCoords.accuracy || 0);
+      }
+      if (!locTimestamp) {
+        const now = new Date();
+        const timeStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+        setLocTimestamp(timeStr);
+      }
+
+      // 탭에 머무는 동안 실시간 위치 워밍업 유지
+      if (navigator.geolocation) {
+        try {
+          watchId = navigator.geolocation.watchPosition(
+            (pos) => {
+              const lat = pos.coords.latitude;
+              const lng = pos.coords.longitude;
+              const accuracy = Math.round(pos.coords.accuracy);
+              saveLocCoords({ lat, lng, accuracy });
+            },
+            () => {},
+            { enableHighAccuracy: true, maximumAge: 10000, timeout: 8000 }
+          );
+        } catch (e) {
+          console.warn('watchPosition setup error:', e);
+        }
+      }
+    }
+    return () => {
+      if (watchId !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+    };
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (isLocationResultView && locFullscreenMap && locCoords) {
+      setTimeout(() => {
+        locFullscreenMap.relayout();
+        locFullscreenMap.setCenter(new window.kakao.maps.LatLng(locCoords.lat, locCoords.lng));
+      }, 150);
+    }
+  }, [isLocationResultView, locFullscreenMap, locCoords?.lat, locCoords?.lng]);
+
+  const handleLocPhotoCapture = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    const now = new Date();
+    const timeStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    setLocTimestamp(timeStr);
+    setLocPhotoBlob(file);
+
+    // 0.001초 초고속 즉시 프리뷰 표시
+    const objectUrl = URL.createObjectURL(file);
+    setLocPhoto(objectUrl);
+    setIsLocationResultView(true);
+    window.history.pushState({ type: 'modal', modal: 'locationResult' }, '');
+
+    // 사진의 EXIF GPS가 있는지 초고속 파싱 (약 5ms)
+    let photoGps = null;
+    try {
+      if (typeof exifr !== 'undefined') {
+        const gps = await exifr.gps(file).catch(() => null);
+        if (gps && typeof gps.latitude === 'number' && typeof gps.longitude === 'number') {
+          photoGps = { lat: gps.latitude, lng: gps.longitude };
+        }
+      }
+    } catch (err) {
+      console.warn('EXIF GPS error:', err);
+    }
+
+    if (photoGps) {
+      saveLocCoords({ lat: photoGps.lat, lng: photoGps.lng, accuracy: 5 });
+      fetchAddressForLocation(photoGps.lat, photoGps.lng, 5);
+      showLocToast('📷 사진 촬영 위치로 설정되었습니다.');
+    } else {
+      // 기존 위치가 있으면 그대로 유지하면서 백그라운드 갱신
+      refreshLocation(false);
+    }
+
+    // 백그라운드에서 FileReader로 영구 DataURL 생성
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setLocPhoto(event.target.result);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleClearLocPhoto = () => {
+    setLocPhoto(null);
+    setLocPhotoBlob(null);
+    setIsLocationResultView(false);
+    showLocToast('사진이 제거되었습니다.');
+  };
+
+  const generateLocationCardCanvas = async () => {
+    const width = 1000;
+    let imgObj = null;
+    let imgDrawWidth = 920;
+    let imgDrawHeight = 0;
+
+    if (locPhoto) {
+      imgObj = await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = locPhoto;
+      });
+      if (imgObj) {
+        const aspect = imgObj.naturalHeight / imgObj.naturalWidth;
+        imgDrawHeight = Math.min(620, Math.round(imgDrawWidth * aspect));
+      }
+    }
+
+    const headerHeight = 150;
+    const photoSectionHeight = imgObj ? (imgDrawHeight + 35) : 0;
+    const mapSectionHeight = 440;
+    const addressBoxHeight = 310;
+    const footerHeight = 70;
+    const totalHeight = headerHeight + photoSectionHeight + mapSectionHeight + addressBoxHeight + footerHeight;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = totalHeight;
+    const ctx = canvas.getContext('2d');
+
+    // 1. 전체 배경
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(0, 0, width, totalHeight);
+
+    // 2. 상단 헤더 배너
+    const grad = ctx.createLinearGradient(0, 0, width, 0);
+    grad.addColorStop(0, '#1e3a8a');
+    grad.addColorStop(1, '#2563eb');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, headerHeight);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 44px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('📍 현장 위치 및 사진 인증', 40, 70);
+
+    ctx.fillStyle = '#93c5fd';
+    ctx.font = '500 28px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText(`촬영 및 측정: ${locTimestamp || new Date().toLocaleString('ko-KR')}`, 40, 115);
+
+    let currentY = headerHeight + 30;
+
+    // 3. [상단] 현장 사진 섹션
+    if (imgObj) {
+      const imgX = (width - imgDrawWidth) / 2;
+      const imgY = currentY;
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.12)';
+      ctx.shadowBlur = 16;
+      ctx.shadowOffsetY = 4;
+      ctx.fillStyle = '#ffffff';
+      drawRoundRect(ctx, imgX - 4, imgY - 4, imgDrawWidth + 8, imgDrawHeight + 8, 16);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      drawRoundRect(ctx, imgX, imgY, imgDrawWidth, imgDrawHeight, 14);
+      ctx.clip();
+      ctx.drawImage(imgObj, imgX, imgY, imgDrawWidth, imgDrawHeight);
+      ctx.restore();
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+      const badgeW = 260;
+      const badgeH = 40;
+      drawRoundRect(ctx, imgX + imgDrawWidth - badgeW - 16, imgY + imgDrawHeight - badgeH - 16, badgeW, badgeH, 8);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '600 20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText(locTimestamp ? locTimestamp.slice(11) : '', imgX + imgDrawWidth - badgeW + 14, imgY + imgDrawHeight - 22);
+
+      currentY += imgDrawHeight + 30;
+    }
+
+    // 4. [중단] 위치 지도 섹션 (실제 지도 + 마커 핀)
+    const mapX = (width - 920) / 2;
+    const mapW = 920;
+    const mapH = 400;
+    const targetLat = locCoords ? locCoords.lat : DEFAULT_MAP_CENTER.lat;
+    const targetLng = locCoords ? locCoords.lng : DEFAULT_MAP_CENTER.lng;
+
+    await drawMapTilesToCanvas(ctx, targetLat, targetLng, mapX, currentY, mapW, mapH, 16);
+    currentY += mapH + 30;
+
+    // 5. [하단] 상세 주소 카드 박스
+    const cardX = 40;
+    const cardW = width - 80;
+    const cardH = addressBoxHeight - 35;
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.08)';
+    ctx.shadowBlur = 14;
+    ctx.shadowOffsetY = 4;
+    ctx.fillStyle = '#ffffff';
+    drawRoundRect(ctx, cardX, currentY, cardW, cardH, 16);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 2;
+    drawRoundRect(ctx, cardX, currentY, cardW, cardH, 16);
+    ctx.stroke();
+
+    // 도로명 주소 행
+    ctx.fillStyle = '#2563eb';
+    ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('🏢 도로명 주소', cardX + 30, currentY + 48);
+
+    const roadText = locAddress.roadAddress || (locAddress.jibunAddress ? '(도로명 주소 확인 필요)' : '위치 측정 대기 중...');
+    drawFittedText(ctx, roadText, cardX + 30, currentY + 95, cardW - 60, 34, 'bold', '#0f172a');
+
+    ctx.strokeStyle = '#f1f5f9';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cardX + 30, currentY + 120);
+    ctx.lineTo(cardX + cardW - 30, currentY + 120);
+    ctx.stroke();
+
+    // 지번 주소 행
+    ctx.fillStyle = '#64748b';
+    ctx.font = '600 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('🏡 지번 주소', cardX + 30, currentY + 160);
+
+    const jibunText = locAddress.jibunAddress || '-';
+    drawFittedText(ctx, jibunText, cardX + 30, currentY + 200, cardW - 60, 30, '500', '#334155');
+
+    // GPS 좌표 행
+    const gpsText = locCoords 
+      ? `🌐 GPS: 위도 ${locCoords.lat.toFixed(6)}, 경도 ${locCoords.lng.toFixed(6)} (오차 ±${locCoords.accuracy || 10}m)`
+      : '🌐 GPS 좌표 확인 중...';
+    drawFittedText(ctx, gpsText, cardX + 30, currentY + 248, cardW - 60, 22, '500', '#0284c7');
+
+    // 6. 하단 워터마크
+    currentY += cardH + 35;
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '500 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('대형폐기물 현장 지원 시스템 • 위치 공유 인증 카드', width / 2, currentY);
+
+    return canvas;
+  };
+
+  const handleDownloadCard = async () => {
+    setIsLocExporting(true);
+    try {
+      const canvas = await generateLocationCardCanvas();
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          showLocToast('카드 이미지 생성에 실패했습니다.');
+          setIsLocExporting(false);
+          return;
+        }
+        const now = new Date();
+        const dateTag = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+        const filename = `현장위치공유_${dateTag}.jpg`;
+
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+
+        showLocToast('📸 카드 이미지가 저장되었습니다!');
+        setIsLocExporting(false);
+      }, 'image/jpeg', 0.92);
+    } catch (e) {
+      console.error('Failed to create card image:', e);
+      showLocToast('카드 저장 중 오류가 발생했습니다.');
+      setIsLocExporting(false);
+    }
+  };
+
+  const handleShareLocation = async () => {
+    const road = locAddress.roadAddress;
+    const jibun = locAddress.jibunAddress;
+    const addr = road || jibun || '현재 위치';
+    
+    const kakaoMapUrl = locCoords ? `https://map.kakao.com/link/map/현장위치,${locCoords.lat},${locCoords.lng}` : '';
+    const naverMapUrl = addr && addr !== '현재 위치'
+      ? `https://map.naver.com/v5/search/${encodeURIComponent(addr)}`
+      : (locCoords ? `https://map.naver.com/v5/search/${locCoords.lat},${locCoords.lng}` : '');
+
+    const shareTitle = `[현장 위치 공유] ${addr}`;
+    const shareText = `[현장 위치 공유]\n` +
+      (road ? `🏢 도로명: ${road}\n` : '') +
+      (jibun ? `🏡 지번: ${jibun}\n` : '') +
+      (locCoords ? `📍 GPS: ${locCoords.lat.toFixed(6)}, ${locCoords.lng.toFixed(6)}\n` : '') +
+      `⏰ 시각: ${locTimestamp || new Date().toLocaleString('ko-KR')}\n` +
+      (kakaoMapUrl ? `🗺️ 카카오맵: ${kakaoMapUrl}\n` : '') +
+      (naverMapUrl ? `🗺️ 네이버지도: ${naverMapUrl}` : '');
+
+    // 1. 카드 이미지 파일 생성 후 Web Share API 시도
+    try {
+      const canvas = await generateLocationCardCanvas();
+      const cardBlob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.92));
+      if (cardBlob) {
+        const file = new File([cardBlob], `위치공유_${Date.now()}.jpg`, { type: 'image/jpeg' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: shareTitle,
+            text: shareText,
+            files: [file]
+          });
+          showLocToast('공유가 완료되었습니다.');
+          return;
+        }
+      }
+    } catch (err) {
+      console.log('File share failed or canceled, trying text fallback:', err);
+    }
+
+    // 2. 텍스트 Web Share API 시도
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText
+        });
+        showLocToast('공유가 완료되었습니다.');
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        console.warn('Text share failed:', err);
+      }
+    }
+
+    // 3. 클립보드 복사 폴백
+    try {
+      await navigator.clipboard.writeText(shareText);
+      showLocToast('📋 위치 및 지도 링크가 복사되었습니다!');
+    } catch (e) {
+      showLocToast('공유를 지원하지 않는 브라우저입니다.');
+    }
+  };
+
+  const handleCopyAddress = (text) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    showLocToast('📋 주소가 복사되었습니다.');
+  };
+
+  // 배출현황 관련 상태
+  const [allParsedData, setAllParsedData] = useState([])
+  const [availableDates, setAvailableDates] = useState([])
+  const [jiguSelectedDates, setJiguSelectedDates] = useState([])
+  const [yeogiSelectedDates, setYeogiSelectedDates] = useState([])
+  
+  const [fileName, setFileName] = useState('')
+  const [updatedAt, setUpdatedAt] = useState(null)
+  
+  // 캘린더 공용 상태
+  const [calendarMode, setCalendarMode] = useState('status') // 'status' | 'share'
+  
+  // 접수현황 내 검색 상태
+  const [statusSearchTerm, setStatusSearchTerm] = useState('')
+  const deferredStatusSearchTerm = useDeferredValue(statusSearchTerm)
+  const [statusSort, setStatusSort] = useState('dateDesc') // 'excelOrder', 'dateDesc', 'dateAsc'
+  const [statusFilter, setStatusFilter] = useState('all') // 'all', 'completed', 'uncompleted'
+  
+  // 캘린더 팝업 상태
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false)
+  const [currentMonth, setCurrentMonth] = useState(new Date())
+
+  const [activeSourceTab, setActiveSourceTab] = useState('지구하다');
+  const selectedDates = activeSourceTab === '지구하다' ? jiguSelectedDates : yeogiSelectedDates;
+  const setSelectedDates = activeSourceTab === '지구하다' ? setJiguSelectedDates : setYeogiSelectedDates;
+  const [oldFixedData, setOldFixedData] = useState([]);
+
+  useEffect(() => {
+    fetch(import.meta.env.BASE_URL + 'old_data.json')
+      .then(res => res.json())
+      .then(data => setOldFixedData(data))
+      .catch(err => console.error("Failed to load old data", err));
+  }, []);
+
+  const combinedData = useMemo(() => {
+    return activeSourceTab === '지구하다' ? allParsedData : oldFixedData;
+  }, [allParsedData, oldFixedData, activeSourceTab]);
+
+  const combinedAvailableDates = useMemo(() => {
+    const dates = new Set();
+    const sourceData = activeSourceTab === '지구하다' ? allParsedData : oldFixedData;
+    sourceData.forEach(row => {
+      if (row._dateStr) {
+        dates.add(row._dateStr);
+      }
+    });
+    return Array.from(dates).sort().reverse();
+  }, [allParsedData, oldFixedData, activeSourceTab]);
+
+  // 지구하다 기본 세팅 (현재날짜 포함 과거 5일치)
+  useEffect(() => {
+    if (jiguSelectedDates.length === 0) {
+      const dates = [];
+      const today = new Date();
+      for (let i = 0; i < 5; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i); // 0(오늘), -1(어제), -2(그제), -3, -4
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        dates.push(`${year}-${month}-${day}`);
+      }
+      setJiguSelectedDates(dates);
+    }
   }, []);
 
   // 여기로 기본 5일 세팅
