@@ -154,18 +154,30 @@ async function drawMapTilesToCanvas(ctx, lat, lng, mapX, mapY, mapW, mapH, zoom 
       const drawX = mapX + (tx * 256 - minWorldX);
       const drawY = mapY + (ty * 256 - minWorldY);
       const sub = ['a', 'b', 'c'][(Math.abs(tx) + Math.abs(ty)) % 3];
-      const url = `https://${sub}.basemaps.cartocdn.com/rastertiles/voyager/${zoom}/${tx}/${ty}.png`;
+      const url = `https://${sub}.tile.openstreetmap.org/${zoom}/${tx}/${ty}.png`;
 
       const p = new Promise((resolve) => {
+        const timer = setTimeout(() => resolve(null), 3000);
         const img = new Image();
         img.crossOrigin = 'anonymous';
-        img.onload = () => resolve({ img, drawX, drawY });
+        img.onload = () => {
+          clearTimeout(timer);
+          resolve({ img, drawX, drawY });
+        };
         img.onerror = () => {
+          clearTimeout(timer);
+          const fallbackTimer = setTimeout(() => resolve(null), 2500);
           const fallback = new Image();
           fallback.crossOrigin = 'anonymous';
-          fallback.onload = () => resolve({ img: fallback, drawX, drawY });
-          fallback.onerror = () => resolve(null);
-          fallback.src = `https://tile.openstreetmap.org/${zoom}/${tx}/${ty}.png`;
+          fallback.onload = () => {
+            clearTimeout(fallbackTimer);
+            resolve({ img: fallback, drawX, drawY });
+          };
+          fallback.onerror = () => {
+            clearTimeout(fallbackTimer);
+            resolve(null);
+          };
+          fallback.src = `https://${sub}.tile.openstreetmap.fr/hot/${zoom}/${tx}/${ty}.png`;
         };
         img.src = url;
       });
