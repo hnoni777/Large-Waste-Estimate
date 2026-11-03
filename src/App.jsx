@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useDeferredValue, useRef } from 'react'
 import { Map, MapMarker, CustomOverlayMap } from 'react-kakao-maps-sdk'
 import data from '../data.json'
 import * as XLSX from 'xlsx'
+import exifr from 'exifr'
 
 
 const APT_MAPPING = {
@@ -750,21 +751,58 @@ function App() {
     }
   }, [activeTab]);
 
-  const handleLocPhotoCapture = (e) => {
+  const handleLocPhotoCapture = async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
 
+    // 기본 촬영 일시
     const now = new Date();
-    const timeStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-    setLocTimestamp(timeStr);
+    let timeStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
     setLocPhotoBlob(file);
+
+    // 사진의 EXIF 메타데이터에서 GPS 및 촬영 일시 추출
+    let exifGps = null;
+    try {
+      const parsed = await exifr.parse(file, ['latitude', 'longitude', 'DateTimeOriginal']).catch(() => null);
+      if (parsed && typeof parsed.latitude === 'number' && typeof parsed.longitude === 'number') {
+        exifGps = { lat: parsed.latitude, lng: parsed.longitude };
+      } else {
+        const gpsOnly = await exifr.gps(file).catch(() => null);
+        if (gpsOnly && typeof gpsOnly.latitude === 'number' && typeof gpsOnly.longitude === 'number') {
+          exifGps = { lat: gpsOnly.latitude, lng: gpsOnly.longitude };
+        }
+      }
+
+      if (parsed && parsed.DateTimeOriginal) {
+        const d = new Date(parsed.DateTimeOriginal);
+        if (!isNaN(d.getTime())) {
+          timeStr = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+        }
+      }
+    } catch (err) {
+      console.warn('EXIF parsing failed:', err);
+    }
+
+    setLocTimestamp(timeStr);
+
     const reader = new FileReader();
     reader.onload = (event) => {
       setLocPhoto(event.target.result);
       setIsLocationResultView(true);
       window.history.pushState({ type: 'modal', modal: 'locationResult' }, '');
-      refreshLocation(true);
+
+      if (exifGps) {
+        // 사진에 저장된 실제 위치 적용
+        setLocCoords({ lat: exifGps.lat, lng: exifGps.lng, accuracy: 0 });
+        setIsLocLocating(true);
+        fetchAddressForLocation(exifGps.lat, exifGps.lng, 0);
+        showLocToast('📷 사진에 저장된 촬영 위치로 지도가 이동되었습니다.');
+      } else {
+        // 사진에 GPS가 없는 경우 현재 스마트폰 위치 사용
+        refreshLocation(true);
+        showLocToast('사진에 위치 정보가 없어 현재 스마트폰 위치로 설정되었습니다.');
+      }
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -3151,10 +3189,27 @@ function App() {
               center={locCoords ? { lat: locCoords.lat, lng: locCoords.lng } : DEFAULT_MAP_CENTER}
               style={{ width: '100%', height: '100%' }}
               level={3}
+              onClick={(_target, mouseEvent) => {
+                const lat = mouseEvent.latLng.getLat();
+                const lng = mouseEvent.latLng.getLng();
+                setLocCoords({ lat, lng, accuracy: 0 });
+                setIsLocLocating(true);
+                fetchAddressForLocation(lat, lng, 0);
+                showLocToast('📍 선택한 위치로 핀과 주소가 변경되었습니다.');
+              }}
             >
               {locCoords && (
                 <MapMarker
                   position={{ lat: locCoords.lat, lng: locCoords.lng }}
+                  draggable={true}
+                  onDragEnd={(marker) => {
+                    const lat = marker.getPosition().getLat();
+                    const lng = marker.getPosition().getLng();
+                    setLocCoords({ lat, lng, accuracy: 0 });
+                    setIsLocLocating(true);
+                    fetchAddressForLocation(lat, lng, 0);
+                    showLocToast('📍 핀 위치로 주소가 변경되었습니다.');
+                  }}
                   image={{
                     src: 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png',
                     size: { width: 34, height: 38 }
